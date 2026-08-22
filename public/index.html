@@ -575,7 +575,8 @@
         // 2. Instancia o RTCPeerConnection configurado com o STUN público do Google
         const configuration = {
             iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' }
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
             ]
         };
 
