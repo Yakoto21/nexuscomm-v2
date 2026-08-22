@@ -31,24 +31,44 @@ io.on('connection', (socket) => {
     socket.on('join-room', (room) => {
         socket.join(room);
         console.log(`🚪 Usuário ${socket.id} entrou na sala: "${room}"`);
+        // Notifica outros participantes da sala que um novo usuário entrou
+        socket.to(room).emit('user-joined', { id: socket.id });
     });
 
     // 1. Repasse da Oferta WebRTC (offer) para a sala específica
     socket.on('offer', (data) => {
         console.log(`📡 Repassando offer de ${socket.id} para a sala: "${data.room}"`);
-        socket.to(data.room).emit('offer', data.offer || data);
+        socket.to(data.room).emit('offer', {
+            offer: data.offer || data,
+            sender: socket.id
+        });
     });
 
     // 2. Repasse da Resposta WebRTC (answer) para a sala específica
     socket.on('answer', (data) => {
         console.log(`📡 Repassando answer de ${socket.id} para a sala: "${data.room}"`);
-        socket.to(data.room).emit('answer', data.answer || data);
+        socket.to(data.room).emit('answer', {
+            answer: data.answer || data,
+            sender: socket.id
+        });
     });
 
     // 3. Repasse dos Candidatos ICE (ice-candidate) para a sala específica
     socket.on('ice-candidate', (data) => {
         console.log(`❄️ Repassando ice-candidate de ${socket.id} para a sala: "${data.room}"`);
-        socket.to(data.room).emit('ice-candidate', data.candidate || data);
+        socket.to(data.room).emit('ice-candidate', {
+            candidate: data.candidate,
+            sender: socket.id
+        });
+    });
+
+    // Notifica quando o usuário estiver desconectando das salas
+    socket.on('disconnecting', () => {
+        for (const room of socket.rooms) {
+            if (room !== socket.id) {
+                socket.to(room).emit('user-left', { id: socket.id });
+            }
+        }
     });
 
     socket.on('disconnect', () => {

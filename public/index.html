@@ -532,6 +532,7 @@
 
         let currentRoom = null;
         let localStream = null;
+        let iceCandidateQueue = [];
 
         // Elementos do DOM
         const socketDot = document.getElementById('socketDot');
@@ -572,23 +573,28 @@
             socketStatusText.innerText = 'Socket: Desconectado';
         });
 
-        // 2. Instancia o RTCPeerConnection configurado com o STUN público do Google
-        const configuration = {
+        // 2. Configuração de Servidores STUN públicos confiáveis
+        const rtcConfiguration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-            ]
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                { urls: 'stun:stun.cloudflare.com:3478' }
+            ],
+            iceCandidatePoolSize: 10
         };
 
-        const peerConnection = new RTCPeerConnection(configuration);
+        const peerConnection = new RTCPeerConnection(rtcConfiguration);
 
         // 3. Envia ICE Candidates encontrados localmente para a sala específica via Socket.IO
         peerConnection.onicecandidate = (event) => {
             if (event.candidate && currentRoom) {
-                console.log('📤 Enviando ICE Candidate para a sala:', currentRoom);
+                console.log('📤 Enviando ICE Candidate local');
                 socket.emit('ice-candidate', {
                     room: currentRoom,
-                    candidate: event.candidate
+                    candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate
                 });
             }
         };
@@ -596,38 +602,115 @@
         // 4. Recebe a stream de mídia remota e injeta no remoteVideo.srcObject
         peerConnection.ontrack = (event) => {
             console.log('🎥 Recebida track remota:', event.streams);
-            const [remoteStream] = event.streams;
-            remoteVideo.srcObject = remoteStream;
-            
-            remotePlaceholder.style.opacity = '0';
-            remoteStatusBadge.className = 'badge-status badge-live';
-            remoteStatusBadge.innerText = 'Transmitindo';
-            webrtcStatusText.innerText = 'WebRTC: Conectado P2P';
+            if (event.streams && event.streams[0]) {
+                remoteVideo.srcObject = event.streams[0];
+                remotePlaceholder.style.opacity = '0';
+                remoteStatusBadge.className = 'badge-status badge-live';
+                remoteStatusBadge.innerText = 'Ao Vivo';
+                webrtcStatusText.innerText = 'WebRTC: Transmissão Ativa';
+                
+                // Força o play para evitar bloqueios de autoplay do navegador
+                remoteVideo.play().catch(e => {
+                    console.warn('Autoplay aguardando interação do usuário:', e);
+                });
+            }
         };
 
         // Monitoramento do estado da conexão P2P
         peerConnection.oniceconnectionstatechange = () => {
-            console.log('🔄 Estado ICE alterado para:', peerConnection.iceConnectionState);
-            if (peerConnection.iceConnectionState === 'connected') {
-                webrtcStatusText.innerText = 'WebRTC: Conexão Estabelecida';
-            } else if (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed') {
-                webrtcStatusText.innerText = 'WebRTC: Desconectado';
+            const state = peerConnection.iceConnectionState;
+            console.log('🔄 Estado ICE alterado para:', state);
+            if (state === 'connected' || state === 'completed') {
+                webrtcStatusText.innerText = 'WebRTC: Conexão Estabelecida!';
+                remoteStatusBadge.className = 'badge-status badge-live';
+                remoteStatusBadge.innerText = 'Ao Vivo';
+            } else if (state === 'checking') {
+                webrtcStatusText.innerText = 'WebRTC: Negociando conexão P2P...';
+            } else if (state === 'disconnected' || state === 'failed') {
+                webrtcStatusText.innerText = `WebRTC: ${state === 'failed' ? 'Falha na Conexão' : 'Desconectado'}`;
                 remoteStatusBadge.className = 'badge-status badge-offline';
-                remoteStatusBadge.innerText = 'Desconectado';
-                remotePlaceholder.style.opacity = '1';
-                remoteVideo.srcObject = null;
+                remoteStatusBadge.innerText = 'Offline';
             }
         };
 
-        // 5. Tratamento de Sinalização recebida via Socket.IO por Sala
+        peerConnection.onconnectionstatechange = () => {
+            console.log('🔄 ConnectionState alterado para:', peerConnection.connectionState);
+        };
 
-        // A. Escuta Offer -> Define Remote Description, gera Answer e envia de volta com o room
+        // Função para drenar a fila de ICE Candidates recebidos antes do setRemoteDescription
+        async function processIceCandidateQueue() {
+            while (iceCandidateQueue.length > 0) {
+                const candidate = iceCandidateQueue.shift();
+                try {
+                    await peerConnection.addIceCandidate(candidate);
+                    console.log('✅ ICE Candidate da fila processado com sucesso');
+                } catch (e) {
+                    console.error('Erro ao adicionar ICE Candidate da fila:', e);
+                }
+            }
+        }
+
+        // Função para criar e enviar uma Offer WebRTC
+        async function createAndSendOffer() {
+            if (!currentRoom) return;
+            try {
+                if (localStream) {
+                    localStream.getTracks().forEach((track) => {
+                        const senders = peerConnection.getSenders();
+                        const exists = senders.some(s => s.track && s.track.kind === track.kind);
+                        if (!exists) {
+                            peerConnection.addTrack(track, localStream);
+                        }
+                    });
+                }
+
+                console.log('📤 Criando Offer WebRTC...');
+                const offer = await peerConnection.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                });
+                await peerConnection.setLocalDescription(offer);
+
+                console.log('📤 Enviando Offer para a sala:', currentRoom);
+                socket.emit('offer', {
+                    room: currentRoom,
+                    offer: offer
+                });
+                webrtcStatusText.innerText = `WebRTC: Chamando participantes da sala [${currentRoom}]...`;
+            } catch (err) {
+                console.error('Erro ao criar/enviar Offer:', err);
+            }
+        }
+
+        // 5. Tratamento de Sinalização via Socket.IO
+
+        // Quando um novo participante entra na sala
+        socket.on('user-joined', async (data) => {
+            console.log('👤 Novo participante entrou na sala:', data);
+            webrtcStatusText.innerText = 'Novo participante conectado! Iniciando chamada...';
+            // Inicia a oferta para conectar com o novo participante
+            await createAndSendOffer();
+        });
+
+        // A. Escuta Offer -> Define Remote Description, adiciona tracks locais se houver, gera Answer
         socket.on('offer', async (data) => {
             const offer = data.offer || data;
-            console.log('📥 Recebida Offer na sala:', offer);
+            if (!offer || !offer.type) return;
+            console.log('📥 Recebida Offer:', offer);
             try {
+                if (localStream) {
+                    localStream.getTracks().forEach((track) => {
+                        const senders = peerConnection.getSenders();
+                        const exists = senders.some(s => s.track && s.track.kind === track.kind);
+                        if (!exists) {
+                            peerConnection.addTrack(track, localStream);
+                        }
+                    });
+                }
+
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-                
+                await processIceCandidateQueue();
+
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
 
@@ -636,7 +719,7 @@
                     room: currentRoom,
                     answer: answer
                 });
-                webrtcStatusText.innerText = 'WebRTC: Respondendo Offer...';
+                webrtcStatusText.innerText = 'WebRTC: Respondendo chamada...';
             } catch (err) {
                 console.error('Erro ao processar Offer:', err);
             }
@@ -645,26 +728,43 @@
         // B. Escuta Answer -> Define Remote Description com a resposta
         socket.on('answer', async (data) => {
             const answer = data.answer || data;
-            console.log('📥 Recebida Answer do peer remoto:', answer);
+            if (!answer || !answer.type) return;
+            console.log('📥 Recebida Answer do par remoto');
             try {
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                await processIceCandidateQueue();
                 webrtcStatusText.innerText = 'WebRTC: Par Conectado na Sala!';
             } catch (err) {
                 console.error('Erro ao definir Remote Description com Answer:', err);
             }
         });
 
-        // C. Escuta ICE Candidate -> Adiciona o candidato ao RTCPeerConnection
+        // C. Escuta ICE Candidate -> Adiciona ao RTCPeerConnection ou enfileira
         socket.on('ice-candidate', async (data) => {
-            const candidate = data.candidate || data;
-            console.log('📥 Recebido ICE Candidate remoto:', candidate);
+            const candidateData = data.candidate || data;
+            if (!candidateData || !candidateData.candidate) return;
+            
             try {
-                if (candidate) {
-                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                const candidate = new RTCIceCandidate(candidateData);
+                if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+                    await peerConnection.addIceCandidate(candidate);
+                } else {
+                    console.log('⏳ Enfileirando ICE Candidate (remoteDescription ainda não definida)');
+                    iceCandidateQueue.push(candidate);
                 }
             } catch (err) {
-                console.error('Erro ao adicionar ICE Candidate remoto:', err);
+                console.error('Erro ao processar ICE Candidate remoto:', err);
             }
+        });
+
+        // D. Quando outro usuário sai da sala
+        socket.on('user-left', (data) => {
+            console.log('🚪 Usuário saiu da sala:', data);
+            webrtcStatusText.innerText = 'Participante saiu da sala';
+            remoteStatusBadge.className = 'badge-status badge-offline';
+            remoteStatusBadge.innerText = 'Desconectado';
+            remotePlaceholder.style.opacity = '1';
+            remoteVideo.srcObject = null;
         });
 
         // 6. Ação de Entrar na Sala (join-room)
@@ -691,7 +791,7 @@
 
             // Revela os botões de controle de mídia
             mediaControls.style.display = 'flex';
-            webrtcStatusText.innerText = `WebRTC: Pronto na sala [${currentRoom}]`;
+            webrtcStatusText.innerText = `WebRTC: Conectado na sala [${currentRoom}]. Ligue sua câmera para transmitir!`;
         });
 
         // Permitir entrar na sala ao pressionar Enter no input
@@ -701,7 +801,7 @@
             }
         });
 
-        // 7. Função para capturar mídia, adicionar tracks ao PeerConnection e enviar Offer com a sala
+        // 7. Função para capturar mídia e atualizar o stream local
         async function startMedia(type) {
             if (!currentRoom) {
                 alert('Por favor, entre em uma sala primeiro.');
@@ -715,10 +815,16 @@
 
                 if (type === 'camera') {
                     localVideo.style.transform = 'scaleX(-1)';
-                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    localStream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+                        audio: true
+                    });
                 } else {
                     localVideo.style.transform = 'none';
-                    localStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                    localStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: true
+                    });
                 }
 
                 // Injeta no vídeo local
@@ -732,29 +838,30 @@
                 muteBtnText.innerText = 'Mutar Microfone';
                 micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />`;
 
-                // Adiciona tracks ao RTCPeerConnection
+                // Substitui ou adiciona tracks no PeerConnection
                 localStream.getTracks().forEach((track) => {
-                    peerConnection.addTrack(track, localStream);
+                    const senders = peerConnection.getSenders();
+                    const sender = senders.find(s => s.track && s.track.kind === track.kind);
+                    if (sender) {
+                        sender.replaceTrack(track);
+                    } else {
+                        peerConnection.addTrack(track, localStream);
+                    }
                 });
 
-                // Cria uma Offer WebRTC, define Local Description e envia via Socket.IO com a sala
-                console.log('📤 Criando Offer para a sala:', currentRoom);
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
+                // Envia oferta para estabelecer conexão de áudio/vídeo
+                await createAndSendOffer();
 
-                socket.emit('offer', {
-                    room: currentRoom,
-                    offer: offer
-                });
-                webrtcStatusText.innerText = `WebRTC: Enviando Offer na sala [${currentRoom}]...`;
-
-                // Handler caso o compartilhamento de tela seja cancelado pelo usuário
-                localStream.getVideoTracks()[0].onended = () => {
-                    localPlaceholder.style.opacity = '1';
-                    localStatusBadge.className = 'badge-status badge-offline';
-                    localStatusBadge.innerText = 'Offline';
-                    localVideo.srcObject = null;
-                };
+                // Handler caso o compartilhamento de tela ou câmera seja encerrado
+                const videoTrack = localStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    videoTrack.onended = () => {
+                        localPlaceholder.style.opacity = '1';
+                        localStatusBadge.className = 'badge-status badge-offline';
+                        localStatusBadge.innerText = 'Offline';
+                        localVideo.srcObject = null;
+                    };
+                }
 
             } catch (err) {
                 console.error('Erro ao capturar mídia:', err);
@@ -783,12 +890,12 @@
                 btnMute.classList.remove('btn-muted');
                 muteBtnText.innerText = 'Mutar Microfone';
                 micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />`;
-                console.log('🎤 Microfone ativado (Aberta)');
+                console.log('🎤 Microfone ativado');
             } else {
                 btnMute.classList.add('btn-muted');
                 muteBtnText.innerText = 'Desmutar Microfone';
                 micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />`;
-                console.log('🔇 Microfone mutado (Fechada)');
+                console.log('🔇 Microfone mutado');
             }
         });
 
