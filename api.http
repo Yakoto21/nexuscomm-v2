@@ -1,0 +1,28 @@
+### Teste de Status da API
+GET http://localhost:3333/api/status
+
+### Página Web de Streaming (HTML)
+GET http://localhost:3333/
+
+### Cadastro de Usuário (POST /register)
+POST http://localhost:3333/register
+Content-Type: application/json
+
+{
+    "username": "gusta_admin",
+    "password": "senha_super_secreta"
+}
+
+### Login de Usuário (POST /login)
+POST http://localhost:3333/login
+Content-Type: application/json
+
+{
+    "username": "gusta_admin",
+    "password": "senha_super_secreta"
+}
+
+### Rota Protegida de Perfil (GET /me) - Substitua <SEU_TOKEN_AQUI> pelo token retornado no /login
+GET http://localhost:3333/me
+Authorization: Bearer <SEU_TOKEN_AQUI>
+
