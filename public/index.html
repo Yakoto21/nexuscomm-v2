@@ -545,10 +545,6 @@
         let cameraStream = null;
         let micStream = null;
         let screenStream = null;
-        let audioContext = null;
-        let audioDestination = null;
-        let micSource = null;
-        let screenAudioSource = null;
         let activeVideoType = 'none'; // 'none' | 'camera' | 'screen'
         let isMicMuted = false;
         let iceCandidateQueue = [];
@@ -582,6 +578,13 @@
         const remoteStatusBadge = document.getElementById('remoteStatusBadge');
         const localPlaceholder = document.getElementById('localPlaceholder');
         const remotePlaceholder = document.getElementById('remotePlaceholder');
+
+        // Stream remoto persistente para nunca perder áudio ou vídeo ao receber tracks
+        const remoteStream = new MediaStream();
+        remoteVideo.srcObject = remoteStream;
+
+        // Stream local agrupado
+        const localStream = new MediaStream();
 
         // Feedback da conexão Socket.IO
         socket.on('connect', () => {
@@ -622,21 +625,36 @@
             }
         };
 
-        // 4. Recebe a stream de mídia remota e injeta no remoteVideo.srcObject
+        // 4. Recebe tracks remotas (áudio e vídeo) e insere no remoteStream persistente
         peerConnection.ontrack = (event) => {
-            console.log('🎥 Recebida track remota:', event.streams);
-            if (event.streams && event.streams[0]) {
-                remoteVideo.srcObject = event.streams[0];
+            console.log('🎥 Recebida track remota:', event.track.kind, event.track.id);
+
+            // Remove track anterior do mesmo tipo para evitar conflitos
+            remoteStream.getTracks().forEach((t) => {
+                if (t.kind === event.track.kind && t.id !== event.track.id) {
+                    remoteStream.removeTrack(t);
+                }
+            });
+
+            remoteStream.addTrack(event.track);
+
+            if (event.track.kind === 'video') {
                 remotePlaceholder.style.opacity = '0';
                 remoteStatusBadge.className = 'badge-status badge-live';
                 remoteStatusBadge.innerText = 'Ao Vivo';
-                webrtcStatusText.innerText = 'WebRTC: Transmissão Ativa';
-                
-                // Força o play para evitar bloqueios de autoplay do navegador
-                remoteVideo.play().catch(e => {
-                    console.warn('Autoplay aguardando interação do usuário:', e);
-                });
+            } else if (event.track.kind === 'audio') {
+                if (remoteStatusBadge.innerText === 'Aguardando' || remoteStatusBadge.innerText === 'Offline') {
+                    remoteStatusBadge.className = 'badge-status badge-live';
+                    remoteStatusBadge.innerText = 'Áudio Conectado';
+                }
             }
+
+            webrtcStatusText.innerText = 'WebRTC: Transmissão Ativa';
+
+            // Garante que o elemento de vídeo toque áudio e vídeo corretamente
+            remoteVideo.play().catch((e) => {
+                console.warn('Autoplay aguardando interação do usuário:', e);
+            });
         };
 
         // Monitoramento do estado da conexão P2P
@@ -674,93 +692,61 @@
         }
 
         // Helpers para atualizar tracks no PeerConnection
-        function updatePeerVideoTrack(track) {
-            const senders = peerConnection.getSenders();
-            const videoSender = senders.find(s => (s.track && s.track.kind === 'video') || (!s.track && s.kind === 'video'));
-            if (videoSender) {
-                videoSender.replaceTrack(track || null);
-            } else if (track) {
-                peerConnection.addTrack(track, new MediaStream([track]));
-            }
-        }
-
         function updatePeerAudioTrack(track) {
             if (!track) return;
+            localStream.getAudioTracks().forEach((t) => localStream.removeTrack(t));
+            localStream.addTrack(track);
+
             const senders = peerConnection.getSenders();
-            const audioSender = senders.find(s => (s.track && s.track.kind === 'audio') || (!s.track && s.kind === 'audio'));
+            const audioSender = senders.find((s) => (s.track && s.track.kind === 'audio') || (!s.track && s.kind === 'audio'));
             if (audioSender) {
                 audioSender.replaceTrack(track);
+                console.log('🔄 Audio track substituída no WebRTC sender');
             } else {
-                peerConnection.addTrack(track, new MediaStream([track]));
+                peerConnection.addTrack(track, localStream);
+                console.log('➕ Nova audio track adicionada ao PeerConnection');
             }
         }
 
-        // Pipeline de Áudio: Mixa Microfone + Áudio da Tela (se houver)
+        function updatePeerVideoTrack(track) {
+            localStream.getVideoTracks().forEach((t) => localStream.removeTrack(t));
+            if (track) {
+                localStream.addTrack(track);
+            }
+
+            const senders = peerConnection.getSenders();
+            const videoSender = senders.find((s) => (s.track && s.track.kind === 'video') || (!s.track && s.kind === 'video'));
+            if (videoSender) {
+                videoSender.replaceTrack(track || null);
+                console.log('🔄 Video track atualizada no WebRTC sender:', track ? track.label : 'null');
+            } else if (track) {
+                peerConnection.addTrack(track, localStream);
+                console.log('➕ Nova video track adicionada ao PeerConnection');
+            }
+        }
+
+        // Obter ou criar microfone com cancelamento de eco e ganho automáticos nativos
         async function getOrCreateMicrophone() {
-            if (micStream && micStream.getAudioTracks().some(t => t.readyState === 'live')) {
+            if (micStream && micStream.getAudioTracks().some((t) => t.readyState === 'live')) {
                 return micStream;
             }
             try {
-                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                micStream.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
-                refreshAudioPipeline();
+                micStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+                const audioTrack = micStream.getAudioTracks()[0];
+                audioTrack.enabled = !isMicMuted;
+                updatePeerAudioTrack(audioTrack);
+                updateLocalStatus();
+                console.log('🎤 Microfone capturado e associado ao WebRTC');
                 return micStream;
             } catch (err) {
                 console.warn('Microfone não acessível:', err);
                 return null;
-            }
-        }
-
-        function refreshAudioPipeline() {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (!AudioCtx) {
-                if (micStream && micStream.getAudioTracks().length > 0) {
-                    updatePeerAudioTrack(micStream.getAudioTracks()[0]);
-                }
-                return;
-            }
-
-            if (!audioContext) {
-                audioContext = new AudioCtx();
-                audioDestination = audioContext.createMediaStreamDestination();
-            }
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-
-            // Conecta/reconecta microfone ao nó de destino
-            if (micStream && micStream.getAudioTracks().length > 0) {
-                if (micSource) {
-                    try { micSource.disconnect(); } catch (e) {}
-                }
-                try {
-                    micSource = audioContext.createMediaStreamSource(micStream);
-                    micSource.connect(audioDestination);
-                } catch (e) {
-                    console.warn('Erro ao conectar micSource:', e);
-                }
-            }
-
-            // Conecta áudio do compartilhamento de tela (se disponível)
-            if (screenStream && screenStream.getAudioTracks().length > 0) {
-                if (screenAudioSource) {
-                    try { screenAudioSource.disconnect(); } catch (e) {}
-                }
-                try {
-                    screenAudioSource = audioContext.createMediaStreamSource(screenStream);
-                    screenAudioSource.connect(audioDestination);
-                    console.log('🔊 Áudio da tela mixado ao microfone com sucesso!');
-                } catch (e) {
-                    console.warn('Erro ao conectar screenAudioSource:', e);
-                }
-            } else if (screenAudioSource) {
-                try { screenAudioSource.disconnect(); } catch (e) {}
-                screenAudioSource = null;
-            }
-
-            const mixedAudioTrack = audioDestination.stream.getAudioTracks()[0];
-            if (mixedAudioTrack) {
-                updatePeerAudioTrack(mixedAudioTrack);
             }
         }
 
@@ -773,7 +759,7 @@
                 localStatusBadge.innerText = 'Compartilhando Tela';
             } else if (micStream && !isMicMuted) {
                 localStatusBadge.className = 'badge-status badge-live';
-                localStatusBadge.innerText = 'Somente Áudio';
+                localStatusBadge.innerText = 'Microfone Ativo';
             } else {
                 localStatusBadge.className = 'badge-status badge-offline';
                 localStatusBadge.innerText = 'Offline';
@@ -808,16 +794,18 @@
         socket.on('user-joined', async (data) => {
             console.log('👤 Novo participante entrou na sala:', data);
             webrtcStatusText.innerText = 'Novo participante conectado! Iniciando chamada...';
-            // Inicia a oferta para conectar com o novo participante
+            await getOrCreateMicrophone();
             await createAndSendOffer();
         });
 
-        // A. Escuta Offer -> Define Remote Description, gera Answer
+        // A. Escuta Offer -> Define Remote Description, adiciona microfone se necessário, gera Answer
         socket.on('offer', async (data) => {
             const offer = data.offer || data;
             if (!offer || !offer.type) return;
             console.log('📥 Recebida Offer:', offer);
             try {
+                await getOrCreateMicrophone();
+
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
                 await processIceCandidateQueue();
 
@@ -874,11 +862,11 @@
             remoteStatusBadge.className = 'badge-status badge-offline';
             remoteStatusBadge.innerText = 'Desconectado';
             remotePlaceholder.style.opacity = '1';
-            remoteVideo.srcObject = null;
+            remoteStream.getTracks().forEach((t) => remoteStream.removeTrack(t));
         });
 
         // 6. Ação de Entrar na Sala (join-room)
-        btnJoinRoom.addEventListener('click', () => {
+        btnJoinRoom.addEventListener('click', async () => {
             const roomName = roomInput.value.trim();
             if (!roomName) {
                 alert('Por favor, digite o nome da sala.');
@@ -901,7 +889,10 @@
 
             // Revela os botões de controle de mídia
             mediaControls.style.display = 'flex';
-            webrtcStatusText.innerText = `WebRTC: Conectado na sala [${currentRoom}]. Ligue sua câmera ou microfone!`;
+            webrtcStatusText.innerText = `WebRTC: Conectado na sala [${currentRoom}]. Microfone ativado.`;
+
+            // Inicializa o microfone automaticamente para áudio imediato na sala
+            await getOrCreateMicrophone();
         });
 
         // Permitir entrar na sala ao pressionar Enter no input
@@ -921,7 +912,7 @@
             // Se a câmera já estiver ligada -> DESLIGAR
             if (activeVideoType === 'camera') {
                 if (cameraStream) {
-                    cameraStream.getTracks().forEach(t => t.stop());
+                    cameraStream.getTracks().forEach((t) => t.stop());
                     cameraStream = null;
                 }
                 activeVideoType = 'none';
@@ -975,10 +966,9 @@
         // 8. Compartilhar / Parar Compartilhamento de Tela
         function stopScreenShareTracks() {
             if (screenStream) {
-                screenStream.getTracks().forEach(t => t.stop());
+                screenStream.getTracks().forEach((t) => t.stop());
                 screenStream = null;
             }
-            refreshAudioPipeline();
             screenBtnText.innerText = 'Compartilhar Tela';
             btnScreen.classList.remove('btn-active-danger');
             btnScreen.classList.add('btn-secondary');
@@ -1006,13 +996,13 @@
             // Se a câmera estiver ligada -> desliga a câmera primeiro
             if (activeVideoType === 'camera') {
                 if (cameraStream) {
-                    cameraStream.getTracks().forEach(t => t.stop());
+                    cameraStream.getTracks().forEach((t) => t.stop());
                     cameraStream = null;
                 }
                 cameraBtnText.innerText = 'Ligar Câmera';
                 btnCamera.classList.remove('btn-active-danger');
                 btnCamera.classList.add('btn-primary');
-                cameraIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />`;
+                cameraIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />`;
             }
 
             try {
@@ -1020,8 +1010,7 @@
                 await getOrCreateMicrophone();
 
                 screenStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true,
-                    audio: true // Captura também áudio do sistema/aba se disponível
+                    video: true
                 });
 
                 activeVideoType = 'screen';
@@ -1034,7 +1023,6 @@
                 btnScreen.classList.add('btn-active-danger');
                 screenIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />`;
 
-                refreshAudioPipeline();
                 updatePeerVideoTrack(screenStream.getVideoTracks()[0]);
                 updateLocalStatus();
 
@@ -1068,7 +1056,7 @@
             }
 
             isMicMuted = !isMicMuted;
-            micStream.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
+            micStream.getAudioTracks().forEach((t) => (t.enabled = !isMicMuted));
 
             if (isMicMuted) {
                 btnMute.classList.add('btn-muted');
