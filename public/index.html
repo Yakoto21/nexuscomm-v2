@@ -373,6 +373,17 @@
             box-shadow: 0 6px 22px var(--danger-glow) !important;
         }
 
+        .btn-active-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+            box-shadow: 0 4px 16px var(--danger-glow) !important;
+            border: 1px solid rgba(239, 68, 68, 0.4) !important;
+        }
+
+        .btn-active-danger:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%) !important;
+            box-shadow: 0 6px 22px var(--danger-glow) !important;
+        }
+
         .btn:active {
             transform: translateY(0);
         }
@@ -495,16 +506,16 @@
         <!-- Botões de Controle de Mídia (Inicialmente ocultos até entrar na sala) -->
         <div id="mediaControls" class="controls">
             <button id="btnCamera" class="btn btn-primary">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg id="cameraIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                Ligar Câmera
+                <span id="cameraBtnText">Ligar Câmera</span>
             </button>
             <button id="btnScreen" class="btn btn-secondary">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg id="screenIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                Compartilhar Tela
+                <span id="screenBtnText">Compartilhar Tela</span>
             </button>
             <button id="btnMute" class="btn btn-mute">
                 <svg id="micIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -531,7 +542,15 @@
         const socket = io();
 
         let currentRoom = null;
-        let localStream = null;
+        let cameraStream = null;
+        let micStream = null;
+        let screenStream = null;
+        let audioContext = null;
+        let audioDestination = null;
+        let micSource = null;
+        let screenAudioSource = null;
+        let activeVideoType = 'none'; // 'none' | 'camera' | 'screen'
+        let isMicMuted = false;
         let iceCandidateQueue = [];
 
         // Elementos do DOM
@@ -550,7 +569,11 @@
         const localVideo = document.getElementById('localVideo');
         const remoteVideo = document.getElementById('remoteVideo');
         const btnCamera = document.getElementById('btnCamera');
+        const cameraBtnText = document.getElementById('cameraBtnText');
+        const cameraIcon = document.getElementById('cameraIcon');
         const btnScreen = document.getElementById('btnScreen');
+        const screenBtnText = document.getElementById('screenBtnText');
+        const screenIcon = document.getElementById('screenIcon');
         const btnMute = document.getElementById('btnMute');
         const muteBtnText = document.getElementById('muteBtnText');
         const micIcon = document.getElementById('micIcon');
@@ -650,20 +673,117 @@
             }
         }
 
+        // Helpers para atualizar tracks no PeerConnection
+        function updatePeerVideoTrack(track) {
+            const senders = peerConnection.getSenders();
+            const videoSender = senders.find(s => (s.track && s.track.kind === 'video') || (!s.track && s.kind === 'video'));
+            if (videoSender) {
+                videoSender.replaceTrack(track || null);
+            } else if (track) {
+                peerConnection.addTrack(track, new MediaStream([track]));
+            }
+        }
+
+        function updatePeerAudioTrack(track) {
+            if (!track) return;
+            const senders = peerConnection.getSenders();
+            const audioSender = senders.find(s => (s.track && s.track.kind === 'audio') || (!s.track && s.kind === 'audio'));
+            if (audioSender) {
+                audioSender.replaceTrack(track);
+            } else {
+                peerConnection.addTrack(track, new MediaStream([track]));
+            }
+        }
+
+        // Pipeline de Áudio: Mixa Microfone + Áudio da Tela (se houver)
+        async function getOrCreateMicrophone() {
+            if (micStream && micStream.getAudioTracks().some(t => t.readyState === 'live')) {
+                return micStream;
+            }
+            try {
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                micStream.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
+                refreshAudioPipeline();
+                return micStream;
+            } catch (err) {
+                console.warn('Microfone não acessível:', err);
+                return null;
+            }
+        }
+
+        function refreshAudioPipeline() {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) {
+                if (micStream && micStream.getAudioTracks().length > 0) {
+                    updatePeerAudioTrack(micStream.getAudioTracks()[0]);
+                }
+                return;
+            }
+
+            if (!audioContext) {
+                audioContext = new AudioCtx();
+                audioDestination = audioContext.createMediaStreamDestination();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            // Conecta/reconecta microfone ao nó de destino
+            if (micStream && micStream.getAudioTracks().length > 0) {
+                if (micSource) {
+                    try { micSource.disconnect(); } catch (e) {}
+                }
+                try {
+                    micSource = audioContext.createMediaStreamSource(micStream);
+                    micSource.connect(audioDestination);
+                } catch (e) {
+                    console.warn('Erro ao conectar micSource:', e);
+                }
+            }
+
+            // Conecta áudio do compartilhamento de tela (se disponível)
+            if (screenStream && screenStream.getAudioTracks().length > 0) {
+                if (screenAudioSource) {
+                    try { screenAudioSource.disconnect(); } catch (e) {}
+                }
+                try {
+                    screenAudioSource = audioContext.createMediaStreamSource(screenStream);
+                    screenAudioSource.connect(audioDestination);
+                    console.log('🔊 Áudio da tela mixado ao microfone com sucesso!');
+                } catch (e) {
+                    console.warn('Erro ao conectar screenAudioSource:', e);
+                }
+            } else if (screenAudioSource) {
+                try { screenAudioSource.disconnect(); } catch (e) {}
+                screenAudioSource = null;
+            }
+
+            const mixedAudioTrack = audioDestination.stream.getAudioTracks()[0];
+            if (mixedAudioTrack) {
+                updatePeerAudioTrack(mixedAudioTrack);
+            }
+        }
+
+        function updateLocalStatus() {
+            if (activeVideoType === 'camera') {
+                localStatusBadge.className = 'badge-status badge-live';
+                localStatusBadge.innerText = 'Câmera Ativa';
+            } else if (activeVideoType === 'screen') {
+                localStatusBadge.className = 'badge-status badge-live';
+                localStatusBadge.innerText = 'Compartilhando Tela';
+            } else if (micStream && !isMicMuted) {
+                localStatusBadge.className = 'badge-status badge-live';
+                localStatusBadge.innerText = 'Somente Áudio';
+            } else {
+                localStatusBadge.className = 'badge-status badge-offline';
+                localStatusBadge.innerText = 'Offline';
+            }
+        }
+
         // Função para criar e enviar uma Offer WebRTC
         async function createAndSendOffer() {
             if (!currentRoom) return;
             try {
-                if (localStream) {
-                    localStream.getTracks().forEach((track) => {
-                        const senders = peerConnection.getSenders();
-                        const exists = senders.some(s => s.track && s.track.kind === track.kind);
-                        if (!exists) {
-                            peerConnection.addTrack(track, localStream);
-                        }
-                    });
-                }
-
                 console.log('📤 Criando Offer WebRTC...');
                 const offer = await peerConnection.createOffer({
                     offerToReceiveAudio: true,
@@ -692,22 +812,12 @@
             await createAndSendOffer();
         });
 
-        // A. Escuta Offer -> Define Remote Description, adiciona tracks locais se houver, gera Answer
+        // A. Escuta Offer -> Define Remote Description, gera Answer
         socket.on('offer', async (data) => {
             const offer = data.offer || data;
             if (!offer || !offer.type) return;
             console.log('📥 Recebida Offer:', offer);
             try {
-                if (localStream) {
-                    localStream.getTracks().forEach((track) => {
-                        const senders = peerConnection.getSenders();
-                        const exists = senders.some(s => s.track && s.track.kind === track.kind);
-                        if (!exists) {
-                            peerConnection.addTrack(track, localStream);
-                        }
-                    });
-                }
-
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
                 await processIceCandidateQueue();
 
@@ -791,7 +901,7 @@
 
             // Revela os botões de controle de mídia
             mediaControls.style.display = 'flex';
-            webrtcStatusText.innerText = `WebRTC: Conectado na sala [${currentRoom}]. Ligue sua câmera para transmitir!`;
+            webrtcStatusText.innerText = `WebRTC: Conectado na sala [${currentRoom}]. Ligue sua câmera ou microfone!`;
         });
 
         // Permitir entrar na sala ao pressionar Enter no input
@@ -801,107 +911,183 @@
             }
         });
 
-        // 7. Função para capturar mídia e atualizar o stream local
-        async function startMedia(type) {
+        // 7. Ligar / Desligar Câmera
+        async function toggleCamera() {
             if (!currentRoom) {
                 alert('Por favor, entre em uma sala primeiro.');
                 return;
             }
 
+            // Se a câmera já estiver ligada -> DESLIGAR
+            if (activeVideoType === 'camera') {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(t => t.stop());
+                    cameraStream = null;
+                }
+                activeVideoType = 'none';
+                updatePeerVideoTrack(null);
+                localVideo.srcObject = null;
+                localPlaceholder.style.opacity = '1';
+                
+                cameraBtnText.innerText = 'Ligar Câmera';
+                btnCamera.classList.remove('btn-active-danger');
+                btnCamera.classList.add('btn-primary');
+                cameraIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />`;
+
+                updateLocalStatus();
+                await createAndSendOffer();
+                return;
+            }
+
+            // Se a tela estiver sendo compartilhada -> para o compartilhamento de tela primeiro
+            if (activeVideoType === 'screen') {
+                stopScreenShareTracks();
+            }
+
             try {
-                if (localStream) {
-                    localStream.getTracks().forEach(track => track.stop());
-                }
+                // Garante que o microfone está ativo para a chamada
+                await getOrCreateMicrophone();
 
-                if (type === 'camera') {
-                    localVideo.style.transform = 'scaleX(-1)';
-                    localStream = await navigator.mediaDevices.getUserMedia({
-                        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-                        audio: true
-                    });
-                } else {
-                    localVideo.style.transform = 'none';
-                    localStream = await navigator.mediaDevices.getDisplayMedia({
-                        video: true,
-                        audio: true
-                    });
-                }
-
-                // Injeta no vídeo local
-                localVideo.srcObject = localStream;
-                localPlaceholder.style.opacity = '0';
-                localStatusBadge.className = 'badge-status badge-live';
-                localStatusBadge.innerText = 'Ao Vivo';
-
-                // Reseta visual do botão de mute
-                btnMute.classList.remove('btn-muted');
-                muteBtnText.innerText = 'Mutar Microfone';
-                micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />`;
-
-                // Substitui ou adiciona tracks no PeerConnection
-                localStream.getTracks().forEach((track) => {
-                    const senders = peerConnection.getSenders();
-                    const sender = senders.find(s => s.track && s.track.kind === track.kind);
-                    if (sender) {
-                        sender.replaceTrack(track);
-                    } else {
-                        peerConnection.addTrack(track, localStream);
-                    }
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 } }
                 });
 
-                // Envia oferta para estabelecer conexão de áudio/vídeo
+                activeVideoType = 'camera';
+                localVideo.style.transform = 'scaleX(-1)';
+                localVideo.srcObject = cameraStream;
+                localPlaceholder.style.opacity = '0';
+
+                cameraBtnText.innerText = 'Desligar Câmera';
+                btnCamera.classList.remove('btn-primary');
+                btnCamera.classList.add('btn-active-danger');
+                cameraIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />`;
+
+                updatePeerVideoTrack(cameraStream.getVideoTracks()[0]);
+                updateLocalStatus();
+
                 await createAndSendOffer();
-
-                // Handler caso o compartilhamento de tela ou câmera seja encerrado
-                const videoTrack = localStream.getVideoTracks()[0];
-                if (videoTrack) {
-                    videoTrack.onended = () => {
-                        localPlaceholder.style.opacity = '1';
-                        localStatusBadge.className = 'badge-status badge-offline';
-                        localStatusBadge.innerText = 'Offline';
-                        localVideo.srcObject = null;
-                    };
-                }
-
             } catch (err) {
-                console.error('Erro ao capturar mídia:', err);
-                alert(`Não foi possível acessar a mídia: ${err.message || 'Permissão negada'}`);
+                console.error('Erro ao acessar a câmera:', err);
+                alert(`Não foi possível acessar a câmera: ${err.message || 'Permissão negada'}`);
             }
         }
 
-        // 8. Ação do Botão 'Mutar Microfone'
-        btnMute.addEventListener('click', () => {
-            if (!localStream) {
-                alert('Inicie a câmera primeiro para ter acesso ao microfone.');
+        // 8. Compartilhar / Parar Compartilhamento de Tela
+        function stopScreenShareTracks() {
+            if (screenStream) {
+                screenStream.getTracks().forEach(t => t.stop());
+                screenStream = null;
+            }
+            refreshAudioPipeline();
+            screenBtnText.innerText = 'Compartilhar Tela';
+            btnScreen.classList.remove('btn-active-danger');
+            btnScreen.classList.add('btn-secondary');
+            screenIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />`;
+        }
+
+        async function toggleScreenShare() {
+            if (!currentRoom) {
+                alert('Por favor, entre em uma sala primeiro.');
                 return;
             }
 
-            const audioTrack = localStream.getAudioTracks()[0];
-            if (!audioTrack) {
-                alert('Nenhuma trilha de áudio encontrada na transmissão ativa.');
+            // Se já estiver compartilhando tela -> PARAR
+            if (activeVideoType === 'screen') {
+                stopScreenShareTracks();
+                activeVideoType = 'none';
+                updatePeerVideoTrack(null);
+                localVideo.srcObject = null;
+                localPlaceholder.style.opacity = '1';
+                updateLocalStatus();
+                await createAndSendOffer();
                 return;
             }
 
-            // Inverte o estado da trilha de áudio
-            audioTrack.enabled = !audioTrack.enabled;
+            // Se a câmera estiver ligada -> desliga a câmera primeiro
+            if (activeVideoType === 'camera') {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(t => t.stop());
+                    cameraStream = null;
+                }
+                cameraBtnText.innerText = 'Ligar Câmera';
+                btnCamera.classList.remove('btn-active-danger');
+                btnCamera.classList.add('btn-primary');
+                cameraIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />`;
+            }
 
-            // Atualiza o estado visual do botão
-            if (audioTrack.enabled) {
-                btnMute.classList.remove('btn-muted');
-                muteBtnText.innerText = 'Mutar Microfone';
-                micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />`;
-                console.log('🎤 Microfone ativado');
-            } else {
+            try {
+                // Garante que o microfone continue ativo!
+                await getOrCreateMicrophone();
+
+                screenStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: true,
+                    audio: true // Captura também áudio do sistema/aba se disponível
+                });
+
+                activeVideoType = 'screen';
+                localVideo.style.transform = 'none';
+                localVideo.srcObject = screenStream;
+                localPlaceholder.style.opacity = '0';
+
+                screenBtnText.innerText = 'Parar Compartilhamento';
+                btnScreen.classList.remove('btn-secondary');
+                btnScreen.classList.add('btn-active-danger');
+                screenIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />`;
+
+                refreshAudioPipeline();
+                updatePeerVideoTrack(screenStream.getVideoTracks()[0]);
+                updateLocalStatus();
+
+                // Quando o usuário clicar em "Interromper compartilhamento" na barra nativa do navegador
+                const videoTrack = screenStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    videoTrack.onended = () => {
+                        if (activeVideoType === 'screen') {
+                            toggleScreenShare();
+                        }
+                    };
+                }
+
+                await createAndSendOffer();
+            } catch (err) {
+                console.error('Erro ao compartilhar tela:', err);
+                if (err.name !== 'NotAllowedError') {
+                    alert(`Não foi possível compartilhar a tela: ${err.message || 'Erro desconhecido'}`);
+                }
+            }
+        }
+
+        // 9. Mutar / Desmutar Microfone
+        async function toggleMute() {
+            if (!micStream) {
+                await getOrCreateMicrophone();
+            }
+            if (!micStream) {
+                alert('Não foi possível obter acesso ao microfone.');
+                return;
+            }
+
+            isMicMuted = !isMicMuted;
+            micStream.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
+
+            if (isMicMuted) {
                 btnMute.classList.add('btn-muted');
                 muteBtnText.innerText = 'Desmutar Microfone';
                 micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />`;
                 console.log('🔇 Microfone mutado');
+            } else {
+                btnMute.classList.remove('btn-muted');
+                muteBtnText.innerText = 'Mutar Microfone';
+                micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />`;
+                console.log('🎤 Microfone ativado');
             }
-        });
+            updateLocalStatus();
+        }
 
-        // Eventos dos botões de vídeo
-        btnCamera.addEventListener('click', () => startMedia('camera'));
-        btnScreen.addEventListener('click', () => startMedia('screen'));
+        // Eventos dos botões de controle
+        btnCamera.addEventListener('click', toggleCamera);
+        btnScreen.addEventListener('click', toggleScreenShare);
+        btnMute.addEventListener('click', toggleMute);
     </script>
 </body>
 </html>
