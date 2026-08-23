@@ -21,6 +21,12 @@ import {
 
 const routes = Router();
 
+// Função utilitária para sanitização e garantia de texto puro (Anti-XSS Defense-in-Depth)
+function sanitizePlainText(input: unknown): string {
+    if (typeof input !== 'string') return '';
+    return input.replace(/<[^>]*>?/gm, '').trim();
+}
+
 // Configuração de segurança: garantindo pelo menos 10 salt rounds no bcrypt
 const BCRYPT_SALT_ROUNDS = 10;
 
@@ -190,14 +196,15 @@ routes.post('/servers', ensureAuthenticated, async (req: Request, res: Response)
     try {
         const { nome } = req.body;
         const userId = Number(req.userId);
+        const cleanServerName = sanitizePlainText(nome);
 
-        if (!nome) {
-            return res.status(400).json({ error: 'O nome do servidor é obrigatório.' });
+        if (!cleanServerName) {
+            return res.status(400).json({ error: 'O nome do servidor é obrigatório e deve conter texto válido.' });
         }
 
         const result = await pool.query(
             'INSERT INTO servers (nome, dono_id) VALUES ($1, $2) RETURNING *',
-            [nome.trim(), userId || null]
+            [cleanServerName, userId || null]
         );
 
         const newServer = result.rows[0];
@@ -239,7 +246,8 @@ routes.patch('/servers/:serverId', ensureAuthenticated, async (req: Request, res
         const currentServer = currentServerRes.rows[0];
 
         // 2. Define o novo nome se fornecido
-        const updatedNome = (nome && nome.trim()) ? nome.trim() : currentServer.nome;
+        const cleanServerName = nome !== undefined ? sanitizePlainText(nome) : '';
+        const updatedNome = cleanServerName ? cleanServerName : currentServer.nome;
 
         // 3. Processa upload de Ícone se enviado (Base64 ou nova URL)
         let finalIconUrl = currentServer.icon_url;
@@ -309,7 +317,10 @@ routes.post('/servers/:serverId/channels', ensureAuthenticated, async (req: Requ
             return res.status(400).json({ error: 'Nome e tipo ("texto" ou "voz") são obrigatórios.' });
         }
 
-        const cleanName = String(nome).trim().toLowerCase().replace(/\s+/g, '-');
+        const cleanName = sanitizePlainText(nome).toLowerCase().replace(/\s+/g, '-');
+        if (!cleanName) {
+            return res.status(400).json({ error: 'O nome do canal é inválido.' });
+        }
 
         const result = await pool.query(
             'INSERT INTO channels (server_id, nome, tipo) VALUES ($1, $2, $3) RETURNING *',
@@ -359,13 +370,14 @@ routes.post('/servers/:serverId/roles', ensureAuthenticated, async (req: Request
             return res.status(400).json({ error: 'ID do servidor inválido.' });
         }
 
-        if (!nome) {
-            return res.status(400).json({ error: 'O nome do cargo é obrigatório.' });
+        const cleanRoleName = sanitizePlainText(nome);
+        if (!cleanRoleName) {
+            return res.status(400).json({ error: 'O nome do cargo é obrigatório e deve conter texto válido.' });
         }
 
         const newRole = await createServerRole(
             serverId,
-            nome,
+            cleanRoleName,
             cor_hex || '#94a3b8',
             Number(posicao) || 1,
             Boolean(hoist),

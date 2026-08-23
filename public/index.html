@@ -2565,10 +2565,15 @@
         }
 
         function renderSettingsAvatarPreview(iconUrl, serverName) {
+            settingsServerAvatar.textContent = '';
             if (iconUrl) {
-                settingsServerAvatar.innerHTML = `<img src="${iconUrl}" class="server-icon-img" alt="Ícone do Servidor" />`;
+                const img = document.createElement('img');
+                img.src = iconUrl;
+                img.className = 'server-icon-img';
+                img.alt = 'Ícone do Servidor';
+                settingsServerAvatar.appendChild(img);
             } else {
-                settingsServerAvatar.innerHTML = getServerInitials(serverName);
+                settingsServerAvatar.textContent = getServerInitials(serverName);
             }
         }
 
@@ -2748,10 +2753,15 @@
 
             // 2. Aplica Ícone no Avatar de Boas-Vindas
             if (welcomeServerAvatar) {
+                welcomeServerAvatar.textContent = '';
                 if (server.icon_url) {
-                    welcomeServerAvatar.innerHTML = `<img src="${server.icon_url}" class="server-icon-img" alt="${escapeHtml(server.nome)}" />`;
+                    const img = document.createElement('img');
+                    img.src = server.icon_url;
+                    img.className = 'server-icon-img';
+                    img.alt = server.nome || 'Servidor';
+                    welcomeServerAvatar.appendChild(img);
                 } else {
-                    welcomeServerAvatar.innerHTML = getServerInitials(server.nome);
+                    welcomeServerAvatar.textContent = getServerInitials(server.nome);
                 }
             }
         }
@@ -2760,7 +2770,12 @@
         async function loadServerRolesInSettings() {
             if (!activeServerId) return;
             try {
-                settingsRolesListContainer.innerHTML = '<div style="font-size: 0.85rem; color: #64748b;">Carregando cargos...</div>';
+                settingsRolesListContainer.textContent = '';
+                const loadingDiv = document.createElement('div');
+                loadingDiv.style.cssText = 'font-size: 0.85rem; color: #64748b;';
+                loadingDiv.textContent = 'Carregando cargos...';
+                settingsRolesListContainer.appendChild(loadingDiv);
+
                 const res = await fetch(`/servers/${activeServerId}/roles`);
                 const data = await res.json();
 
@@ -2769,32 +2784,58 @@
                     renderSettingsRolesList(loadedServerRoles);
                 }
             } catch (err) {
-                settingsRolesListContainer.innerHTML = '<div style="font-size: 0.85rem; color: #fca5a5;">Erro ao carregar cargos.</div>';
+                settingsRolesListContainer.textContent = '';
+                const errDiv = document.createElement('div');
+                errDiv.style.cssText = 'font-size: 0.85rem; color: #fca5a5;';
+                errDiv.textContent = 'Erro ao carregar cargos.';
+                settingsRolesListContainer.appendChild(errDiv);
             }
         }
 
         function renderSettingsRolesList(roles) {
-            settingsRolesListContainer.innerHTML = '';
+            settingsRolesListContainer.textContent = '';
             if (roles.length === 0) {
-                settingsRolesListContainer.innerHTML = '<div style="font-size: 0.85rem; color: #64748b;">Nenhum cargo encontrado.</div>';
+                const emptyDiv = document.createElement('div');
+                emptyDiv.style.cssText = 'font-size: 0.85rem; color: #64748b;';
+                emptyDiv.textContent = 'Nenhum cargo encontrado.';
+                settingsRolesListContainer.appendChild(emptyDiv);
                 return;
             }
 
             roles.forEach(role => {
                 const row = document.createElement('div');
                 row.className = 'role-row-item';
-                row.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <span class="role-dot" style="background: ${role.cor_hex || '#94a3b8'}; box-shadow: 0 0 8px ${role.cor_hex || '#94a3b8'};"></span>
-                        <div>
-                            <strong style="color: #fff; font-size: 0.92rem;">${escapeHtml(role.nome)}</strong>
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">Posição: ${role.posicao} • ${role.hoist ? 'Exibido separado' : 'Padrão'}</div>
-                        </div>
-                    </div>
-                    <span class="role-badge-chip" style="background: rgba(255, 255, 255, 0.08); border: 1px solid ${role.cor_hex || 'rgba(255,255,255,0.1)'};">
-                        ${escapeHtml(role.nome)}
-                    </span>
-                `;
+
+                const leftDiv = document.createElement('div');
+                leftDiv.style.cssText = 'display: flex; align-items: center; gap: 12px;';
+
+                const dot = document.createElement('span');
+                dot.className = 'role-dot';
+                dot.style.background = role.cor_hex || '#94a3b8';
+                dot.style.boxShadow = `0 0 8px ${role.cor_hex || '#94a3b8'}`;
+
+                const textDiv = document.createElement('div');
+                const strong = document.createElement('strong');
+                strong.style.cssText = 'color: #fff; font-size: 0.92rem;';
+                strong.textContent = role.nome;
+
+                const subDiv = document.createElement('div');
+                subDiv.style.cssText = 'font-size: 0.75rem; color: var(--text-muted);';
+                subDiv.textContent = `Posição: ${role.posicao} • ${role.hoist ? 'Exibido separado' : 'Padrão'}`;
+
+                textDiv.appendChild(strong);
+                textDiv.appendChild(subDiv);
+                leftDiv.appendChild(dot);
+                leftDiv.appendChild(textDiv);
+
+                const chip = document.createElement('span');
+                chip.className = 'role-badge-chip';
+                chip.style.background = 'rgba(255, 255, 255, 0.08)';
+                chip.style.border = `1px solid ${role.cor_hex || 'rgba(255,255,255,0.1)'}`;
+                chip.textContent = role.nome;
+
+                row.appendChild(leftDiv);
+                row.appendChild(chip);
                 settingsRolesListContainer.appendChild(row);
             });
         }
@@ -2803,7 +2844,12 @@
         async function loadServerMembersInSettings() {
             if (!activeServerId) return;
             try {
-                settingsMembersListContainer.innerHTML = '<div style="font-size: 0.85rem; color: #64748b;">Carregando membros...</div>';
+                settingsMembersListContainer.textContent = '';
+                const loadingDiv = document.createElement('div');
+                loadingDiv.style.cssText = 'font-size: 0.85rem; color: #64748b;';
+                loadingDiv.textContent = 'Carregando membros...';
+                settingsMembersListContainer.appendChild(loadingDiv);
+
                 const res = await fetch(`/servers/${activeServerId}/members`);
                 const data = await res.json();
 
@@ -2812,14 +2858,21 @@
                     renderSettingsMembersList(loadedServerMembers);
                 }
             } catch (err) {
-                settingsMembersListContainer.innerHTML = '<div style="font-size: 0.85rem; color: #fca5a5;">Erro ao carregar membros.</div>';
+                settingsMembersListContainer.textContent = '';
+                const errDiv = document.createElement('div');
+                errDiv.style.cssText = 'font-size: 0.85rem; color: #fca5a5;';
+                errDiv.textContent = 'Erro ao carregar membros.';
+                settingsMembersListContainer.appendChild(errDiv);
             }
         }
 
         function renderSettingsMembersList(members) {
-            settingsMembersListContainer.innerHTML = '';
+            settingsMembersListContainer.textContent = '';
             if (members.length === 0) {
-                settingsMembersListContainer.innerHTML = '<div style="font-size: 0.85rem; color: #64748b;">Nenhum membro registrado.</div>';
+                const emptyDiv = document.createElement('div');
+                emptyDiv.style.cssText = 'font-size: 0.85rem; color: #64748b;';
+                emptyDiv.textContent = 'Nenhum membro registrado.';
+                settingsMembersListContainer.appendChild(emptyDiv);
                 return;
             }
 
@@ -2827,24 +2880,51 @@
                 const row = document.createElement('div');
                 row.className = 'member-row-item';
 
-                const rolesChips = (Array.isArray(member.roles) && member.roles.length > 0)
-                    ? member.roles.map(r => `<span class="role-badge-chip" style="background: rgba(255,255,255,0.06); border: 1px solid ${r.cor_hex || 'rgba(255,255,255,0.1)'}; font-size: 0.72rem; padding: 2px 8px;">${escapeHtml(r.nome)}</span>`).join(' ')
-                    : '<span style="font-size: 0.75rem; color: #64748b;">Sem cargos</span>';
+                const leftDiv = document.createElement('div');
+                leftDiv.style.cssText = 'display: flex; align-items: center; gap: 12px;';
 
-                row.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div class="user-avatar-circle" style="width: 36px; height: 36px;">
-                            ${getServerInitials(member.nickname || member.username)}
-                        </div>
-                        <div>
-                            <strong style="color: #fff; font-size: 0.92rem;">${escapeHtml(member.nickname || member.username)}</strong>
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">@${escapeHtml(member.username)}</div>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                        ${rolesChips}
-                    </div>
-                `;
+                const avatar = document.createElement('div');
+                avatar.className = 'user-avatar-circle';
+                avatar.style.cssText = 'width: 36px; height: 36px;';
+                avatar.textContent = getServerInitials(member.nickname || member.username);
+
+                const textDiv = document.createElement('div');
+                const strong = document.createElement('strong');
+                strong.style.cssText = 'color: #fff; font-size: 0.92rem;';
+                strong.textContent = member.nickname || member.username;
+
+                const usernameDiv = document.createElement('div');
+                usernameDiv.style.cssText = 'font-size: 0.75rem; color: var(--text-muted);';
+                usernameDiv.textContent = `@${member.username}`;
+
+                textDiv.appendChild(strong);
+                textDiv.appendChild(usernameDiv);
+                leftDiv.appendChild(avatar);
+                leftDiv.appendChild(textDiv);
+
+                const rolesDiv = document.createElement('div');
+                rolesDiv.style.cssText = 'display: flex; gap: 6px; align-items: center; flex-wrap: wrap;';
+
+                if (Array.isArray(member.roles) && member.roles.length > 0) {
+                    member.roles.forEach(r => {
+                        const chip = document.createElement('span');
+                        chip.className = 'role-badge-chip';
+                        chip.style.background = 'rgba(255,255,255,0.06)';
+                        chip.style.border = `1px solid ${r.cor_hex || 'rgba(255,255,255,0.1)'}`;
+                        chip.style.fontSize = '0.72rem';
+                        chip.style.padding = '2px 8px';
+                        chip.textContent = r.nome;
+                        rolesDiv.appendChild(chip);
+                    });
+                } else {
+                    const noRoles = document.createElement('span');
+                    noRoles.style.cssText = 'font-size: 0.75rem; color: #64748b;';
+                    noRoles.textContent = 'Sem cargos';
+                    rolesDiv.appendChild(noRoles);
+                }
+
+                row.appendChild(leftDiv);
+                row.appendChild(rolesDiv);
                 settingsMembersListContainer.appendChild(row);
             });
         }
@@ -2982,10 +3062,11 @@
         // 4. Menu de Servidores
         // ==========================================
         function getServerInitials(name) {
-            if (!name) return 'NX';
-            const clean = name.trim();
-            const words = clean.split(/\s+/);
-            if (words.length >= 2) {
+            if (!name || typeof name !== 'string') return 'NX';
+            const clean = name.replace(/<[^>]*>?/gm, '').trim();
+            if (!clean) return 'NX';
+            const words = clean.split(/\s+/).filter(w => w.length > 0);
+            if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
                 return (words[0][0] + words[1][0]).toUpperCase();
             }
             return clean.substring(0, 2).toUpperCase();
@@ -3009,23 +3090,32 @@
 
         function renderServersList(servers) {
             if (!serversList) return;
-            serversList.innerHTML = '';
+            serversList.textContent = '';
 
             servers.forEach((server) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = `server-icon-wrapper ${activeServerId === server.id ? 'active' : ''}`;
-                wrapper.setAttribute('data-tooltip', server.nome);
-                wrapper.setAttribute('id', `server-item-${server.id}`);
+                wrapper.setAttribute('data-tooltip', server.nome || '');
+                wrapper.id = `server-item-${server.id}`;
 
-                const initials = getServerInitials(server.nome);
-                const iconHtml = server.icon_url 
-                    ? `<img src="${server.icon_url}" class="server-icon-img" alt="${escapeHtml(server.nome)}" />` 
-                    : initials;
+                const pill = document.createElement('span');
+                pill.className = 'server-pill';
 
-                wrapper.innerHTML = `
-                    <span class="server-pill"></span>
-                    <div class="server-icon">${iconHtml}</div>
-                `;
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'server-icon';
+
+                if (server.icon_url) {
+                    const img = document.createElement('img');
+                    img.src = server.icon_url;
+                    img.className = 'server-icon-img';
+                    img.alt = server.nome || 'Servidor';
+                    iconDiv.appendChild(img);
+                } else {
+                    iconDiv.textContent = getServerInitials(server.nome);
+                }
+
+                wrapper.appendChild(pill);
+                wrapper.appendChild(iconDiv);
 
                 wrapper.addEventListener('click', () => {
                     selectServer(server);
@@ -3083,8 +3173,12 @@
         // ==========================================
         async function fetchServerChannels(serverId) {
             try {
-                textChannelsList.innerHTML = '<div style="font-size: 0.8rem; color: #64748b; padding: 6px;">Carregando canais...</div>';
-                voiceChannelsList.innerHTML = '';
+                textChannelsList.textContent = '';
+                const loadingDiv = document.createElement('div');
+                loadingDiv.style.cssText = 'font-size: 0.8rem; color: #64748b; padding: 6px;';
+                loadingDiv.textContent = 'Carregando canais...';
+                textChannelsList.appendChild(loadingDiv);
+                voiceChannelsList.textContent = '';
 
                 const res = await fetch(`/servers/${serverId}/channels`);
                 const data = await res.json();
@@ -3095,48 +3189,72 @@
                 }
             } catch (err) {
                 console.error('Erro ao buscar canais:', err);
-                textChannelsList.innerHTML = '<div style="font-size: 0.8rem; color: #fca5a5; padding: 6px;">Erro ao carregar canais.</div>';
+                textChannelsList.textContent = '';
+                const errDiv = document.createElement('div');
+                errDiv.style.cssText = 'font-size: 0.8rem; color: #fca5a5; padding: 6px;';
+                errDiv.textContent = 'Erro ao carregar canais.';
+                textChannelsList.appendChild(errDiv);
             }
         }
 
         function renderChannels(channels) {
-            textChannelsList.innerHTML = '';
-            voiceChannelsList.innerHTML = '';
+            textChannelsList.textContent = '';
+            voiceChannelsList.textContent = '';
 
             const textChannels = channels.filter(c => c.tipo === 'texto');
             const voiceChannels = channels.filter(c => c.tipo === 'voz');
 
             if (textChannels.length === 0) {
-                textChannelsList.innerHTML = '<div style="font-size: 0.78rem; color: #64748b; padding: 4px 8px;">Nenhum canal de texto</div>';
+                const emptyDiv = document.createElement('div');
+                emptyDiv.style.cssText = 'font-size: 0.78rem; color: #64748b; padding: 4px 8px;';
+                emptyDiv.textContent = 'Nenhum canal de texto';
+                textChannelsList.appendChild(emptyDiv);
             } else {
                 textChannels.forEach(c => {
                     const item = document.createElement('div');
                     item.className = `channel-item ${activeChannelId === c.id ? 'active' : ''}`;
                     item.id = `channel-item-${c.id}`;
-                    item.innerHTML = `
-                        <span class="channel-icon">#</span>
-                        <span class="channel-name">${escapeHtml(c.nome)}</span>
-                    `;
+
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'channel-icon';
+                    iconSpan.textContent = '#';
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'channel-name';
+                    nameSpan.textContent = c.nome;
+
+                    item.appendChild(iconSpan);
+                    item.appendChild(nameSpan);
                     item.addEventListener('click', () => selectTextChannel(c));
                     textChannelsList.appendChild(item);
                 });
             }
 
             if (voiceChannels.length === 0) {
-                voiceChannelsList.innerHTML = '<div style="font-size: 0.78rem; color: #64748b; padding: 4px 8px;">Nenhum canal de voz</div>';
+                const emptyDiv = document.createElement('div');
+                emptyDiv.style.cssText = 'font-size: 0.78rem; color: #64748b; padding: 4px 8px;';
+                emptyDiv.textContent = 'Nenhum canal de voz';
+                voiceChannelsList.appendChild(emptyDiv);
             } else {
                 voiceChannels.forEach(c => {
                     const item = document.createElement('div');
                     item.className = `channel-item ${activeChannelId === c.id ? 'active' : ''}`;
                     item.id = `channel-item-${c.id}`;
-                    item.innerHTML = `
-                        <span class="channel-icon">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
-                            </svg>
-                        </span>
-                        <span class="channel-name">${escapeHtml(c.nome)}</span>
+
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'channel-icon';
+                    iconSpan.innerHTML = `
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                        </svg>
                     `;
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'channel-name';
+                    nameSpan.textContent = c.nome;
+
+                    item.appendChild(iconSpan);
+                    item.appendChild(nameSpan);
                     item.addEventListener('click', () => selectVoiceChannel(c));
                     voiceChannelsList.appendChild(item);
                 });
@@ -3410,34 +3528,50 @@
         }
 
         function escapeHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function createChatMessageGroup({ text, sender, timestamp, isMine }) {
+            const group = document.createElement('div');
+            group.className = `message-group ${isMine ? 'mine' : 'other'}`;
+
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'message-meta';
+
+            const strong = document.createElement('strong');
+            strong.textContent = isMine ? (currentAuthUser ? `${currentAuthUser} (Você)` : 'Você') : (sender || 'Participante');
+
+            const timeSpan = document.createElement('span');
+            timeSpan.textContent = formatTime(timestamp);
+
+            metaDiv.appendChild(strong);
+            metaDiv.appendChild(timeSpan);
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.textContent = text;
+
+            group.appendChild(metaDiv);
+            group.appendChild(bubbleDiv);
+
+            return group;
         }
 
         function appendChatMessage({ text, sender, timestamp, isMine }) {
-            const displayName = isMine ? (currentAuthUser ? `${currentAuthUser} (Você)` : 'Você') : escapeHtml(sender);
-
-            const msgHtml = `
-                <div class="message-meta">
-                    <strong>${displayName}</strong>
-                    <span>${formatTime(timestamp)}</span>
-                </div>
-                <div class="message-bubble">${escapeHtml(text)}</div>
-            `;
-
             if (mainChatMessagesList) {
-                const groupMain = document.createElement('div');
-                groupMain.className = `message-group ${isMine ? 'mine' : 'other'}`;
-                groupMain.innerHTML = msgHtml;
+                const groupMain = createChatMessageGroup({ text, sender, timestamp, isMine });
                 mainChatMessagesList.appendChild(groupMain);
                 mainChatMessagesList.scrollTop = mainChatMessagesList.scrollHeight;
             }
 
             if (chatMessages) {
-                const groupSide = document.createElement('div');
-                groupSide.className = `message-group ${isMine ? 'mine' : 'other'}`;
-                groupSide.innerHTML = msgHtml;
+                const groupSide = createChatMessageGroup({ text, sender, timestamp, isMine });
                 chatMessages.appendChild(groupSide);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
@@ -3498,24 +3632,38 @@
             console.log(`📜 Histórico carregado do Supabase para [${data.room}]:`, data.messages);
 
             if (mainChatMessagesList) {
-                mainChatMessagesList.innerHTML = `
-                    <div class="channel-welcome-banner">
-                        <div class="channel-welcome-avatar">#</div>
-                        <h2>Bem-vindo ao #${currentActiveChannelObj ? currentActiveChannelObj.nome : 'canal'}!</h2>
-                        <p>Histórico sincronizado do Supabase PostgreSQL.</p>
-                    </div>
-                `;
+                mainChatMessagesList.textContent = '';
+                const bannerDiv = document.createElement('div');
+                bannerDiv.className = 'channel-welcome-banner';
+
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'channel-welcome-avatar';
+                avatarDiv.textContent = '#';
+
+                const h2 = document.createElement('h2');
+                const channelName = currentActiveChannelObj ? currentActiveChannelObj.nome : 'canal';
+                h2.textContent = `Bem-vindo ao #${channelName}!`;
+
+                const p = document.createElement('p');
+                p.textContent = 'Histórico sincronizado do Supabase PostgreSQL.';
+
+                bannerDiv.appendChild(avatarDiv);
+                bannerDiv.appendChild(h2);
+                bannerDiv.appendChild(p);
+                mainChatMessagesList.appendChild(bannerDiv);
             }
 
             if (chatMessages) {
-                chatMessages.innerHTML = `
-                    <div class="chat-system-notice">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        <span>Histórico sincronizado com PostgreSQL.</span>
-                    </div>
+                chatMessages.textContent = '';
+                const noticeDiv = document.createElement('div');
+                noticeDiv.className = 'chat-system-notice';
+                noticeDiv.innerHTML = `
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <span>Histórico sincronizado com PostgreSQL.</span>
                 `;
+                chatMessages.appendChild(noticeDiv);
             }
 
             if (Array.isArray(data.messages)) {
@@ -3550,7 +3698,7 @@
                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
-                        <span id="name-${socketId}">${displayUsername}</span>
+                        <span id="name-${socketId}"></span>
                     </span>
                     <span id="status-${socketId}" class="badge-status badge-connecting">
                         <span class="spinner-small"></span> Conectando...
@@ -3579,6 +3727,9 @@
                     </div>
                 </div>
             `;
+
+            const nameEl = card.querySelector(`#name-${socketId}`);
+            if (nameEl) nameEl.textContent = displayUsername;
 
             videoGrid.appendChild(card);
 
