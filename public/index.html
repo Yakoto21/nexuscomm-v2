@@ -430,6 +430,14 @@
             overflow: hidden;
         }
 
+        .user-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            display: block;
+        }
+
         .user-bar-details {
             display: flex;
             flex-direction: column;
@@ -2717,6 +2725,55 @@
         // Fila de Mensagens (Message Queue) para resiliência offline/queda de rede
         const pendingMessageQueue = [];
 
+        // Identidade do Usuário e Utilitários de UI
+        let currentAuthUser = localStorage.getItem('nexuscomm_username') || 'Você';
+
+        function getServerInitials(name) {
+            if (!name || typeof name !== 'string') return 'NX';
+            const clean = name.replace(/<[^>]*>?/gm, '').trim();
+            if (!clean) return 'NX';
+            const words = clean.split(/\s+/).filter(w => w.length > 0);
+            if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
+                return (words[0][0] + words[1][0]).toUpperCase();
+            }
+            return clean.substring(0, 2).toUpperCase();
+        }
+
+        function updateCurrentUserUI(user) {
+            try {
+                if (!user && !currentUser) {
+                    const storedUsername = localStorage.getItem('nexuscomm_username');
+                    if (storedUsername) {
+                        currentUser = { username: storedUsername };
+                    }
+                }
+                const activeUser = user || currentUser;
+                if (!activeUser) return;
+
+                const displayName = activeUser.display_name || activeUser.username || localStorage.getItem('nexuscomm_username') || 'Usuário';
+                currentAuthUser = displayName;
+
+                if (userBarName) {
+                    userBarName.textContent = displayName;
+                }
+
+                if (userBarAvatar) {
+                    userBarAvatar.textContent = '';
+                    if (activeUser.avatar_url) {
+                        const img = document.createElement('img');
+                        img.src = activeUser.avatar_url;
+                        img.className = 'user-avatar-img';
+                        img.alt = displayName;
+                        userBarAvatar.appendChild(img);
+                    } else {
+                        userBarAvatar.textContent = getServerInitials(displayName);
+                    }
+                }
+            } catch (err) {
+                console.warn('Aviso ao atualizar barra de usuário:', err);
+            }
+        }
+
         socket.on('authenticated', (data) => {
             console.log('✅ Identidade confirmada pelo servidor:', data);
             if (data.username && !currentUser) {
@@ -3350,15 +3407,25 @@
 
         function enterApp(user) {
             // 1. Oculta o Portão e Revela o Layout Principal via classes CSS
-            authGateContainer.classList.add('hidden');
-            appRoot.classList.remove('hidden');
-
-            currentUser = user;
-            updateCurrentUserUI(user);
-
-            // 2. Conexão Segura do Socket.IO após persistência e transição
             try {
-                socket.auth = { token: authToken, username: user.username };
+                if (authGateContainer) authGateContainer.classList.add('hidden');
+                if (appRoot) appRoot.classList.remove('hidden');
+            } catch (domErr) {
+                console.error('Erro na transição visual do layout #appRoot:', domErr);
+            }
+
+            // 2. Atualiza estado e interface do usuário
+            try {
+                currentUser = user || currentUser || { username: localStorage.getItem('nexuscomm_username') || 'Usuário' };
+                updateCurrentUserUI(currentUser);
+            } catch (uiErr) {
+                console.warn('Aviso ao atualizar UI do usuário:', uiErr);
+            }
+
+            // 3. Conexão Segura do Socket.IO após persistência e transição
+            try {
+                const effectiveUsername = user?.username || currentUser?.username || localStorage.getItem('nexuscomm_username') || '';
+                socket.auth = { token: authToken, username: effectiveUsername };
                 if (socket.connected) {
                     socket.disconnect();
                 }
@@ -3367,8 +3434,12 @@
                 console.warn('Aviso ao conectar Socket.IO:', sockErr);
             }
 
-            // 3. Busca lista isolada de servidores
-            fetchServersList();
+            // 4. Busca lista isolada de servidores
+            try {
+                fetchServersList();
+            } catch (srvErr) {
+                console.warn('Aviso ao buscar lista de servidores:', srvErr);
+            }
         }
 
         function logoutApp(message = '') {
@@ -3552,16 +3623,6 @@
         // ==========================================
         // 4. Menu de Servidores e Isolamento de Visão
         // ==========================================
-        function getServerInitials(name) {
-            if (!name || typeof name !== 'string') return 'NX';
-            const clean = name.replace(/<[^>]*>?/gm, '').trim();
-            if (!clean) return 'NX';
-            const words = clean.split(/\s+/).filter(w => w.length > 0);
-            if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
-                return (words[0][0] + words[1][0]).toUpperCase();
-            }
-            return clean.substring(0, 2).toUpperCase();
-        }
 
         async function fetchServersList() {
             if (!authToken) return;
