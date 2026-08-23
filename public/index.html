@@ -1820,6 +1820,11 @@
             gap: 16px;
         }
 
+        /* Classe de Visibilidade Global */
+        .hidden {
+            display: none !important;
+        }
+
         /* Container Raiz da Aplicação */
         .app-root {
             display: flex;
@@ -1932,7 +1937,7 @@
     </div>
 
     <!-- ROOT DA APLICAÇÃO (Bloqueio Absoluto até Autenticação Válida) -->
-    <div id="appRoot" class="app-root" style="display: none;">
+    <div id="appRoot" class="app-root hidden">
 
         <!-- 1. Barra Lateral de Servidores (Server Sidebar) -->
         <nav id="server-sidebar" class="server-sidebar" aria-label="Menu de Servidores e Comunidades">
@@ -3188,8 +3193,8 @@
         }
 
         function showAuthGate(alertMsg = '', alertType = 'error') {
-            authGateContainer.style.display = 'flex';
-            appRoot.style.display = 'none';
+            authGateContainer.classList.remove('hidden');
+            appRoot.classList.add('hidden');
             if (alertMsg) {
                 showAuthGateAlert(alertMsg, alertType);
             } else {
@@ -3198,17 +3203,25 @@
         }
 
         function enterApp(user) {
-            authGateContainer.style.display = 'none';
-            appRoot.style.display = 'flex';
+            // 1. Oculta o Portão e Revela o Layout Principal via classes CSS
+            authGateContainer.classList.add('hidden');
+            appRoot.classList.remove('hidden');
+
             currentUser = user;
             updateCurrentUserUI(user);
 
-            // Conectar o socket autenticado
-            socket.auth = { token: authToken, username: user.username };
-            if (!socket.connected) {
+            // 2. Conexão Segura do Socket.IO após persistência e transição
+            try {
+                socket.auth = { token: authToken, username: user.username };
+                if (socket.connected) {
+                    socket.disconnect();
+                }
                 socket.connect();
+            } catch (sockErr) {
+                console.warn('Aviso ao conectar Socket.IO:', sockErr);
             }
 
+            // 3. Busca lista isolada de servidores
             fetchServersList();
         }
 
@@ -3364,9 +3377,60 @@
             logoutApp('Você saiu com sucesso.');
         });
 
+        // ==========================================
+        // 4. Menu de Servidores e Isolamento de Visão
+        // ==========================================
+        function getServerInitials(name) {
+            if (!name || typeof name !== 'string') return 'NX';
+            const clean = name.replace(/<[^>]*>?/gm, '').trim();
+            if (!clean) return 'NX';
+            const words = clean.split(/\s+/).filter(w => w.length > 0);
+            if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
+                return (words[0][0] + words[1][0]).toUpperCase();
+            }
+            return clean.substring(0, 2).toUpperCase();
+        }
+
+        async function fetchServersList() {
+            if (!authToken) return;
+            try {
+                const res = await fetch('/servers', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (res.status === 401 || res.status === 403) {
+                    logoutApp('Sua sessão expirou. Faça login novamente.');
+                    return;
+                }
+                const data = await res.json();
+                if (data && Array.isArray(data.servers)) {
+                    loadedServers = data.servers;
+                    renderServersList(loadedServers);
+                    if (loadedServers.length > 0) {
+                        const targetServer = (activeServerId && loadedServers.find(s => s.id === activeServerId)) || loadedServers[0];
+                        selectServer(targetServer);
+                    } else {
+                        activeServerId = null;
+                        activeServerObj = null;
+                        if (selectedServerTitle) selectedServerTitle.textContent = 'NexusComm';
+                        if (mainServerHeading) mainServerHeading.textContent = 'Bem-vindo ao NexusComm';
+                        if (mainHeaderSub) mainHeaderSub.textContent = 'Crie sua primeira comunidade no botão + à esquerda';
+                        if (welcomeServerTitle) welcomeServerTitle.textContent = 'Crie ou participe de uma comunidade';
+                        setViewMode('empty');
+                        renderChannels([]);
+                    }
+                }
+            } catch (err) {
+                console.warn('Aviso ao carregar servidores:', err);
+            }
+        }
+
         function renderServersList(servers) {
             if (!serversList) return;
             serversList.textContent = '';
+
+            if (!servers || servers.length === 0) {
+                return;
+            }
 
             servers.forEach((server) => {
                 const wrapper = document.createElement('div');
@@ -3402,6 +3466,7 @@
         }
 
         async function selectServer(server) {
+            if (!server) return;
             activeServerId = server.id;
             activeServerObj = server;
             document.body.classList.remove('home-view');
@@ -3411,10 +3476,10 @@
             const activeEl = document.getElementById(`server-item-${server.id}`);
             if (activeEl) activeEl.classList.add('active');
 
-            if (selectedServerTitle) selectedServerTitle.innerText = server.nome;
-            if (mainServerHeading) mainServerHeading.innerText = server.nome;
-            if (welcomeServerTitle) welcomeServerTitle.innerText = `Bem-vindo ao ${server.nome}!`;
-            if (mainHeaderSub) mainHeaderSub.innerText = `Comunidade: ${server.nome} • Navegue pelos canais à esquerda`;
+            if (selectedServerTitle) selectedServerTitle.innerText = server.nome || 'Servidor';
+            if (mainServerHeading) mainServerHeading.innerText = server.nome || 'Servidor';
+            if (welcomeServerTitle) welcomeServerTitle.innerText = `Bem-vindo ao ${server.nome || 'Servidor'}!`;
+            if (mainHeaderSub) mainHeaderSub.innerText = `Comunidade: ${server.nome || 'Servidor'} • Navegue pelos canais à esquerda`;
 
             applyServerMediaVisuals(server);
 
@@ -3448,6 +3513,11 @@
         // 5. Canais & Alternância do Palco
         // ==========================================
         async function fetchServerChannels(serverId) {
+            if (!serverId) {
+                loadedChannels = [];
+                renderChannels([]);
+                return;
+            }
             try {
                 textChannelsList.textContent = '';
                 const loadingDiv = document.createElement('div');
@@ -3456,20 +3526,22 @@
                 textChannelsList.appendChild(loadingDiv);
                 voiceChannelsList.textContent = '';
 
-                const res = await fetch(`/servers/${serverId}/channels`);
+                const res = await fetch(`/servers/${serverId}/channels`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
                 const data = await res.json();
 
-                if (data.channels && Array.isArray(data.channels)) {
+                if (data && data.channels && Array.isArray(data.channels)) {
                     loadedChannels = data.channels;
                     renderChannels(loadedChannels);
+                } else {
+                    loadedChannels = [];
+                    renderChannels([]);
                 }
             } catch (err) {
                 console.error('Erro ao buscar canais:', err);
-                textChannelsList.textContent = '';
-                const errDiv = document.createElement('div');
-                errDiv.style.cssText = 'font-size: 0.8rem; color: #fca5a5; padding: 6px;';
-                errDiv.textContent = 'Erro ao carregar canais.';
-                textChannelsList.appendChild(errDiv);
+                loadedChannels = [];
+                renderChannels([]);
             }
         }
 
@@ -3591,8 +3663,7 @@
         // Modais de Criação de Servidor e Canal
         btnOpenAddServerModal.addEventListener('click', () => {
             if (!authToken) {
-                showAuthAlert('Faça login primeiro para criar comunidades.', 'error');
-                alert('Faça login primeiro para criar novas comunidades.');
+                logoutApp('Faça login primeiro para criar comunidades.');
                 return;
             }
             modalAddServer.style.display = 'flex';
@@ -3716,37 +3787,28 @@
 
         userBarMuteBtn.addEventListener('click', () => toggleMute());
 
-        fetchServersList();
-
         // ==========================================
         // 6. Eventos do Socket.IO
         // ==========================================
         socket.on('connect_error', (err) => {
-            console.warn('🔒 Conexão rejeitada pelo servidor:', err.message);
-            socketDot.classList.remove('connected');
-            socketStatusText.innerText = 'Socket: Acesso Negado (401)';
-            webrtcStatusText.innerText = 'Autenticação necessária: ' + err.message;
-            showAuthAlert(`Erro de Autenticação: ${err.message}`, 'error');
-            updateAuthUI(false);
+            console.warn('🔒 Conexão rejeitada pelo servidor Socket.IO:', err.message);
+            if (socketDot) socketDot.classList.remove('connected');
+            if (socketStatusText) socketStatusText.innerText = 'Socket: Acesso Negado (401)';
+            if (webrtcStatusText) webrtcStatusText.innerText = 'Autenticação necessária: ' + err.message;
+            logoutApp(`Erro de Autenticação no Socket: ${err.message}`);
         });
 
         socket.on('connect', () => {
             console.log('🟢 Conectado e autenticado no Socket.IO | ID:', socket.id);
-            socketDot.classList.add('connected');
-            socketStatusText.innerText = `Socket: Conectado (${socket.id.substring(0, 6)}...)`;
-            hideAuthAlert();
-            updateAuthUI(true);
+            if (socketDot) socketDot.classList.add('connected');
+            if (socketStatusText) socketStatusText.innerText = `Socket: Conectado (${socket.id.substring(0, 6)}...)`;
         });
 
         socket.on('disconnect', (reason) => {
             console.log('🔴 Desconectado do servidor Socket.IO. Motivo:', reason);
-            socketDot.classList.remove('connected');
-            socketStatusText.innerText = 'Socket: Desconectado';
+            if (socketDot) socketDot.classList.remove('connected');
+            if (socketStatusText) socketStatusText.innerText = 'Socket: Desconectado';
         });
-
-        if (authToken) {
-            updateAuthUI(true);
-        }
 
         async function copyRoomLinkAction() {
             if (!currentRoom) return;
@@ -4375,9 +4437,18 @@
         });
 
         async function connectToRoom(roomName, isVoice = false) {
-            if (!authToken || !socket.connected) {
-                showAuthAlert('Você precisa estar autenticado para acessar este canal.', 'error');
+            if (!authToken) {
+                logoutApp('Você precisa estar autenticado para acessar este canal.');
                 return;
+            }
+
+            if (!socket.connected) {
+                try {
+                    socket.auth = { token: authToken, username: currentUser?.username || '' };
+                    socket.connect();
+                } catch (sockErr) {
+                    console.warn('Aviso na conexão do socket:', sockErr);
+                }
             }
 
             if (currentRoom && currentRoom !== roomName) {
