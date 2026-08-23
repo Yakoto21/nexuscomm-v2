@@ -220,6 +220,39 @@ routes.post('/servers', ensureAuthenticated, async (req: Request, res: Response)
     }
 });
 
+// Atualizar Servidor / Comunidade (PATCH /servers/:serverId)
+routes.patch('/servers/:serverId', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const serverId = Number(req.params.serverId);
+        const { nome } = req.body;
+
+        if (isNaN(serverId)) {
+            return res.status(400).json({ error: 'ID do servidor inválido.' });
+        }
+
+        if (!nome || !nome.trim()) {
+            return res.status(400).json({ error: 'O nome do servidor é obrigatório.' });
+        }
+
+        const result = await pool.query(
+            'UPDATE servers SET nome = $1 WHERE id = $2 RETURNING *',
+            [nome.trim(), serverId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Servidor não encontrado.' });
+        }
+
+        return res.status(200).json({
+            message: 'Servidor atualizado com sucesso!',
+            server: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Erro ao atualizar servidor:', error);
+        return res.status(500).json({ error: 'Erro ao atualizar servidor.' });
+    }
+});
+
 // Listar Canais de um Servidor (GET /servers/:serverId/channels)
 routes.get('/servers/:serverId/channels', async (req: Request, res: Response) => {
     try {

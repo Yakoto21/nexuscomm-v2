@@ -6,7 +6,7 @@
     <title>NexusComm V2 - Plataforma de Comunidades & WebRTC</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-primary: #090d16;
@@ -246,7 +246,7 @@
 
         .channels-header {
             height: 60px;
-            padding: 0 16px;
+            padding: 0 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -256,7 +256,7 @@
         }
 
         .channels-server-name {
-            font-size: 0.98rem;
+            font-size: 0.95rem;
             font-weight: 700;
             color: #ffffff;
             white-space: nowrap;
@@ -264,20 +264,21 @@
             text-overflow: ellipsis;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             cursor: pointer;
+            flex: 1;
         }
 
         .channels-server-name:hover {
             color: #c7d2fe;
         }
 
-        .btn-add-channel-quick {
+        .btn-header-action {
             background: rgba(255, 255, 255, 0.06);
             border: 1px solid rgba(255, 255, 255, 0.1);
             color: var(--text-muted);
-            width: 28px;
-            height: 28px;
+            width: 30px;
+            height: 30px;
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -287,7 +288,7 @@
             flex-shrink: 0;
         }
 
-        .btn-add-channel-quick:hover {
+        .btn-header-action:hover {
             background: rgba(99, 102, 241, 0.25);
             border-color: rgba(99, 102, 241, 0.5);
             color: #ffffff;
@@ -485,17 +486,11 @@
         }
 
         @keyframes stageFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Estágio 1: Boas-Vindas da Comunidade (Empty/Home da Comunidade) */
+        /* Estágio 1: Boas-Vindas da Comunidade (Empty View) */
         .community-welcome-card {
             display: flex;
             flex-direction: column;
@@ -689,7 +684,6 @@
             gap: 20px;
         }
 
-        /* Grid Dinâmico de Vídeos */
         .video-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
@@ -879,9 +873,7 @@
             animation: spin 0.8s linear infinite;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .badge-live {
             background: rgba(16, 185, 129, 0.15);
@@ -977,7 +969,7 @@
             box-shadow: 0 6px 20px var(--primary-glow);
         }
 
-        /* Doca Central de Controles Flutuante (Google Meet style) */
+        /* Doca Central de Controles Flutuante */
         .control-dock {
             position: fixed;
             bottom: 24px;
@@ -1074,7 +1066,7 @@
             animation: pulse 1.5s infinite;
         }
 
-        /* Painel Lateral de Chat Retrátil (Sidebar para Modo Voz) */
+        /* Painel Lateral Retrátil de Chat (Para o Modo Voz) */
         .chat-sidebar {
             position: fixed;
             top: 0;
@@ -1115,10 +1107,6 @@
             color: #ffffff;
         }
 
-        .chat-header-title svg {
-            color: var(--primary);
-        }
-
         .chat-close-btn {
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1149,9 +1137,7 @@
             scroll-behavior: smooth;
         }
 
-        .chat-messages::-webkit-scrollbar {
-            width: 6px;
-        }
+        .chat-messages::-webkit-scrollbar { width: 6px; }
         .chat-messages::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.15);
             border-radius: 999px;
@@ -1180,15 +1166,8 @@
             animation: fadeIn 0.25s ease-out;
         }
 
-        .message-group.mine {
-            align-self: flex-end;
-            align-items: flex-end;
-        }
-
-        .message-group.other {
-            align-self: flex-start;
-            align-items: flex-start;
-        }
+        .message-group.mine { align-self: flex-end; align-items: flex-end; }
+        .message-group.other { align-self: flex-start; align-items: flex-start; }
 
         .message-meta {
             font-size: 0.72rem;
@@ -1200,9 +1179,7 @@
             padding: 0 4px;
         }
 
-        .message-meta strong {
-            color: #cbd5e1;
-        }
+        .message-meta strong { color: #cbd5e1; }
 
         .message-bubble {
             padding: 10px 14px;
@@ -1347,7 +1324,28 @@
             box-shadow: 0 6px 22px var(--primary-glow);
         }
 
-        /* Toast de Notificação de Cópia */
+        .btn-room-action {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.25s ease;
+        }
+
+        .btn-room-action:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
         .toast-copied {
             position: fixed;
             bottom: 90px;
@@ -1367,13 +1365,291 @@
             z-index: 1000;
             animation: fadeIn 0.3s ease;
         }
+
+        /* ==========================================
+           4. Interface de Administração do Servidor em Tela Cheia (Discord Style)
+           ========================================== */
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(10, 14, 26, 0.98);
+            backdrop-filter: blur(36px);
+            -webkit-backdrop-filter: blur(36px);
+            z-index: 3000;
+            display: none;
+            animation: settingsFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .settings-overlay.open {
+            display: flex;
+        }
+
+        @keyframes settingsFadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Botão de Fechar no Topo Direito (X + ESC) */
+        .settings-close-container {
+            position: absolute;
+            top: 36px;
+            right: 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            z-index: 3010;
+            transition: transform 0.2s ease;
+        }
+
+        .settings-close-container:hover {
+            transform: scale(1.08);
+        }
+
+        .settings-close-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .settings-close-container:hover .settings-close-btn {
+            border-color: #ffffff;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .settings-esc-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.05em;
+        }
+
+        /* Barra Lateral de Navegação (Esquerda das Configurações) */
+        .settings-sidebar {
+            width: 280px;
+            background: rgba(15, 23, 42, 0.6);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            padding: 48px 24px;
+            gap: 24px;
+            flex-shrink: 0;
+        }
+
+        .settings-server-badge {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.02em;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .settings-nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .settings-nav-header {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--text-dark-muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0 10px;
+            margin-bottom: 6px;
+        }
+
+        .settings-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            color: #94a3b8;
+            font-size: 0.92rem;
+            font-weight: 600;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            width: 100%;
+        }
+
+        .settings-nav-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #ffffff;
+        }
+
+        .settings-nav-item.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: #ffffff;
+            border: 1px solid rgba(99, 102, 241, 0.35);
+        }
+
+        /* Palco de Edição (Direita das Configurações) */
+        .settings-content-stage {
+            flex: 1;
+            padding: 48px 60px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .settings-panel {
+            display: none;
+            width: 100%;
+            max-width: 720px;
+            flex-direction: column;
+            gap: 28px;
+            animation: stageFadeIn 0.25s ease;
+        }
+
+        .settings-panel.active {
+            display: flex;
+        }
+
+        .settings-panel-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .settings-panel-header p {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+
+        .settings-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .settings-avatar-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .settings-avatar-large {
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #ffffff;
+            box-shadow: 0 8px 24px var(--primary-glow);
+            flex-shrink: 0;
+        }
+
+        .settings-avatar-text h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .settings-avatar-text p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .settings-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .settings-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #cbd5e1;
+        }
+
+        .settings-save-bar {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+
+        /* Lista de Cargos e Membros */
+        .settings-roles-list, .settings-members-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .role-row-item, .member-row-item {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+
+        .role-row-item:hover, .member-row-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .role-badge-chip {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .role-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
     </style>
 </head>
 <body>
 
     <!-- 1. Barra Lateral de Servidores (Server Sidebar) -->
     <nav id="server-sidebar" class="server-sidebar" aria-label="Menu de Servidores e Comunidades">
-        <!-- Botão Home / Início -->
         <div class="server-icon-wrapper active" id="btnServerHome" data-tooltip="Início / Salas Rápidas">
             <span class="server-pill"></span>
             <div class="server-icon server-home-btn">
@@ -1385,14 +1661,12 @@
 
         <div class="server-divider"></div>
 
-        <!-- Lista Dinâmica de Servidores vindos da API PostgreSQL -->
         <div id="serversList" class="servers-scroll-container">
             <!-- Renderizado dinamicamente via JS -->
         </div>
 
         <div class="server-divider"></div>
 
-        <!-- Botão de Adicionar Novo Servidor (+) -->
         <div class="server-icon-wrapper" id="btnOpenAddServerModal" data-tooltip="Criar uma Comunidade">
             <span class="server-pill"></span>
             <div class="server-icon btn-add-server">
@@ -1405,21 +1679,29 @@
 
     <!-- 2. Painel de Canais (Channels Sidebar) -->
     <aside id="channels-sidebar" class="channels-sidebar">
-        <!-- Topo do Painel: Nome do Servidor Ativo -->
+        <!-- Topo do Painel: Nome do Servidor Ativo + Botão de Configurações (Engrenagem) + Botão de Adicionar Canal -->
         <div class="channels-header">
             <div class="channels-server-name" id="btnOpenServerHome">
                 <span id="selectedServerTitle">Comunidade Nexus</span>
             </div>
-            <button type="button" id="btnOpenAddChannelModal" class="btn-add-channel-quick" title="Criar novo canal neste servidor">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-                </svg>
-            </button>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <!-- ⚙️ Gatilho de Acesso: Configurações do Servidor -->
+                <button type="button" id="btnOpenServerSettings" class="btn-header-action" title="Configurações do Servidor">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </button>
+                <button type="button" id="btnOpenAddChannelModal" class="btn-header-action" title="Criar novo canal">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <!-- Lista Rolável de Categorias e Canais -->
         <div class="channels-list-container">
-            <!-- Categoria 1: Canais de Texto -->
             <div class="channel-category">
                 <div class="category-header">
                     <span>CANAIS DE TEXTO</span>
@@ -1429,7 +1711,6 @@
                 </div>
             </div>
 
-            <!-- Categoria 2: Canais de Voz -->
             <div class="channel-category">
                 <div class="category-header">
                     <span>CANAIS DE VOZ</span>
@@ -1452,13 +1733,122 @@
                     </span>
                 </div>
             </div>
-            <button type="button" id="userBarMuteBtn" class="btn-add-channel-quick" title="Mutar/Desmutar Rápido">
+            <button type="button" id="userBarMuteBtn" class="btn-header-action" title="Mutar/Desmutar Rápido">
                 <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
             </button>
         </div>
     </aside>
+
+    <!-- ==========================================
+         4. Interface de Administração do Servidor em Tela Cheia (Discord Style)
+         ========================================== -->
+    <div id="serverSettingsOverlay" class="settings-overlay">
+        <!-- Fechar no Topo Direito (X + ESC) -->
+        <div class="settings-close-container" id="btnCloseServerSettings" title="Fechar Configurações (ESC)">
+            <div class="settings-close-btn">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <span class="settings-esc-badge">ESC</span>
+        </div>
+
+        <!-- Menu Lateral Esquerdo de Navegação -->
+        <nav class="settings-sidebar">
+            <div class="settings-server-badge">
+                <span id="settingsServerNameNav">Comunidade Nexus</span>
+            </div>
+            <div class="settings-nav-group">
+                <span class="settings-nav-header">CONFIGURAÇÕES DO SERVIDOR</span>
+                <button type="button" class="settings-nav-item active" id="tabSettingsOverview">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Visão Geral</span>
+                </button>
+                <button type="button" class="settings-nav-item" id="tabSettingsRoles">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <span>Cargos</span>
+                </button>
+                <button type="button" class="settings-nav-item" id="tabSettingsMembers">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span>Membros</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Palco Central/Direito de Conteúdo -->
+        <main class="settings-content-stage">
+            <!-- 1. Aba: Visão Geral -->
+            <div id="panelSettingsOverview" class="settings-panel active">
+                <div class="settings-panel-header">
+                    <h2>Visão Geral do Servidor</h2>
+                    <p>Personalize o nome, identidade visual e preferências da sua comunidade.</p>
+                </div>
+
+                <div class="settings-card">
+                    <div class="settings-avatar-row">
+                        <div class="settings-avatar-large" id="settingsServerAvatar">NX</div>
+                        <div class="settings-avatar-text">
+                            <h4>Ícone do Servidor</h4>
+                            <p>As iniciais da sua comunidade são geradas automaticamente a partir do nome.</p>
+                        </div>
+                    </div>
+
+                    <form id="formServerOverview">
+                        <div class="settings-form-group">
+                            <label for="inputEditServerName" class="settings-label">Nome do Servidor</label>
+                            <input type="text" id="inputEditServerName" class="room-input" required />
+                        </div>
+
+                        <div id="settingsOverviewAlert" class="auth-alert" style="margin-top: 10px;"></div>
+
+                        <div class="settings-save-bar">
+                            <button type="submit" id="btnSaveServerOverview" class="btn-primary" style="padding: 12px 28px;">
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 2. Aba: Cargos -->
+            <div id="panelSettingsRoles" class="settings-panel">
+                <div class="settings-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h2>Cargos do Servidor</h2>
+                        <p>Crie e organize os cargos para definir hierarquia, cores e permissões dos membros.</p>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <div id="settingsRolesListContainer" class="settings-roles-list">
+                        <div style="font-size: 0.85rem; color: #64748b;">Carregando cargos...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Aba: Membros -->
+            <div id="panelSettingsMembers" class="settings-panel">
+                <div class="settings-panel-header">
+                    <h2>Membros da Comunidade</h2>
+                    <p>Visualize os membros participantes e seus respectivos cargos.</p>
+                </div>
+
+                <div class="settings-card">
+                    <div id="settingsMembersListContainer" class="settings-members-list">
+                        <div style="font-size: 0.85rem; color: #64748b;">Carregando membros...</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <!-- Modal para Criar Novo Servidor -->
     <div id="modalAddServer" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center; z-index: 2000;">
@@ -1539,7 +1929,6 @@
 
     <!-- Conteúdo Central: Palco Principal -->
     <main class="container">
-        <!-- Topo da Aplicação / Autenticação -->
         <header style="width: 100%; display: flex; flex-direction: column; align-items: center;">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <div>
@@ -1547,7 +1936,6 @@
                     <p id="mainHeaderSub" style="margin: 0; font-size: 0.9rem;">Videoconferência, Voz & Canais de Texto em Tempo Real</p>
                 </div>
 
-                <!-- Badge de Usuário Autenticado no Topo -->
                 <div id="authenticatedUserBadge" class="badge-room" style="display: none; align-items: center; gap: 8px;">
                     <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
                     <span>Olá, <strong id="authenticatedUsername"></strong></span>
@@ -1556,7 +1944,7 @@
             </div>
         </header>
 
-        <!-- Seção de Autenticação JWT (Exibida se deslogado) -->
+        <!-- Seção de Autenticação JWT -->
         <div id="authSection" class="auth-section">
             <div class="room-section-header">
                 <span>🔐 Autenticação Segura JWT</span>
@@ -1591,9 +1979,7 @@
             </div>
         </div>
 
-        <!-- ==========================================
-             ESTÁGIO 1: Home da Comunidade (Welcome View)
-             ========================================== -->
+        <!-- ESTÁGIO 1: Home da Comunidade (Welcome View) -->
         <div id="communityWelcomeView" class="view-stage active">
             <div class="community-welcome-card">
                 <div class="welcome-hero-avatar" id="welcomeServerAvatar">NX</div>
@@ -1624,9 +2010,7 @@
             </div>
         </div>
 
-        <!-- ==========================================
-             ESTÁGIO 2: Modo Texto Expandido (Main Text Chat)
-             ========================================== -->
+        <!-- ESTÁGIO 2: Modo Texto Expandido (Main Text Chat) -->
         <div id="mainTextChatView" class="view-stage text-chat-stage">
             <div class="text-chat-header">
                 <div class="text-chat-header-title">
@@ -1642,17 +2026,14 @@
                 </button>
             </div>
 
-            <!-- Área de Mensagens Expandida do Canal Central -->
             <div id="mainChatMessagesList" class="main-chat-messages-container">
                 <div class="channel-welcome-banner">
                     <div class="channel-welcome-avatar">#</div>
                     <h2 id="channelWelcomeHeading">Bem-vindo ao #geral!</h2>
-                    <p id="channelWelcomeDesc">Este é o início do canal #geral. Envie a primeira mensagem e colabore com a equipe.</p>
+                    <p id="channelWelcomeDesc">Este é o início do canal #geral. As mensagens são persistidas no PostgreSQL.</p>
                 </div>
-                <!-- Mensagens renderizadas dinamicamente via JS -->
             </div>
 
-            <!-- Input do Chat Central Expandido -->
             <form id="mainChatExpandedForm" class="main-chat-input-area">
                 <input type="text" id="mainChatExpandedInput" class="main-chat-input" placeholder="Conversar no canal..." autocomplete="off" />
                 <button type="submit" class="chat-send-btn" title="Enviar Mensagem">
@@ -1663,18 +2044,14 @@
             </form>
         </div>
 
-        <!-- ==========================================
-             ESTÁGIO 3: Modo Voz (WebRTC Video Grid)
-             ========================================== -->
+        <!-- ESTÁGIO 3: Modo Voz (WebRTC Video Grid) -->
         <div id="voiceStageView" class="view-stage voice-stage">
             <div class="room-section-header" style="width: 100%; margin-bottom: 4px;">
                 <span id="voiceChannelHeading" style="font-size: 1.1rem; font-weight: 700; color: #fff;">🔊 Canal de Voz WebRTC</span>
                 <span id="voiceParticipantsCount" class="badge-status badge-live">Ao Vivo</span>
             </div>
 
-            <!-- Grid de Vídeos WebRTC -->
             <div class="video-grid single-peer" id="videoGrid">
-                <!-- Vídeo Local -->
                 <div class="video-card" id="localVideoCard">
                     <div class="video-card-header">
                         <span class="video-card-title">
@@ -1709,7 +2086,6 @@
                 </div>
             </div>
 
-            <!-- Estado Vazio na Sala de Voz -->
             <div id="emptyStateContainer" class="empty-state-card">
                 <div class="empty-state-content">
                     <div class="empty-state-icon">
@@ -1731,7 +2107,6 @@
             </div>
         </div>
 
-        <!-- Barra de Status do Sistema e Conexões -->
         <div class="status-bar" style="margin-top: auto;">
             <div class="socket-status">
                 <div id="socketDot" class="socket-dot"></div>
@@ -1741,30 +2116,26 @@
         </div>
     </main>
 
-    <!-- Doca Central de Controles Flutuante (Exibida no Modo Voz) -->
+    <!-- Doca Central de Controles Flutuante (Modo Voz) -->
     <div id="controlDock" class="control-dock">
-        <!-- Botão de Microfone -->
         <button id="btnMute" class="dock-btn" title="Mutar / Desmutar Microfone">
             <svg id="micIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
             </svg>
         </button>
 
-        <!-- Botão de Câmera -->
         <button id="btnCamera" class="dock-btn" title="Ligar / Desligar Câmera">
             <svg id="cameraIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
         </button>
 
-        <!-- Botão de Compartilhar Tela -->
         <button id="btnScreen" class="dock-btn" title="Compartilhar Tela">
             <svg id="screenIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
         </button>
 
-        <!-- Botão de Chat Retrátil da Chamada -->
         <button id="btnToggleChat" class="dock-btn" title="Abrir Chat Lateral da Chamada" style="position: relative;">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -1772,7 +2143,6 @@
             <span id="chatUnreadDot" class="chat-unread-dot"></span>
         </button>
 
-        <!-- Botão de Desconectar da Chamada -->
         <button id="btnLeaveRoom" class="dock-btn dock-btn-leave" title="Desconectar do Canal de Voz">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l4 4m0 0l-4 4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -1781,7 +2151,7 @@
         </button>
     </div>
 
-    <!-- Painel Lateral Retrátil de Chat (Para o Modo Voz) -->
+    <!-- Painel Lateral Retrátil de Chat -->
     <aside id="chatSidebar" class="chat-sidebar">
         <div class="chat-header">
             <div class="chat-header-title">
@@ -1821,7 +2191,7 @@
         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
         </svg>
-        <span>Link do canal copiado com sucesso!</span>
+        <span>Link copiado com sucesso!</span>
     </div>
 
     <!-- Client do Socket.IO -->
@@ -1831,7 +2201,7 @@
         let authToken = localStorage.getItem('nexuscomm_jwt_token') || '';
         let currentAuthUser = localStorage.getItem('nexuscomm_username') || '';
 
-        // Elementos do DOM de Autenticação
+        // Elementos DOM Autenticação
         const authSection = document.getElementById('authSection');
         const authAlert = document.getElementById('authAlert');
         const authContent = document.getElementById('authContent');
@@ -1850,7 +2220,7 @@
         const btnLogout = document.getElementById('btnLogout');
         const authStatusNotice = document.getElementById('authStatusNotice');
 
-        // Elementos de Cabeçalho & UX
+        // Elementos Cabeçalho & UX
         const mainServerHeading = document.getElementById('mainServerHeading');
         const mainHeaderSub = document.getElementById('mainHeaderSub');
         const toastCopied = document.getElementById('toastCopied');
@@ -1858,7 +2228,7 @@
         const emptyStateContainer = document.getElementById('emptyStateContainer');
         const btnEmptyStateCopy = document.getElementById('btnEmptyStateCopy');
 
-        // Elementos dos 3 Estágios de Visualização (View Stages)
+        // Estágios de Visualização
         const communityWelcomeView = document.getElementById('communityWelcomeView');
         const welcomeServerAvatar = document.getElementById('welcomeServerAvatar');
         const welcomeServerTitle = document.getElementById('welcomeServerTitle');
@@ -1878,7 +2248,7 @@
         const voiceChannelHeading = document.getElementById('voiceChannelHeading');
         const voiceParticipantsCount = document.getElementById('voiceParticipantsCount');
 
-        // Elementos do Menu de Servidores
+        // Servidores & Canais
         const btnServerHome = document.getElementById('btnServerHome');
         const serversList = document.getElementById('serversList');
         const btnOpenAddServerModal = document.getElementById('btnOpenAddServerModal');
@@ -1890,10 +2260,10 @@
         const serverModalAlert = document.getElementById('serverModalAlert');
         const btnSubmitServerModal = document.getElementById('btnSubmitServerModal');
 
-        // Elementos do Painel de Canais
         const channelsSidebar = document.getElementById('channels-sidebar');
         const selectedServerTitle = document.getElementById('selectedServerTitle');
         const btnOpenServerHome = document.getElementById('btnOpenServerHome');
+        const btnOpenServerSettings = document.getElementById('btnOpenServerSettings');
         const textChannelsList = document.getElementById('textChannelsList');
         const voiceChannelsList = document.getElementById('voiceChannelsList');
         const btnOpenAddChannelModal = document.getElementById('btnOpenAddChannelModal');
@@ -1910,7 +2280,30 @@
         const userBarName = document.getElementById('userBarName');
         const userBarMuteBtn = document.getElementById('userBarMuteBtn');
 
-        // Elementos de Vídeo e Doca Flutuante de Controles
+        // ==========================================
+        // Elementos da Interface de Administração (Server Settings)
+        // ==========================================
+        const serverSettingsOverlay = document.getElementById('serverSettingsOverlay');
+        const btnCloseServerSettings = document.getElementById('btnCloseServerSettings');
+        const settingsServerNameNav = document.getElementById('settingsServerNameNav');
+        const settingsServerAvatar = document.getElementById('settingsServerAvatar');
+
+        const tabSettingsOverview = document.getElementById('tabSettingsOverview');
+        const tabSettingsRoles = document.getElementById('tabSettingsRoles');
+        const tabSettingsMembers = document.getElementById('tabSettingsMembers');
+
+        const panelSettingsOverview = document.getElementById('panelSettingsOverview');
+        const panelSettingsRoles = document.getElementById('panelSettingsRoles');
+        const panelSettingsMembers = document.getElementById('panelSettingsMembers');
+
+        const formServerOverview = document.getElementById('formServerOverview');
+        const inputEditServerName = document.getElementById('inputEditServerName');
+        const settingsOverviewAlert = document.getElementById('settingsOverviewAlert');
+        const btnSaveServerOverview = document.getElementById('btnSaveServerOverview');
+        const settingsRolesListContainer = document.getElementById('settingsRolesListContainer');
+        const settingsMembersListContainer = document.getElementById('settingsMembersListContainer');
+
+        // Controles de Vídeo / Mídia
         const videoGrid = document.getElementById('videoGrid');
         const localVideo = document.getElementById('localVideo');
         const localStatusBadge = document.getElementById('localStatusBadge');
@@ -1926,7 +2319,6 @@
         const micIcon = document.getElementById('micIcon');
         const btnLeaveRoom = document.getElementById('btnLeaveRoom');
 
-        // Elementos do Chat Lateral (Modo Voz)
         const chatSidebar = document.getElementById('chatSidebar');
         const chatPanelTitle = document.getElementById('chatPanelTitle');
         const btnToggleChat = document.getElementById('btnToggleChat');
@@ -1940,7 +2332,7 @@
         const socketStatusText = document.getElementById('socketStatusText');
         const webrtcStatusText = document.getElementById('webrtcStatusText');
 
-        // 2. Inicialização do cliente Socket.IO com o token JWT e username no objeto auth
+        // Inicialização do Socket.IO
         const socket = io({
             auth: {
                 token: authToken,
@@ -1966,20 +2358,22 @@
             }
         });
 
-        // 3. Estruturas de Estado
+        // Estruturas de Estado
         let currentViewMode = 'empty'; // 'empty' | 'text' | 'voice'
         let currentRoom = null;
         let currentActiveChannelObj = null;
-        let activeServerId = null; // null = Início / Salas Rápidas
+        let activeServerId = null;
         let activeServerObj = null;
         let activeChannelId = null;
         let selectedChannelTypeForModal = 'texto';
         let loadedServers = [];
         let loadedChannels = [];
+        let loadedServerRoles = [];
+        let loadedServerMembers = [];
         let cameraStream = null;
         let micStream = null;
         let screenStream = null;
-        let activeVideoType = 'none'; // 'none' | 'camera' | 'screen'
+        let activeVideoType = 'none';
         let isMicMuted = false;
         let isChatOpen = false;
         let unreadCount = 0;
@@ -1988,7 +2382,6 @@
         const remoteStreams = {}; 
         const iceCandidateQueues = {}; 
         const peerUsernames = {}; 
-
         const localStream = new MediaStream();
 
         const rtcConfiguration = {
@@ -2004,12 +2397,10 @@
         };
 
         // ==========================================
-        // 1. Gestão de Visibilidade do Palco Central (View Toggle)
+        // 1. Gestão de Visibilidade do Palco Central
         // ==========================================
         function setViewMode(mode) {
             currentViewMode = mode;
-            console.log('🎯 Alternando Palco Central para:', mode);
-
             communityWelcomeView.classList.remove('active');
             mainTextChatView.classList.remove('active');
             voiceStageView.classList.remove('active');
@@ -2031,7 +2422,210 @@
         }
 
         // ==========================================
-        // Funções de UI para Autenticação
+        // 2. Administração do Servidor em Tela Cheia (Discord Style)
+        // ==========================================
+        function openServerSettings() {
+            if (!activeServerObj) {
+                alert('Selecione um servidor para abrir as configurações.');
+                return;
+            }
+
+            settingsServerNameNav.innerText = activeServerObj.nome;
+            settingsServerAvatar.innerText = getServerInitials(activeServerObj.nome);
+            inputEditServerName.value = activeServerObj.nome;
+            settingsOverviewAlert.style.display = 'none';
+
+            // Abre na aba Visão Geral por padrão
+            switchSettingsTab('overview');
+
+            serverSettingsOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            console.log(`⚙️ Configurações abertas para: ${activeServerObj.nome}`);
+        }
+
+        function closeServerSettings() {
+            serverSettingsOverlay.classList.remove('open');
+            document.body.style.overflow = 'auto';
+        }
+
+        btnOpenServerSettings.addEventListener('click', openServerSettings);
+        btnCloseServerSettings.addEventListener('click', closeServerSettings);
+
+        // Tecla ESC para fechar as configurações
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && serverSettingsOverlay.classList.contains('open')) {
+                closeServerSettings();
+            }
+        });
+
+        // Alternância de Abas nas Configurações
+        function switchSettingsTab(tabName) {
+            tabSettingsOverview.classList.remove('active');
+            tabSettingsRoles.classList.remove('active');
+            tabSettingsMembers.classList.remove('active');
+
+            panelSettingsOverview.classList.remove('active');
+            panelSettingsRoles.classList.remove('active');
+            panelSettingsMembers.classList.remove('active');
+
+            if (tabName === 'overview') {
+                tabSettingsOverview.classList.add('active');
+                panelSettingsOverview.classList.add('active');
+            } else if (tabName === 'roles') {
+                tabSettingsRoles.classList.add('active');
+                panelSettingsRoles.classList.add('active');
+                loadServerRolesInSettings();
+            } else if (tabName === 'members') {
+                tabSettingsMembers.classList.add('active');
+                panelSettingsMembers.classList.add('active');
+                loadServerMembersInSettings();
+            }
+        }
+
+        tabSettingsOverview.addEventListener('click', () => switchSettingsTab('overview'));
+        tabSettingsRoles.addEventListener('click', () => switchSettingsTab('roles'));
+        tabSettingsMembers.addEventListener('click', () => switchSettingsTab('members'));
+
+        // Salvar Alterações na Visão Geral (Renomear Servidor)
+        formServerOverview.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newName = inputEditServerName.value.trim();
+            if (!newName || !activeServerId) return;
+
+            try {
+                btnSaveServerOverview.disabled = true;
+                btnSaveServerOverview.innerText = 'Salvando...';
+
+                const res = await fetch(`/servers/${activeServerId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ nome: newName })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro ao atualizar servidor');
+
+                settingsOverviewAlert.className = 'auth-alert success';
+                settingsOverviewAlert.innerText = 'Servidor atualizado com sucesso!';
+                settingsOverviewAlert.style.display = 'block';
+
+                activeServerObj.nome = newName;
+                selectedServerTitle.innerText = newName;
+                settingsServerNameNav.innerText = newName;
+                mainServerHeading.innerText = newName;
+                welcomeServerTitle.innerText = `Bem-vindo ao ${newName}!`;
+                settingsServerAvatar.innerText = getServerInitials(newName);
+                welcomeServerAvatar.innerText = getServerInitials(newName);
+
+                await fetchServersList();
+            } catch (err) {
+                settingsOverviewAlert.className = 'auth-alert error';
+                settingsOverviewAlert.innerText = err.message;
+                settingsOverviewAlert.style.display = 'block';
+            } finally {
+                btnSaveServerOverview.disabled = false;
+                btnSaveServerOverview.innerText = 'Salvar Alterações';
+            }
+        });
+
+        // Carregar Cargos na Aba de Cargos
+        async function loadServerRolesInSettings() {
+            if (!activeServerId) return;
+            try {
+                settingsRolesListContainer.innerHTML = '<div style="font-size: 0.85rem; color: #64748b;">Carregando cargos...</div>';
+                const res = await fetch(`/servers/${activeServerId}/roles`);
+                const data = await res.json();
+
+                if (data.roles && Array.isArray(data.roles)) {
+                    loadedServerRoles = data.roles;
+                    renderSettingsRolesList(loadedServerRoles);
+                }
+            } catch (err) {
+                settingsRolesListContainer.innerHTML = '<div style="font-size: 0.85rem; color: #fca5a5;">Erro ao carregar cargos.</div>';
+            }
+        }
+
+        function renderSettingsRolesList(roles) {
+            settingsRolesListContainer.innerHTML = '';
+            if (roles.length === 0) {
+                settingsRolesListContainer.innerHTML = '<div style="font-size: 0.85rem; color: #64748b;">Nenhum cargo encontrado.</div>';
+                return;
+            }
+
+            roles.forEach(role => {
+                const row = document.createElement('div');
+                row.className = 'role-row-item';
+                row.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span class="role-dot" style="background: ${role.cor_hex || '#94a3b8'}; box-shadow: 0 0 8px ${role.cor_hex || '#94a3b8'};"></span>
+                        <div>
+                            <strong style="color: #fff; font-size: 0.92rem;">${escapeHtml(role.nome)}</strong>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">Posição: ${role.posicao} • ${role.hoist ? 'Exibido separado' : 'Padrão'}</div>
+                        </div>
+                    </div>
+                    <span class="role-badge-chip" style="background: rgba(255, 255, 255, 0.08); border: 1px solid ${role.cor_hex || 'rgba(255,255,255,0.1)'};">
+                        ${escapeHtml(role.nome)}
+                    </span>
+                `;
+                settingsRolesListContainer.appendChild(row);
+            });
+        }
+
+        // Carregar Membros na Aba de Membros
+        async function loadServerMembersInSettings() {
+            if (!activeServerId) return;
+            try {
+                settingsMembersListContainer.innerHTML = '<div style="font-size: 0.85rem; color: #64748b;">Carregando membros...</div>';
+                const res = await fetch(`/servers/${activeServerId}/members`);
+                const data = await res.json();
+
+                if (data.members && Array.isArray(data.members)) {
+                    loadedServerMembers = data.members;
+                    renderSettingsMembersList(loadedServerMembers);
+                }
+            } catch (err) {
+                settingsMembersListContainer.innerHTML = '<div style="font-size: 0.85rem; color: #fca5a5;">Erro ao carregar membros.</div>';
+            }
+        }
+
+        function renderSettingsMembersList(members) {
+            settingsMembersListContainer.innerHTML = '';
+            if (members.length === 0) {
+                settingsMembersListContainer.innerHTML = '<div style="font-size: 0.85rem; color: #64748b;">Nenhum membro registrado.</div>';
+                return;
+            }
+
+            members.forEach(member => {
+                const row = document.createElement('div');
+                row.className = 'member-row-item';
+
+                const rolesChips = (Array.isArray(member.roles) && member.roles.length > 0)
+                    ? member.roles.map(r => `<span class="role-badge-chip" style="background: rgba(255,255,255,0.06); border: 1px solid ${r.cor_hex || 'rgba(255,255,255,0.1)'}; font-size: 0.72rem; padding: 2px 8px;">${escapeHtml(r.nome)}</span>`).join(' ')
+                    : '<span style="font-size: 0.75rem; color: #64748b;">Sem cargos</span>';
+
+                row.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="user-avatar-circle" style="width: 36px; height: 36px;">
+                            ${getServerInitials(member.nickname || member.username)}
+                        </div>
+                        <div>
+                            <strong style="color: #fff; font-size: 0.92rem;">${escapeHtml(member.nickname || member.username)}</strong>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">@${escapeHtml(member.username)}</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        ${rolesChips}
+                    </div>
+                `;
+                settingsMembersListContainer.appendChild(row);
+            });
+        }
+
+        // ==========================================
+        // 3. Funções de Autenticação
         // ==========================================
         function showAuthAlert(msg, type = 'error') {
             authAlert.className = `auth-alert ${type}`;
@@ -2039,9 +2633,7 @@
             authAlert.style.display = 'block';
         }
 
-        function hideAuthAlert() {
-            authAlert.style.display = 'none';
-        }
+        function hideAuthAlert() { authAlert.style.display = 'none'; }
 
         function updateAuthUI(isAuthenticated) {
             if (isAuthenticated && authToken) {
@@ -2162,7 +2754,7 @@
         });
 
         // ==========================================
-        // 2. Menu de Servidores (Server Sidebar)
+        // 4. Menu de Servidores
         // ==========================================
         function getServerInitials(name) {
             if (!name) return 'NX';
@@ -2231,7 +2823,6 @@
             if (welcomeServerAvatar) welcomeServerAvatar.innerText = getServerInitials(server.nome);
             if (mainHeaderSub) mainHeaderSub.innerText = `Comunidade: ${server.nome} • Navegue pelos canais à esquerda`;
 
-            // Ao clicar na bolinha do servidor, exibe a tela de boas-vindas da comunidade (Estado Vazio)
             setViewMode('empty');
             await fetchServerChannels(server.id);
         }
@@ -2247,7 +2838,6 @@
             if (mainServerHeading) mainServerHeading.innerText = 'NexusComm Salas Rápidas';
             if (mainHeaderSub) mainHeaderSub.innerText = 'Videoconferência & Colaboração WebRTC';
             
-            // Retorna ao modo de sala pública rápida
             const defaultRoom = 'sala-publica';
             connectToRoom(defaultRoom);
             setViewMode('voice');
@@ -2260,7 +2850,7 @@
         }
 
         // ==========================================
-        // 3. Painel de Canais & Alternância de Palco Central
+        // 5. Canais & Alternância do Palco
         // ==========================================
         async function fetchServerChannels(serverId) {
             try {
@@ -2324,7 +2914,6 @@
             }
         }
 
-        // 🟢 COMPORTAMENTO MODO TEXTO: Oculta Vídeos e Expande Chat no Palco Central
         function selectTextChannel(channel) {
             activeChannelId = channel.id;
             currentActiveChannelObj = channel;
@@ -2332,23 +2921,19 @@
 
             const textRoomName = `comunidade-${activeServerId}-txt-${channel.nome}`;
 
-            // Configura os títulos e cabeçalhos do chat expandido
             mainChatChannelName.innerText = channel.nome;
             mainChatChannelTopic.innerText = `Canal de texto da comunidade • #${channel.nome}`;
             channelWelcomeHeading.innerText = `Bem-vindo ao #${channel.nome}!`;
             channelWelcomeDesc.innerText = `Este é o início do canal #${channel.nome}. As mensagens são persistidas no PostgreSQL.`;
             mainChatExpandedInput.placeholder = `Conversar em #${channel.nome}...`;
 
-            // Alterna o palco para o Modo Texto Expandido
             setViewMode('text');
 
-            // Conecta ao Socket na sala de texto para sincronizar histórico do Supabase
             if (currentRoom !== textRoomName) {
                 connectToRoom(textRoomName, false);
             }
         }
 
-        // 🔊 COMPORTAMENTO MODO VOZ: Palco Central para Grid WebRTC e Chat na Lateral
         async function selectVoiceChannel(channel) {
             activeChannelId = channel.id;
             currentActiveChannelObj = channel;
@@ -2358,10 +2943,7 @@
             voiceChannelHeading.innerText = `🔊 Canal de Voz: ${channel.nome}`;
             chatPanelTitle.innerText = `Chat de Apoio • ${channel.nome}`;
 
-            // Alterna o palco para o Modo Voz (Grid de Vídeos)
             setViewMode('voice');
-
-            // Conecta à sala WebRTC ativando áudio/vídeo
             connectToRoom(voiceRoomName, true);
         }
 
@@ -2371,7 +2953,6 @@
             if (activeEl) activeEl.classList.add('active');
         }
 
-        // Botões de Acesso Rápido na Tela de Boas-Vindas
         btnQuickEnterGeneralText.addEventListener('click', () => {
             const firstText = loadedChannels.find(c => c.tipo === 'texto');
             if (firstText) selectTextChannel(firstText);
@@ -2384,9 +2965,7 @@
             else if (loadedChannels.length > 0) selectVoiceChannel(loadedChannels[0]);
         });
 
-        // ==========================================
         // Modais de Criação de Servidor e Canal
-        // ==========================================
         btnOpenAddServerModal.addEventListener('click', () => {
             if (!authToken) {
                 showAuthAlert('Faça login primeiro para criar comunidades.', 'error');
@@ -2517,7 +3096,7 @@
         fetchServersList();
 
         // ==========================================
-        // Eventos do Socket.IO (Conexão e Autenticação)
+        // 6. Eventos do Socket.IO
         // ==========================================
         socket.on('connect_error', (err) => {
             console.warn('🔒 Conexão rejeitada pelo servidor:', err.message);
@@ -2546,9 +3125,6 @@
             updateAuthUI(true);
         }
 
-        // ==========================================
-        // Cópia de Link do Canal
-        // ==========================================
         async function copyRoomLinkAction() {
             if (!currentRoom) return;
             const fullUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoom)}`;
@@ -2580,7 +3156,7 @@
         }
 
         // ==========================================
-        // Chat: Renderização & Disparo (Central Expandido e Lateral)
+        // 7. Chat (Central Expandido & Lateral Retrátil)
         // ==========================================
         function toggleChatSidebar(forceState = null) {
             isChatOpen = (forceState !== null) ? forceState : !isChatOpen;
@@ -2621,7 +3197,6 @@
                 <div class="message-bubble">${escapeHtml(text)}</div>
             `;
 
-            // 1. Renderiza no Chat Expandido Central (Modo Texto)
             if (mainChatMessagesList) {
                 const groupMain = document.createElement('div');
                 groupMain.className = `message-group ${isMine ? 'mine' : 'other'}`;
@@ -2630,7 +3205,6 @@
                 mainChatMessagesList.scrollTop = mainChatMessagesList.scrollHeight;
             }
 
-            // 2. Renderiza no Chat Lateral Retrátil (Modo Voz)
             if (chatMessages) {
                 const groupSide = document.createElement('div');
                 groupSide.className = `message-group ${isMine ? 'mine' : 'other'}`;
@@ -2665,13 +3239,11 @@
             if (chatInput) chatInput.value = '';
         }
 
-        // Formulário do Chat Expandido Central
         mainChatExpandedForm.addEventListener('submit', (e) => {
             e.preventDefault();
             sendChatMessage(mainChatExpandedInput.value);
         });
 
-        // Formulário do Chat Lateral Retrátil
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
             sendChatMessage(chatInput.value);
@@ -2687,7 +3259,6 @@
                 isMine: isMine
             });
 
-            // Notificação vermelha na doca flutuante se estiver no Modo Voz com o chat fechado
             if (currentViewMode === 'voice' && !isChatOpen) {
                 unreadCount++;
                 chatUnreadDot.style.display = 'block';
@@ -2697,7 +3268,6 @@
         socket.on('room-history', (data) => {
             console.log(`📜 Histórico carregado do Supabase para [${data.room}]:`, data.messages);
 
-            // Reseta a lista central do canal
             if (mainChatMessagesList) {
                 mainChatMessagesList.innerHTML = `
                     <div class="channel-welcome-banner">
@@ -2708,7 +3278,6 @@
                 `;
             }
 
-            // Reseta a lista lateral do canal
             if (chatMessages) {
                 chatMessages.innerHTML = `
                     <div class="chat-system-notice">
@@ -2734,7 +3303,7 @@
         });
 
         // ==========================================
-        // Gerenciador de Cards Remotos no Grid
+        // 8. Gerenciador de Cards Remotos no Grid
         // ==========================================
         function getOrCreateRemoteCard(socketId, username) {
             let card = document.getElementById(`card-${socketId}`);
@@ -2793,7 +3362,7 @@
         }
 
         // ==========================================
-        // WebRTC Multi-Peer (RTCPeerConnection)
+        // 9. WebRTC Multi-Peer (RTCPeerConnection)
         // ==========================================
         function createPeerConnection(targetSocketId, isInitiator, targetUsername) {
             if (peerConnections[targetSocketId]) return peerConnections[targetSocketId];
@@ -3030,9 +3599,7 @@
             emitMediaStateChange();
         }
 
-        // ==========================================
-        // Eventos WebRTC do Socket.IO
-        // ==========================================
+        // Eventos WebRTC
         socket.on('room-users', async (data) => {
             console.log('👥 Participantes na sala:', data.users);
             if (currentViewMode === 'voice') {
@@ -3151,9 +3718,6 @@
             closePeerConnection(data.id);
         });
 
-        // ==========================================
-        // Conexão de Sala / Canal
-        // ==========================================
         async function connectToRoom(roomName, isVoice = false) {
             if (!authToken || !socket.connected) {
                 showAuthAlert('Você precisa estar autenticado para acessar este canal.', 'error');
@@ -3204,7 +3768,6 @@
             updateGridLayout();
             updateLocalStatus();
 
-            // Retorna à tela inicial da comunidade
             setViewMode('empty');
             webrtcStatusText.innerText = 'Desconectado do canal de voz.';
         }
