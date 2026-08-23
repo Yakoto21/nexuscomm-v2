@@ -47,27 +47,20 @@
                 radial-gradient(at 90% 90%, rgba(14, 165, 233, 0.12) 0px, transparent 50%),
                 radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.8) 0px, transparent 100%);
             color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 24px 24px 100px 336px; /* 72px server + 240px channels + 24px margem */
-            overflow-x: hidden;
-            transition: padding-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        body.home-view {
-            padding-left: 96px; /* 72px server + 24px margem */
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
         }
 
         /* 1. Barra Lateral de Servidores (Server Sidebar) */
         .server-sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            bottom: 0;
             width: 72px;
+            min-width: 72px;
+            max-width: 72px;
+            flex-shrink: 0;
+            height: 100vh;
             background: var(--bg-sidebar);
             backdrop-filter: blur(28px);
             -webkit-backdrop-filter: blur(28px);
@@ -79,6 +72,7 @@
             z-index: 1000;
             gap: 8px;
             box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+            position: relative;
         }
 
         .servers-scroll-container {
@@ -230,11 +224,11 @@
 
         /* 2. Painel de Canais (Channels Sidebar) */
         .channels-sidebar {
-            position: fixed;
-            top: 0;
-            left: 72px;
-            bottom: 0;
             width: 240px;
+            min-width: 240px;
+            max-width: 240px;
+            flex-shrink: 0;
+            height: 100vh;
             background: var(--bg-channels);
             backdrop-filter: blur(28px);
             -webkit-backdrop-filter: blur(28px);
@@ -243,13 +237,12 @@
             flex-direction: column;
             z-index: 990;
             box-shadow: 4px 0 20px rgba(0, 0, 0, 0.35);
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+            position: relative;
+            transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
         }
 
         .channels-sidebar.hidden {
-            transform: translateX(-240px);
-            opacity: 0;
-            pointer-events: none;
+            display: none !important;
         }
 
         .channels-header {
@@ -462,30 +455,38 @@
         }
 
         @media (max-width: 900px) {
-            .channels-sidebar {
-                left: 0;
-                top: 60px;
-                width: 100vw;
-                height: calc(100vh - 60px);
+            .app-root {
+                flex-direction: column;
             }
-            body {
-                padding-left: 20px;
-                padding-top: 80px;
+            .server-sidebar {
+                width: 100vw;
+                min-width: 100vw;
+                height: 60px;
+                flex-direction: row;
+                padding: 0 10px;
+            }
+            .channels-sidebar {
+                width: 100vw;
+                min-width: 100vw;
+                height: auto;
             }
         }
 
         /* 3. Área Central (Palco Principal) & Gestão de Visibilidade */
         .container {
+            flex: 1 1 0%;
+            flex-grow: 1;
+            flex-shrink: 1;
+            min-width: 0;
             width: 100%;
-            max-width: 1140px;
-            min-height: 80vh;
-            background: var(--bg-card);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid var(--border-color);
-            border-radius: 28px;
-            padding: 28px;
-            box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.65), 0 0 1px rgba(255, 255, 255, 0.1);
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 24px 32px 100px 32px;
+            box-shadow: none;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -2755,6 +2756,11 @@
 
                 if (userBarName) {
                     userBarName.textContent = displayName;
+                }
+
+                const topAuthUserEl = authenticatedUsername || document.getElementById('authenticatedUsername');
+                if (topAuthUserEl) {
+                    topAuthUserEl.textContent = displayName;
                 }
 
                 if (userBarAvatar) {
