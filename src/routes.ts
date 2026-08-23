@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { ensureAuthenticated } from './middlewares/ensureAuthenticated';
+import { uploadServerMediaFile } from './supabaseStorage';
 import {
     findUserByUsername,
     findUserById,
@@ -224,24 +225,43 @@ routes.post('/servers', ensureAuthenticated, async (req: Request, res: Response)
 routes.patch('/servers/:serverId', ensureAuthenticated, async (req: Request, res: Response) => {
     try {
         const serverId = Number(req.params.serverId);
-        const { nome } = req.body;
+        const { nome, icon, icon_url, banner, banner_url } = req.body;
 
         if (isNaN(serverId)) {
             return res.status(400).json({ error: 'ID do servidor inválido.' });
         }
 
-        if (!nome || !nome.trim()) {
-            return res.status(400).json({ error: 'O nome do servidor é obrigatório.' });
-        }
-
-        const result = await pool.query(
-            'UPDATE servers SET nome = $1 WHERE id = $2 RETURNING *',
-            [nome.trim(), serverId]
-        );
-
-        if (result.rows.length === 0) {
+        // 1. Busca o servidor atual
+        const currentServerRes = await pool.query('SELECT * FROM servers WHERE id = $1', [serverId]);
+        if (currentServerRes.rows.length === 0) {
             return res.status(404).json({ error: 'Servidor não encontrado.' });
         }
+        const currentServer = currentServerRes.rows[0];
+
+        // 2. Define o novo nome se fornecido
+        const updatedNome = (nome && nome.trim()) ? nome.trim() : currentServer.nome;
+
+        // 3. Processa upload de Ícone se enviado (Base64 ou nova URL)
+        let finalIconUrl = currentServer.icon_url;
+        if (icon && typeof icon === 'string') {
+            finalIconUrl = await uploadServerMediaFile(serverId, 'icon', icon);
+        } else if (icon_url !== undefined) {
+            finalIconUrl = icon_url;
+        }
+
+        // 4. Processa upload de Banner se enviado (Base64 ou nova URL)
+        let finalBannerUrl = currentServer.banner_url;
+        if (banner && typeof banner === 'string') {
+            finalBannerUrl = await uploadServerMediaFile(serverId, 'banner', banner);
+        } else if (banner_url !== undefined) {
+            finalBannerUrl = banner_url;
+        }
+
+        // 5. Atualiza o registro no PostgreSQL
+        const result = await pool.query(
+            'UPDATE servers SET nome = $1, icon_url = $2, banner_url = $3 WHERE id = $4 RETURNING *',
+            [updatedNome, finalIconUrl, finalBannerUrl, serverId]
+        );
 
         return res.status(200).json({
             message: 'Servidor atualizado com sucesso!',

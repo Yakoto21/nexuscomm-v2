@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import { initSupabaseBucket } from './supabaseStorage';
 
 dotenv.config();
 
@@ -39,8 +40,30 @@ export async function initDb() {
                 id SERIAL PRIMARY KEY,
                 nome VARCHAR(255) NOT NULL,
                 dono_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                icon_url VARCHAR(255),
+                banner_url VARCHAR(255),
                 data_criacao TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
+        `);
+
+        // Migração automática para adicionar icon_url e banner_url se a tabela já existia
+        await pool.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'servers' AND column_name = 'icon_url'
+                ) THEN
+                    ALTER TABLE servers ADD COLUMN icon_url VARCHAR(255);
+                END IF;
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'servers' AND column_name = 'banner_url'
+                ) THEN
+                    ALTER TABLE servers ADD COLUMN banner_url VARCHAR(255);
+                END IF;
+            END $$;
         `);
 
         // 3. Tabela de Canais (Channels: texto ou voz)
@@ -149,7 +172,10 @@ export async function initDb() {
             }
         }
 
-        console.log('✅ Tabelas relacionais do PostgreSQL (Users, Servers, Channels, Messages, Roles, Members) sincronizadas com sucesso!');
+        // Inicializa o bucket server_media no Supabase Storage
+        await initSupabaseBucket();
+
+        console.log('✅ Tabelas relacionais do PostgreSQL (Users, Servers, Channels, Messages, Roles, Members, Media) sincronizadas com sucesso!');
     } catch (err) {
         console.error('❌ Erro ao conectar ou inicializar tabelas no PostgreSQL:', err);
     }

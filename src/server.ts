@@ -16,7 +16,8 @@ const PORT = process.env.PORT || 3333;
 
 // Configurações de Segurança e Tráfego
 app.use(cors()); // Permite que o nosso frontend converse com este backend
-app.use(express.json()); // Prepara o servidor para receber dados em formato JSON
+app.use(express.json({ limit: '15mb' })); // Suporta upload de imagens em base64 até 15MB
+app.use(express.urlencoded({ limit: '15mb', extended: true }));
 
 // Rotas da aplicação
 app.use(routes);

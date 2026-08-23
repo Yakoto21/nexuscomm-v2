@@ -156,6 +156,14 @@
             user-select: none;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
             text-transform: uppercase;
+            overflow: hidden;
+        }
+
+        .server-icon-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: inherit;
         }
 
         .server-icon-wrapper:hover .server-icon,
@@ -253,6 +261,8 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             background: rgba(255, 255, 255, 0.02);
             flex-shrink: 0;
+            transition: background 0.3s ease;
+            position: relative;
         }
 
         .channels-server-name {
@@ -267,6 +277,7 @@
             gap: 6px;
             cursor: pointer;
             flex: 1;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
         }
 
         .channels-server-name:hover {
@@ -274,8 +285,8 @@
         }
 
         .btn-header-action {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             color: var(--text-muted);
             width: 30px;
             height: 30px;
@@ -286,11 +297,12 @@
             cursor: pointer;
             transition: all 0.2s ease;
             flex-shrink: 0;
+            backdrop-filter: blur(8px);
         }
 
         .btn-header-action:hover {
-            background: rgba(99, 102, 241, 0.25);
-            border-color: rgba(99, 102, 241, 0.5);
+            background: rgba(99, 102, 241, 0.4);
+            border-color: rgba(99, 102, 241, 0.6);
             color: #ffffff;
             transform: scale(1.05);
         }
@@ -415,6 +427,7 @@
             color: #ffffff;
             flex-shrink: 0;
             box-shadow: 0 2px 8px var(--primary-glow);
+            overflow: hidden;
         }
 
         .user-bar-details {
@@ -514,6 +527,7 @@
             font-weight: 800;
             color: #ffffff;
             box-shadow: 0 12px 36px var(--primary-glow);
+            overflow: hidden;
         }
 
         .community-welcome-card h2 {
@@ -1516,7 +1530,7 @@
         .settings-panel {
             display: none;
             width: 100%;
-            max-width: 720px;
+            max-width: 740px;
             flex-direction: column;
             gap: 28px;
             animation: stageFadeIn 0.25s ease;
@@ -1546,7 +1560,7 @@
             padding: 28px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 24px;
         }
 
         .settings-avatar-row {
@@ -1558,18 +1572,28 @@
         }
 
         .settings-avatar-large {
-            width: 72px;
-            height: 72px;
-            border-radius: 20px;
+            width: 80px;
+            height: 80px;
+            border-radius: 24px;
             background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 800;
             color: #ffffff;
             box-shadow: 0 8px 24px var(--primary-glow);
             flex-shrink: 0;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-avatar-large img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: inherit;
         }
 
         .settings-avatar-text h4 {
@@ -1582,6 +1606,46 @@
         .settings-avatar-text p {
             font-size: 0.85rem;
             color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        /* Banner de Fundo do Servidor */
+        .settings-banner-row {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .settings-banner-preview-box {
+            width: 100%;
+            height: 130px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(14, 165, 233, 0.15));
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            background-size: cover !important;
+            background-position: center !important;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        .settings-banner-placeholder {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #94a3b8;
+            background: rgba(15, 23, 42, 0.75);
+            padding: 8px 16px;
+            border-radius: 999px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .settings-form-group {
@@ -1679,8 +1743,8 @@
 
     <!-- 2. Painel de Canais (Channels Sidebar) -->
     <aside id="channels-sidebar" class="channels-sidebar">
-        <!-- Topo do Painel: Nome do Servidor Ativo + Botão de Configurações (Engrenagem) + Botão de Adicionar Canal -->
-        <div class="channels-header">
+        <!-- Topo do Painel: Banner / Nome do Servidor Ativo + Configurações + Criar Canal -->
+        <div class="channels-header" id="channelsSidebarHeader">
             <div class="channels-server-name" id="btnOpenServerHome">
                 <span id="selectedServerTitle">Comunidade Nexus</span>
             </div>
@@ -1785,22 +1849,56 @@
 
         <!-- Palco Central/Direito de Conteúdo -->
         <main class="settings-content-stage">
-            <!-- 1. Aba: Visão Geral -->
+            <!-- 1. Aba: Visão Geral (Nome, Ícone 1:1 e Banner Supabase Storage) -->
             <div id="panelSettingsOverview" class="settings-panel active">
                 <div class="settings-panel-header">
                     <h2>Visão Geral do Servidor</h2>
-                    <p>Personalize o nome, identidade visual e preferências da sua comunidade.</p>
+                    <p>Personalize o nome, ícone e banner de fundo da sua comunidade no Supabase Storage.</p>
                 </div>
 
                 <div class="settings-card">
+                    <!-- Linha 1: Ícone Personalizado do Servidor (1:1) -->
                     <div class="settings-avatar-row">
                         <div class="settings-avatar-large" id="settingsServerAvatar">NX</div>
                         <div class="settings-avatar-text">
-                            <h4>Ícone do Servidor</h4>
-                            <p>As iniciais da sua comunidade são geradas automaticamente a partir do nome.</p>
+                            <h4>Ícone do Servidor (Proporção 1:1)</h4>
+                            <p>Recomendado: 512x512px (PNG, JPG ou WEBP). Máx: 10MB.</p>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="file" id="inputServerIconFile" accept="image/png, image/jpeg, image/webp, image/gif" style="display: none;" />
+                                <button type="button" id="btnUploadServerIcon" class="btn-primary" style="padding: 8px 16px; font-size: 0.82rem;">
+                                    Alterar Ícone
+                                </button>
+                                <button type="button" id="btnRemoveServerIcon" class="btn-room-action" style="padding: 8px 14px; font-size: 0.82rem;">
+                                    Remover
+                                </button>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- Linha 2: Banner de Fundo do Servidor -->
+                    <div class="settings-banner-row">
+                        <label class="settings-label">Banner de Fundo do Servidor</label>
+                        <div class="settings-banner-preview-box" id="settingsServerBannerPreview">
+                            <div class="settings-banner-placeholder" id="settingsServerBannerPlaceholder">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span>Pré-visualização do Banner</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-top: 4px;">
+                            <input type="file" id="inputServerBannerFile" accept="image/png, image/jpeg, image/webp, image/gif" style="display: none;" />
+                            <button type="button" id="btnUploadServerBanner" class="btn-primary" style="padding: 8px 16px; font-size: 0.82rem;">
+                                Alterar Banner de Fundo
+                            </button>
+                            <button type="button" id="btnRemoveServerBanner" class="btn-room-action" style="padding: 8px 14px; font-size: 0.82rem;">
+                                Remover Banner
+                            </button>
+                            <span style="font-size: 0.78rem; color: var(--text-dark-muted);">Recomendado: 1920x1080 (16:9)</span>
+                        </div>
+                    </div>
+
+                    <!-- Linha 3: Formulário de Nome -->
                     <form id="formServerOverview">
                         <div class="settings-form-group">
                             <label for="inputEditServerName" class="settings-label">Nome do Servidor</label>
@@ -2261,6 +2359,7 @@
         const btnSubmitServerModal = document.getElementById('btnSubmitServerModal');
 
         const channelsSidebar = document.getElementById('channels-sidebar');
+        const channelsSidebarHeader = document.getElementById('channelsSidebarHeader');
         const selectedServerTitle = document.getElementById('selectedServerTitle');
         const btnOpenServerHome = document.getElementById('btnOpenServerHome');
         const btnOpenServerSettings = document.getElementById('btnOpenServerSettings');
@@ -2302,6 +2401,20 @@
         const btnSaveServerOverview = document.getElementById('btnSaveServerOverview');
         const settingsRolesListContainer = document.getElementById('settingsRolesListContainer');
         const settingsMembersListContainer = document.getElementById('settingsMembersListContainer');
+
+        // Controles de Upload de Mídia (Ícone & Banner Supabase Storage)
+        const inputServerIconFile = document.getElementById('inputServerIconFile');
+        const btnUploadServerIcon = document.getElementById('btnUploadServerIcon');
+        const btnRemoveServerIcon = document.getElementById('btnRemoveServerIcon');
+
+        const settingsServerBannerPreview = document.getElementById('settingsServerBannerPreview');
+        const settingsServerBannerPlaceholder = document.getElementById('settingsServerBannerPlaceholder');
+        const inputServerBannerFile = document.getElementById('inputServerBannerFile');
+        const btnUploadServerBanner = document.getElementById('btnUploadServerBanner');
+        const btnRemoveServerBanner = document.getElementById('btnRemoveServerBanner');
+
+        let pendingServerIconBase64 = null;
+        let pendingServerBannerBase64 = null;
 
         // Controles de Vídeo / Mídia
         const videoGrid = document.getElementById('videoGrid');
@@ -2422,7 +2535,7 @@
         }
 
         // ==========================================
-        // 2. Administração do Servidor em Tela Cheia (Discord Style)
+        // 2. Administração do Servidor em Tela Cheia (Discord Style) & Upload de Mídia
         // ==========================================
         function openServerSettings() {
             if (!activeServerObj) {
@@ -2430,10 +2543,18 @@
                 return;
             }
 
+            pendingServerIconBase64 = null;
+            pendingServerBannerBase64 = null;
+
             settingsServerNameNav.innerText = activeServerObj.nome;
-            settingsServerAvatar.innerText = getServerInitials(activeServerObj.nome);
             inputEditServerName.value = activeServerObj.nome;
             settingsOverviewAlert.style.display = 'none';
+
+            // Renderiza Ícone atual ou Iniciais
+            renderSettingsAvatarPreview(activeServerObj.icon_url, activeServerObj.nome);
+
+            // Renderiza Banner atual ou Placeholder
+            renderSettingsBannerPreview(activeServerObj.banner_url);
 
             // Abre na aba Visão Geral por padrão
             switchSettingsTab('overview');
@@ -2441,6 +2562,24 @@
             serverSettingsOverlay.classList.add('open');
             document.body.style.overflow = 'hidden';
             console.log(`⚙️ Configurações abertas para: ${activeServerObj.nome}`);
+        }
+
+        function renderSettingsAvatarPreview(iconUrl, serverName) {
+            if (iconUrl) {
+                settingsServerAvatar.innerHTML = `<img src="${iconUrl}" class="server-icon-img" alt="Ícone do Servidor" />`;
+            } else {
+                settingsServerAvatar.innerHTML = getServerInitials(serverName);
+            }
+        }
+
+        function renderSettingsBannerPreview(bannerUrl) {
+            if (bannerUrl) {
+                settingsServerBannerPreview.style.background = `url('${bannerUrl}') center/cover no-repeat`;
+                if (settingsServerBannerPlaceholder) settingsServerBannerPlaceholder.style.display = 'none';
+            } else {
+                settingsServerBannerPreview.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(14, 165, 233, 0.15))';
+                if (settingsServerBannerPlaceholder) settingsServerBannerPlaceholder.style.display = 'flex';
+            }
         }
 
         function closeServerSettings() {
@@ -2486,7 +2625,59 @@
         tabSettingsRoles.addEventListener('click', () => switchSettingsTab('roles'));
         tabSettingsMembers.addEventListener('click', () => switchSettingsTab('members'));
 
-        // Salvar Alterações na Visão Geral (Renomear Servidor)
+        // Upload e Preview Local de Ícone
+        btnUploadServerIcon.addEventListener('click', () => inputServerIconFile.click());
+        inputServerIconFile.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            if (file.size > 10 * 1024 * 1024) {
+                alert('O arquivo selecionado é muito grande. Escolha uma imagem de até 10MB.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const dataUrl = event.target.result;
+                pendingServerIconBase64 = dataUrl;
+                renderSettingsAvatarPreview(dataUrl, inputEditServerName.value || 'NX');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        btnRemoveServerIcon.addEventListener('click', () => {
+            pendingServerIconBase64 = ''; // String vazia sinaliza remoção
+            inputServerIconFile.value = '';
+            renderSettingsAvatarPreview('', inputEditServerName.value || 'NX');
+        });
+
+        // Upload e Preview Local de Banner
+        btnUploadServerBanner.addEventListener('click', () => inputServerBannerFile.click());
+        inputServerBannerFile.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            if (file.size > 10 * 1024 * 1024) {
+                alert('O arquivo selecionado é muito grande. Escolha uma imagem de até 10MB.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const dataUrl = event.target.result;
+                pendingServerBannerBase64 = dataUrl;
+                renderSettingsBannerPreview(dataUrl);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        btnRemoveServerBanner.addEventListener('click', () => {
+            pendingServerBannerBase64 = ''; // String vazia sinaliza remoção
+            inputServerBannerFile.value = '';
+            renderSettingsBannerPreview('');
+        });
+
+        // Salvar Alterações na Visão Geral (Nome, Ícone e Banner via Supabase Storage)
         formServerOverview.addEventListener('submit', async (e) => {
             e.preventDefault();
             const newName = inputEditServerName.value.trim();
@@ -2494,7 +2685,19 @@
 
             try {
                 btnSaveServerOverview.disabled = true;
-                btnSaveServerOverview.innerText = 'Salvando...';
+                btnSaveServerOverview.innerText = 'Processando Upload & Salvando...';
+
+                const payload = {
+                    nome: newName
+                };
+
+                if (pendingServerIconBase64 !== null) {
+                    payload.icon = pendingServerIconBase64;
+                }
+
+                if (pendingServerBannerBase64 !== null) {
+                    payload.banner = pendingServerBannerBase64;
+                }
 
                 const res = await fetch(`/servers/${activeServerId}`, {
                     method: 'PATCH',
@@ -2502,24 +2705,26 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
-                    body: JSON.stringify({ nome: newName })
+                    body: JSON.stringify(payload)
                 });
 
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Erro ao atualizar servidor');
 
                 settingsOverviewAlert.className = 'auth-alert success';
-                settingsOverviewAlert.innerText = 'Servidor atualizado com sucesso!';
+                settingsOverviewAlert.innerText = 'Servidor e mídias salvos com sucesso no Supabase Storage!';
                 settingsOverviewAlert.style.display = 'block';
 
-                activeServerObj.nome = newName;
-                selectedServerTitle.innerText = newName;
-                settingsServerNameNav.innerText = newName;
-                mainServerHeading.innerText = newName;
-                welcomeServerTitle.innerText = `Bem-vindo ao ${newName}!`;
-                settingsServerAvatar.innerText = getServerInitials(newName);
-                welcomeServerAvatar.innerText = getServerInitials(newName);
+                const updatedServer = data.server || { ...activeServerObj, nome: newName };
+                activeServerObj = updatedServer;
 
+                // Atualiza elementos visuais
+                selectedServerTitle.innerText = updatedServer.nome;
+                settingsServerNameNav.innerText = updatedServer.nome;
+                mainServerHeading.innerText = updatedServer.nome;
+                welcomeServerTitle.innerText = `Bem-vindo ao ${updatedServer.nome}!`;
+
+                applyServerMediaVisuals(updatedServer);
                 await fetchServersList();
             } catch (err) {
                 settingsOverviewAlert.className = 'auth-alert error';
@@ -2530,6 +2735,26 @@
                 btnSaveServerOverview.innerText = 'Salvar Alterações';
             }
         });
+
+        function applyServerMediaVisuals(server) {
+            // 1. Aplica Banner no Cabeçalho do Channels Sidebar
+            if (channelsSidebarHeader) {
+                if (server.banner_url) {
+                    channelsSidebarHeader.style.background = `linear-gradient(to bottom, rgba(15, 23, 42, 0.45), rgba(15, 23, 42, 0.95)), url('${server.banner_url}') center/cover no-repeat`;
+                } else {
+                    channelsSidebarHeader.style.background = 'rgba(255, 255, 255, 0.02)';
+                }
+            }
+
+            // 2. Aplica Ícone no Avatar de Boas-Vindas
+            if (welcomeServerAvatar) {
+                if (server.icon_url) {
+                    welcomeServerAvatar.innerHTML = `<img src="${server.icon_url}" class="server-icon-img" alt="${escapeHtml(server.nome)}" />`;
+                } else {
+                    welcomeServerAvatar.innerHTML = getServerInitials(server.nome);
+                }
+            }
+        }
 
         // Carregar Cargos na Aba de Cargos
         async function loadServerRolesInSettings() {
@@ -2793,10 +3018,13 @@
                 wrapper.setAttribute('id', `server-item-${server.id}`);
 
                 const initials = getServerInitials(server.nome);
+                const iconHtml = server.icon_url 
+                    ? `<img src="${server.icon_url}" class="server-icon-img" alt="${escapeHtml(server.nome)}" />` 
+                    : initials;
 
                 wrapper.innerHTML = `
                     <span class="server-pill"></span>
-                    <div class="server-icon">${initials}</div>
+                    <div class="server-icon">${iconHtml}</div>
                 `;
 
                 wrapper.addEventListener('click', () => {
@@ -2820,8 +3048,9 @@
             if (selectedServerTitle) selectedServerTitle.innerText = server.nome;
             if (mainServerHeading) mainServerHeading.innerText = server.nome;
             if (welcomeServerTitle) welcomeServerTitle.innerText = `Bem-vindo ao ${server.nome}!`;
-            if (welcomeServerAvatar) welcomeServerAvatar.innerText = getServerInitials(server.nome);
             if (mainHeaderSub) mainHeaderSub.innerText = `Comunidade: ${server.nome} • Navegue pelos canais à esquerda`;
+
+            applyServerMediaVisuals(server);
 
             setViewMode('empty');
             await fetchServerChannels(server.id);
