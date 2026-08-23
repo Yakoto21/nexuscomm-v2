@@ -52,7 +52,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            padding: 32px 24px 100px 336px; /* 72px server + 240px channels + 24px margem */
+            padding: 24px 24px 100px 336px; /* 72px server + 240px channels + 24px margem */
             overflow-x: hidden;
             transition: padding-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -220,7 +220,7 @@
             transform: translateY(-50%) scale(1);
         }
 
-        /* 2. Painel de Canais (Channels Sidebar - Fase 2.5) */
+        /* 2. Painel de Canais (Channels Sidebar) */
         .channels-sidebar {
             position: fixed;
             top: 0;
@@ -265,6 +265,11 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            cursor: pointer;
+        }
+
+        .channels-server-name:hover {
+            color: #c7d2fe;
         }
 
         .btn-add-channel-quick {
@@ -326,10 +331,6 @@
             user-select: none;
         }
 
-        .category-header:hover {
-            color: var(--text-muted);
-        }
-
         .channel-item {
             display: flex;
             align-items: center;
@@ -379,15 +380,6 @@
             overflow: hidden;
             text-overflow: ellipsis;
             flex: 1;
-        }
-
-        .channel-badge-live {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--success);
-            box-shadow: 0 0 6px var(--success);
-            animation: pulse 1.5s infinite;
         }
 
         /* Barra de Perfil do Usuário na base do Channels Sidebar */
@@ -460,258 +452,222 @@
             }
         }
 
-        /* Modal de Adicionar Canal */
-        .channel-modal-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            animation: fadeIn 0.25s ease;
-        }
-
-        .channel-modal-card {
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 28px;
-            width: 100%;
-            max-width: 440px;
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .channel-type-selector {
-            display: flex;
-            gap: 10px;
-            margin-top: 4px;
-        }
-
-        .channel-type-option {
-            flex: 1;
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 12px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.2s ease;
-        }
-
-        .channel-type-option:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .channel-type-option.selected {
-            background: rgba(99, 102, 241, 0.2);
-            border-color: var(--primary);
-            color: #ffffff;
-        }
-
-        /* Container Principal */
+        /* 3. Área Central (Palco Principal) & Gestão de Visibilidade */
         .container {
             width: 100%;
-            max-width: 1180px;
+            max-width: 1140px;
+            min-height: 80vh;
             background: var(--bg-card);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             border: 1px solid var(--border-color);
             border-radius: 28px;
-            padding: 32px;
+            padding: 28px;
             box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.65), 0 0 1px rgba(255, 255, 255, 0.1);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 26px;
+            gap: 20px;
             animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(16px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes videoFadeIn {
-            from { opacity: 0; transform: scale(0.96) translateY(12px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        header {
-            text-align: center;
-        }
-
-        header h1 {
-            font-size: 2.2rem;
-            font-weight: 700;
-            letter-spacing: -0.03em;
-            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 6px;
-        }
-
-        header p {
-            color: var(--text-muted);
-            font-size: 0.98rem;
-        }
-
-        /* Seção de Autenticação JWT */
-        .auth-section {
+        /* Estágios de Visualização (View Stages) */
+        .view-stage {
+            display: none;
             width: 100%;
-            max-width: 580px;
-            background: var(--bg-glass-card);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 20px 24px;
+            flex-direction: column;
+            animation: stageFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .view-stage.active {
+            display: flex;
+        }
+
+        @keyframes stageFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Estágio 1: Boas-Vindas da Comunidade (Empty/Home da Comunidade) */
+        .community-welcome-card {
             display: flex;
             flex-direction: column;
-            gap: 14px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-            transition: all 0.3s ease;
+            align-items: center;
+            text-align: center;
+            padding: 48px 24px;
+            gap: 24px;
+            max-width: 680px;
+            margin: 0 auto;
         }
 
-        .auth-tabs {
+        .welcome-hero-avatar {
+            width: 84px;
+            height: 84px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
             display: flex;
-            gap: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            padding-bottom: 10px;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #ffffff;
+            box-shadow: 0 12px 36px var(--primary-glow);
         }
 
-        .auth-tab {
-            background: none;
-            border: none;
+        .community-welcome-card h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.02em;
+        }
+
+        .community-welcome-card p {
             color: var(--text-muted);
-            font-family: inherit;
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 8px 14px;
-            border-radius: 10px;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .welcome-quick-channels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            width: 100%;
+            margin-top: 12px;
+        }
+
+        .welcome-channel-card {
+            background: var(--bg-glass-card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
             cursor: pointer;
             transition: all 0.25s ease;
+            text-align: left;
         }
 
-        .auth-tab.active {
-            background: rgba(99, 102, 241, 0.18);
-            color: #a5b4fc;
-            border: 1px solid rgba(99, 102, 241, 0.35);
+        .welcome-channel-card:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.15);
+            transform: translateY(-2px);
         }
 
-        .auth-form-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .auth-row {
-            display: flex;
-            gap: 10px;
-            width: 100%;
-        }
-
-        .auth-alert {
+        /* Estágio 2: Modo Texto Expandido (Full Main Chat) */
+        .text-chat-stage {
             display: none;
-            padding: 10px 16px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .auth-alert.error {
-            display: block;
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.35);
-            color: #fca5a5;
-        }
-
-        .auth-alert.success {
-            display: block;
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.35);
-            color: #6ee7b7;
-        }
-
-        /* Seção de Entrada na Sala (Room) */
-        .room-section {
-            width: 100%;
-            max-width: 580px;
-            background: var(--bg-glass-card);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 20px 24px;
-            display: flex;
             flex-direction: column;
-            gap: 14px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-            transition: all 0.3s ease;
+            height: 72vh;
+            min-height: 520px;
+            background: rgba(10, 14, 26, 0.65);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            overflow: hidden;
         }
 
-        .room-section-header {
+        .text-chat-header {
+            padding: 14px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #cbd5e1;
         }
 
-        .room-action-buttons {
+        .text-chat-header-title {
             display: flex;
-            gap: 8px;
             align-items: center;
+            gap: 10px;
         }
 
-        .btn-room-action {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #e2e8f0;
-            border-radius: 10px;
-            padding: 6px 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.25s ease;
+        .text-chat-header-title .hash-tag {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-dark-muted);
         }
 
-        .btn-room-action:hover {
-            background: rgba(255, 255, 255, 0.14);
-            border-color: rgba(255, 255, 255, 0.25);
+        .text-chat-header-title h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
             color: #ffffff;
-            transform: translateY(-1px);
         }
 
-        .room-form {
+        .main-chat-messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            scroll-behavior: smooth;
+        }
+
+        .main-chat-messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .main-chat-messages-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
+        }
+
+        .channel-welcome-banner {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 24px 0 16px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 12px;
+        }
+
+        .channel-welcome-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            font-size: 1.6rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 4px;
+        }
+
+        .channel-welcome-banner h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .channel-welcome-banner p {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }
+
+        .main-chat-input-area {
+            padding: 16px 20px;
+            background: rgba(15, 23, 42, 0.85);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             gap: 12px;
-            width: 100%;
+            align-items: center;
         }
 
-        .room-input {
+        .main-chat-input {
             flex: 1;
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(30, 41, 59, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 12px;
-            padding: 12px 16px;
+            border-radius: 14px;
+            padding: 14px 18px;
             color: #ffffff;
             font-family: inherit;
             font-size: 0.95rem;
@@ -719,30 +675,18 @@
             transition: all 0.25s ease;
         }
 
-        .room-input:focus {
+        .main-chat-input:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px var(--primary-glow);
+            background: rgba(30, 41, 59, 0.9);
         }
 
-        .room-input::placeholder {
-            color: #64748b;
-        }
-
-        .badge-room {
+        /* Estágio 3: Modo Voz (WebRTC Grid) */
+        .voice-stage {
             display: none;
-            align-items: center;
-            gap: 8px;
-            background: rgba(99, 102, 241, 0.15);
-            border: 1px solid rgba(99, 102, 241, 0.35);
-            padding: 10px 18px;
-            border-radius: 14px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.88rem;
-            color: #a5b4fc;
-        }
-
-        .badge-room strong {
-            color: #ffffff;
+            flex-direction: column;
+            width: 100%;
+            gap: 20px;
         }
 
         /* Grid Dinâmico de Vídeos */
@@ -763,8 +707,8 @@
             .video-grid {
                 grid-template-columns: 1fr;
             }
-            .auth-row, .room-form {
-                flex-direction: column;
+            .welcome-quick-channels {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -960,7 +904,7 @@
             50% { opacity: 0.4; transform: scale(1.3); }
         }
 
-        /* Estado Vazio Elegante (Empty State) */
+        /* Estado Vazio Elegante (Empty State do Vídeo) */
         .empty-state-card {
             display: none;
             width: 100%;
@@ -1130,7 +1074,7 @@
             animation: pulse 1.5s infinite;
         }
 
-        /* Painel Lateral de Chat (Glassmorphism Sidebar) */
+        /* Painel Lateral de Chat Retrátil (Sidebar para Modo Voz) */
         .chat-sidebar {
             position: fixed;
             top: 0;
@@ -1459,11 +1403,11 @@
         </div>
     </nav>
 
-    <!-- 2. Painel de Canais (Channels Sidebar - Fase 2.5) -->
+    <!-- 2. Painel de Canais (Channels Sidebar) -->
     <aside id="channels-sidebar" class="channels-sidebar">
         <!-- Topo do Painel: Nome do Servidor Ativo -->
         <div class="channels-header">
-            <div class="channels-server-name">
+            <div class="channels-server-name" id="btnOpenServerHome">
                 <span id="selectedServerTitle">Comunidade Nexus</span>
             </div>
             <button type="button" id="btnOpenAddChannelModal" class="btn-add-channel-quick" title="Criar novo canal neste servidor">
@@ -1517,9 +1461,9 @@
     </aside>
 
     <!-- Modal para Criar Novo Servidor -->
-    <div id="modalAddServer" class="channel-modal-backdrop">
-        <div class="channel-modal-card">
-            <div class="server-modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div id="modalAddServer" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center; z-index: 2000;">
+        <div style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 24px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff;">Criar uma Nova Comunidade</h3>
                 <button type="button" id="btnCloseServerModal" class="chat-close-btn">
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1543,9 +1487,9 @@
         </div>
     </div>
 
-    <!-- Modal para Criar Novo Canal (Fase 2.5) -->
-    <div id="modalAddChannel" class="channel-modal-backdrop">
-        <div class="channel-modal-card">
+    <!-- Modal para Criar Novo Canal -->
+    <div id="modalAddChannel" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center; z-index: 2000;">
+        <div style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 24px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; gap: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff;">Criar Novo Canal</h3>
                 <button type="button" id="btnCloseChannelModal" class="chat-close-btn">
@@ -1558,21 +1502,21 @@
             <form id="formAddChannel" style="display: flex; flex-direction: column; gap: 16px;">
                 <div>
                     <label style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Tipo de Canal</label>
-                    <div class="channel-type-selector">
-                        <div class="channel-type-option selected" id="optTypeText">
+                    <div style="display: flex; gap: 10px; margin-top: 6px;">
+                        <div class="channel-type-option selected" id="optTypeText" style="flex: 1; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px;">
                             <span style="font-size: 1.2rem; font-weight: 700; color: #a5b4fc;">#</span>
                             <div>
                                 <div style="font-size: 0.9rem; font-weight: 600;">Texto</div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">Mensagens, links e chat</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Chat & Histórico</div>
                             </div>
                         </div>
-                        <div class="channel-type-option" id="optTypeVoice">
+                        <div class="channel-type-option" id="optTypeVoice" style="flex: 1; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px;">
                             <svg width="20" height="20" fill="none" stroke="#38bdf8" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
                             </svg>
                             <div>
                                 <div style="font-size: 0.9rem; font-weight: 600;">Voz</div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">Áudio e vídeo WebRTC</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Áudio & Vídeo WebRTC</div>
                             </div>
                         </div>
                     </div>
@@ -1580,7 +1524,7 @@
 
                 <div>
                     <label for="inputChannelName" style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Nome do Canal</label>
-                    <input type="text" id="inputChannelName" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Ex: anuncios, reunioes-geral" required />
+                    <input type="text" id="inputChannelName" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Ex: avisos, reunioes-geral" required />
                 </div>
 
                 <div id="channelModalAlert" class="auth-alert"></div>
@@ -1593,21 +1537,32 @@
         </div>
     </div>
 
-    <!-- Conteúdo Central -->
+    <!-- Conteúdo Central: Palco Principal -->
     <main class="container">
-        <header>
-            <h1>NexusComm WebRTC & Comunidades</h1>
-            <p id="mainHeaderSub">Plataforma de Videoconferência, Voz & Colaboração em Tempo Real</p>
+        <!-- Topo da Aplicação / Autenticação -->
+        <header style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div>
+                    <h1 id="mainServerHeading" style="font-size: 1.8rem; margin: 0;">NexusComm Comunidades</h1>
+                    <p id="mainHeaderSub" style="margin: 0; font-size: 0.9rem;">Videoconferência, Voz & Canais de Texto em Tempo Real</p>
+                </div>
+
+                <!-- Badge de Usuário Autenticado no Topo -->
+                <div id="authenticatedUserBadge" class="badge-room" style="display: none; align-items: center; gap: 8px;">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                    <span>Olá, <strong id="authenticatedUsername"></strong></span>
+                    <button type="button" id="btnLogout" style="background: none; border: none; color: #fca5a5; font-size: 0.8rem; cursor: pointer; text-decoration: underline; margin-left: 6px;">Sair</button>
+                </div>
+            </div>
         </header>
 
-        <!-- Seção de Autenticação JWT -->
+        <!-- Seção de Autenticação JWT (Exibida se deslogado) -->
         <div id="authSection" class="auth-section">
             <div class="room-section-header">
                 <span>🔐 Autenticação Segura JWT</span>
-                <span id="authStatusNotice" style="font-size: 0.78rem; color: #94a3b8;">Token necessário para conectar</span>
+                <span id="authStatusNotice" style="font-size: 0.78rem; color: #94a3b8;">Token necessário para interagir</span>
             </div>
 
-            <!-- Alerta de feedback de autenticação -->
             <div id="authAlert" class="auth-alert"></div>
 
             <div id="authContent">
@@ -1616,7 +1571,6 @@
                     <button type="button" id="tabToken" class="auth-tab">Inserir Token Direto</button>
                 </div>
 
-                <!-- Formulário de Login / Registro -->
                 <div id="loginFormContainer" class="auth-form-grid" style="margin-top: 10px;">
                     <div class="auth-row">
                         <input type="text" id="authUsername" class="room-input" placeholder="Usuário (ex: dev_user)" />
@@ -1628,7 +1582,6 @@
                     </div>
                 </div>
 
-                <!-- Formulário de Token Direto -->
                 <div id="tokenFormContainer" class="auth-form-grid" style="display: none; margin-top: 10px;">
                     <input type="text" id="directTokenInput" class="room-input" placeholder="Cole aqui seu Token JWT..." />
                     <div class="auth-row" style="justify-content: flex-end;">
@@ -1636,128 +1589,159 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Badge de Usuário Autenticado -->
-            <div id="authenticatedUserBadge" class="badge-room" style="justify-content: space-between; display: none;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    <span>Autenticado como: <strong id="authenticatedUsername"></strong></span>
+        <!-- ==========================================
+             ESTÁGIO 1: Home da Comunidade (Welcome View)
+             ========================================== -->
+        <div id="communityWelcomeView" class="view-stage active">
+            <div class="community-welcome-card">
+                <div class="welcome-hero-avatar" id="welcomeServerAvatar">NX</div>
+                <div>
+                    <h2 id="welcomeServerTitle">Bem-vindo à Comunidade NexusComm!</h2>
+                    <p>Esta é a página inicial da sua comunidade. Selecione um canal no menu lateral para começar a conversar ou entrar em uma chamada de voz e vídeo.</p>
                 </div>
-                <button type="button" id="btnLogout" style="background: none; border: none; color: #fca5a5; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">Sair / Trocar</button>
+
+                <div class="welcome-quick-channels">
+                    <div class="welcome-channel-card" id="btnQuickEnterGeneralText">
+                        <span style="font-size: 1.4rem; font-weight: 700; color: #a5b4fc;">#</span>
+                        <div>
+                            <strong style="color: #fff; font-size: 0.95rem;">Canal Geral de Texto</strong>
+                            <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Conversar e ler histórico</p>
+                        </div>
+                    </div>
+
+                    <div class="welcome-channel-card" id="btnQuickEnterGeneralVoice">
+                        <svg width="22" height="22" fill="none" stroke="#38bdf8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                        </svg>
+                        <div>
+                            <strong style="color: #fff; font-size: 0.95rem;">Canal Geral de Voz</strong>
+                            <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Entrar na chamada WebRTC</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Seção de Conexão à Sala / Canal Ativo -->
-        <div class="room-section">
-            <div class="room-section-header">
-                <span id="roomSectionTitle">🚪 Canal Ativo / Sala WebRTC</span>
-                <div class="room-action-buttons">
-                    <button type="button" id="btnNewRoom" class="btn-room-action" title="Gerar código aleatório para nova reunião">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
-                        Nova Reunião
-                    </button>
+        <!-- ==========================================
+             ESTÁGIO 2: Modo Texto Expandido (Main Text Chat)
+             ========================================== -->
+        <div id="mainTextChatView" class="view-stage text-chat-stage">
+            <div class="text-chat-header">
+                <div class="text-chat-header-title">
+                    <span class="hash-tag">#</span>
+                    <h3 id="mainChatChannelName">geral</h3>
+                    <span style="font-size: 0.82rem; color: var(--text-dark-muted); margin-left: 8px;" id="mainChatChannelTopic">Canal de texto da comunidade</span>
                 </div>
-            </div>
-            <div id="roomFormContainer" class="room-form">
-                <input type="text" id="roomInput" class="room-input" placeholder="Digite ou selecione um canal na barra lateral" />
-                <button id="btnJoinRoom" class="btn-join">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                    </svg>
-                    Conectar ao Canal
-                </button>
-            </div>
-            <div id="activeRoomBadge" class="badge-room" style="justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Conectado em: <strong id="roomNameDisplay"></strong></span>
-                </div>
-                <button type="button" id="btnCopyRoomLink" class="btn-room-action" style="background: rgba(99, 102, 241, 0.25); border-color: rgba(99, 102, 241, 0.4); color: #c7d2fe;">
+                <button type="button" id="btnCopyChannelLink" class="btn-room-action" style="padding: 6px 12px; font-size: 0.78rem;">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
-                    <span id="copyBtnText">Copiar Link</span>
+                    <span>Copiar Link do Canal</span>
+                </button>
+            </div>
+
+            <!-- Área de Mensagens Expandida do Canal Central -->
+            <div id="mainChatMessagesList" class="main-chat-messages-container">
+                <div class="channel-welcome-banner">
+                    <div class="channel-welcome-avatar">#</div>
+                    <h2 id="channelWelcomeHeading">Bem-vindo ao #geral!</h2>
+                    <p id="channelWelcomeDesc">Este é o início do canal #geral. Envie a primeira mensagem e colabore com a equipe.</p>
+                </div>
+                <!-- Mensagens renderizadas dinamicamente via JS -->
+            </div>
+
+            <!-- Input do Chat Central Expandido -->
+            <form id="mainChatExpandedForm" class="main-chat-input-area">
+                <input type="text" id="mainChatExpandedInput" class="main-chat-input" placeholder="Conversar no canal..." autocomplete="off" />
+                <button type="submit" class="chat-send-btn" title="Enviar Mensagem">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+
+        <!-- ==========================================
+             ESTÁGIO 3: Modo Voz (WebRTC Video Grid)
+             ========================================== -->
+        <div id="voiceStageView" class="view-stage voice-stage">
+            <div class="room-section-header" style="width: 100%; margin-bottom: 4px;">
+                <span id="voiceChannelHeading" style="font-size: 1.1rem; font-weight: 700; color: #fff;">🔊 Canal de Voz WebRTC</span>
+                <span id="voiceParticipantsCount" class="badge-status badge-live">Ao Vivo</span>
+            </div>
+
+            <!-- Grid de Vídeos WebRTC -->
+            <div class="video-grid single-peer" id="videoGrid">
+                <!-- Vídeo Local -->
+                <div class="video-card" id="localVideoCard">
+                    <div class="video-card-header">
+                        <span class="video-card-title">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span id="localUserTitle">Você (Local)</span>
+                        </span>
+                        <span id="localStatusBadge" class="badge-status badge-offline">Offline</span>
+                    </div>
+                    <div class="video-wrapper">
+                        <div id="localPlaceholder" class="video-placeholder">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            <span>Câmera desligada</span>
+                        </div>
+                        <video id="localVideo" autoplay muted playsinline></video>
+                        <div class="floating-media-badges">
+                            <span class="floating-badge active-green" id="localFloatMic" title="Microfone Ativo">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
+                            </span>
+                            <span class="floating-badge" id="localFloatCam" title="Câmera Desligada">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estado Vazio na Sala de Voz -->
+            <div id="emptyStateContainer" class="empty-state-card">
+                <div class="empty-state-content">
+                    <div class="empty-state-icon">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div class="empty-state-text">
+                        <h4>Você é o único no canal de voz</h4>
+                        <p>Copie o link do canal ou aguarde outros membros entrarem.</p>
+                    </div>
+                </div>
+                <button type="button" id="btnEmptyStateCopy" class="btn-dock-invite">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span>Copiar Link</span>
                 </button>
             </div>
         </div>
 
-        <!-- Grid Dinâmico de Vídeos: Suporta Múltiplos Participantes -->
-        <div class="video-grid single-peer" id="videoGrid">
-            <!-- Vídeo Local -->
-            <div class="video-card" id="localVideoCard">
-                <div class="video-card-header">
-                    <span class="video-card-title">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span id="localUserTitle">Você (Local)</span>
-                    </span>
-                    <span id="localStatusBadge" class="badge-status badge-offline">Offline</span>
-                </div>
-                <div class="video-wrapper">
-                    <div id="localPlaceholder" class="video-placeholder">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        <span>Câmera desligada</span>
-                    </div>
-                    <video id="localVideo" autoplay muted playsinline></video>
-                    <!-- Badges Flutuantes de Mute / Câmera do Local -->
-                    <div class="floating-media-badges">
-                        <span class="floating-badge active-green" id="localFloatMic" title="Microfone Ativo">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                            </svg>
-                        </span>
-                        <span class="floating-badge" id="localFloatCam" title="Câmera Desligada">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                        </span>
-                    </div>
-                </div>
-            </div>
-            <!-- Vídeos Remotos são gerados dinamicamente via JS -->
-        </div>
-
-        <!-- Estado Vazio (Empty State: Quando só há o usuário local na sala) -->
-        <div id="emptyStateContainer" class="empty-state-card">
-            <div class="empty-state-content">
-                <div class="empty-state-icon">
-                    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                </div>
-                <div class="empty-state-text">
-                    <h4>Você é o único no canal</h4>
-                    <p>Compartilhe o link do canal ou aguarde outros membros entrarem.</p>
-                </div>
-            </div>
-            <button type="button" id="btnEmptyStateCopy" class="btn-dock-invite">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                <span>Copiar Link</span>
-            </button>
-        </div>
-
         <!-- Barra de Status do Sistema e Conexões -->
-        <div class="status-bar">
+        <div class="status-bar" style="margin-top: auto;">
             <div class="socket-status">
                 <div id="socketDot" class="socket-dot"></div>
                 <span id="socketStatusText">Conectando ao Socket.IO...</span>
             </div>
-            <div id="webrtcStatusText">WebRTC: Pronto para conectar aos canais</div>
+            <div id="webrtcStatusText">NexusComm: Pronto</div>
         </div>
     </main>
 
-    <!-- Doca Central de Controles Flutuante (Google Meet style) -->
+    <!-- Doca Central de Controles Flutuante (Exibida no Modo Voz) -->
     <div id="controlDock" class="control-dock">
         <!-- Botão de Microfone -->
         <button id="btnMute" class="dock-btn" title="Mutar / Desmutar Microfone">
@@ -1780,16 +1764,16 @@
             </svg>
         </button>
 
-        <!-- Botão de Chat em Tempo Real -->
-        <button id="btnToggleChat" class="dock-btn" title="Abrir Chat do Canal" style="position: relative;">
+        <!-- Botão de Chat Retrátil da Chamada -->
+        <button id="btnToggleChat" class="dock-btn" title="Abrir Chat Lateral da Chamada" style="position: relative;">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             <span id="chatUnreadDot" class="chat-unread-dot"></span>
         </button>
 
-        <!-- Botão de Sair do Canal / Chamada -->
-        <button id="btnLeaveRoom" class="dock-btn dock-btn-leave" title="Sair do Canal">
+        <!-- Botão de Desconectar da Chamada -->
+        <button id="btnLeaveRoom" class="dock-btn dock-btn-leave" title="Desconectar do Canal de Voz">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l4 4m0 0l-4 4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
@@ -1797,9 +1781,8 @@
         </button>
     </div>
 
-    <!-- Painel Lateral de Chat (Glassmorphism Sidebar) -->
+    <!-- Painel Lateral Retrátil de Chat (Para o Modo Voz) -->
     <aside id="chatSidebar" class="chat-sidebar">
-        <!-- Header do Chat -->
         <div class="chat-header">
             <div class="chat-header-title">
                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1814,20 +1797,18 @@
             </button>
         </div>
 
-        <!-- Área Rolável de Mensagens -->
         <div id="chatMessages" class="chat-messages">
             <div class="chat-system-notice">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
-                <span>As mensagens são transmitidas e persistidas no Supabase PostgreSQL.</span>
+                <span>Mensagens do canal em tempo real.</span>
             </div>
         </div>
 
-        <!-- Formulário de Envio de Mensagem -->
         <form id="chatForm" class="chat-input-area">
-            <input type="text" id="chatInput" class="chat-input" placeholder="Envie uma mensagem no canal..." autocomplete="off" />
-            <button type="submit" id="btnSendChat" class="chat-send-btn" title="Enviar Mensagem">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Mensagem na chamada..." autocomplete="off" />
+            <button type="submit" id="btnSendChat" class="chat-send-btn" title="Enviar">
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
@@ -1851,6 +1832,7 @@
         let currentAuthUser = localStorage.getItem('nexuscomm_username') || '';
 
         // Elementos do DOM de Autenticação
+        const authSection = document.getElementById('authSection');
         const authAlert = document.getElementById('authAlert');
         const authContent = document.getElementById('authContent');
         const tabLogin = document.getElementById('tabLogin');
@@ -1868,20 +1850,33 @@
         const btnLogout = document.getElementById('btnLogout');
         const authStatusNotice = document.getElementById('authStatusNotice');
 
-        // Elementos de Sala & UX
+        // Elementos de Cabeçalho & UX
+        const mainServerHeading = document.getElementById('mainServerHeading');
         const mainHeaderSub = document.getElementById('mainHeaderSub');
-        const roomSectionTitle = document.getElementById('roomSectionTitle');
-        const roomInput = document.getElementById('roomInput');
-        const btnJoinRoom = document.getElementById('btnJoinRoom');
-        const btnNewRoom = document.getElementById('btnNewRoom');
-        const btnCopyRoomLink = document.getElementById('btnCopyRoomLink');
-        const copyBtnText = document.getElementById('copyBtnText');
         const toastCopied = document.getElementById('toastCopied');
-        const roomFormContainer = document.getElementById('roomFormContainer');
-        const activeRoomBadge = document.getElementById('activeRoomBadge');
-        const roomNameDisplay = document.getElementById('roomNameDisplay');
+        const btnCopyChannelLink = document.getElementById('btnCopyChannelLink');
         const emptyStateContainer = document.getElementById('emptyStateContainer');
         const btnEmptyStateCopy = document.getElementById('btnEmptyStateCopy');
+
+        // Elementos dos 3 Estágios de Visualização (View Stages)
+        const communityWelcomeView = document.getElementById('communityWelcomeView');
+        const welcomeServerAvatar = document.getElementById('welcomeServerAvatar');
+        const welcomeServerTitle = document.getElementById('welcomeServerTitle');
+        const btnQuickEnterGeneralText = document.getElementById('btnQuickEnterGeneralText');
+        const btnQuickEnterGeneralVoice = document.getElementById('btnQuickEnterGeneralVoice');
+
+        const mainTextChatView = document.getElementById('mainTextChatView');
+        const mainChatChannelName = document.getElementById('mainChatChannelName');
+        const mainChatChannelTopic = document.getElementById('mainChatChannelTopic');
+        const channelWelcomeHeading = document.getElementById('channelWelcomeHeading');
+        const channelWelcomeDesc = document.getElementById('channelWelcomeDesc');
+        const mainChatMessagesList = document.getElementById('mainChatMessagesList');
+        const mainChatExpandedForm = document.getElementById('mainChatExpandedForm');
+        const mainChatExpandedInput = document.getElementById('mainChatExpandedInput');
+
+        const voiceStageView = document.getElementById('voiceStageView');
+        const voiceChannelHeading = document.getElementById('voiceChannelHeading');
+        const voiceParticipantsCount = document.getElementById('voiceParticipantsCount');
 
         // Elementos do Menu de Servidores
         const btnServerHome = document.getElementById('btnServerHome');
@@ -1895,9 +1890,10 @@
         const serverModalAlert = document.getElementById('serverModalAlert');
         const btnSubmitServerModal = document.getElementById('btnSubmitServerModal');
 
-        // Elementos do Painel de Canais (Fase 2.5)
+        // Elementos do Painel de Canais
         const channelsSidebar = document.getElementById('channels-sidebar');
         const selectedServerTitle = document.getElementById('selectedServerTitle');
+        const btnOpenServerHome = document.getElementById('btnOpenServerHome');
         const textChannelsList = document.getElementById('textChannelsList');
         const voiceChannelsList = document.getElementById('voiceChannelsList');
         const btnOpenAddChannelModal = document.getElementById('btnOpenAddChannelModal');
@@ -1930,7 +1926,7 @@
         const micIcon = document.getElementById('micIcon');
         const btnLeaveRoom = document.getElementById('btnLeaveRoom');
 
-        // Elementos do Chat
+        // Elementos do Chat Lateral (Modo Voz)
         const chatSidebar = document.getElementById('chatSidebar');
         const chatPanelTitle = document.getElementById('chatPanelTitle');
         const btnToggleChat = document.getElementById('btnToggleChat');
@@ -1963,7 +1959,6 @@
             if (localUserTitle) localUserTitle.innerText = `${username} (Você)`;
         }
 
-        // Atualização da identidade confirmada pelo servidor
         socket.on('authenticated', (data) => {
             console.log('✅ Identidade confirmada pelo servidor:', data);
             if (data.username) {
@@ -1971,11 +1966,13 @@
             }
         });
 
-        // 3. Estruturas de Estado para Suporte Multi-Participante (Full Mesh)
+        // 3. Estruturas de Estado
+        let currentViewMode = 'empty'; // 'empty' | 'text' | 'voice'
         let currentRoom = null;
-        let activeServerId = null; // null = Início / Salas Públicas
+        let currentActiveChannelObj = null;
+        let activeServerId = null; // null = Início / Salas Rápidas
+        let activeServerObj = null;
         let activeChannelId = null;
-        let activeChannelType = 'texto'; // 'texto' | 'voz'
         let selectedChannelTypeForModal = 'texto';
         let loadedServers = [];
         let loadedChannels = [];
@@ -1987,19 +1984,13 @@
         let isChatOpen = false;
         let unreadCount = 0;
 
-        // Objeto que mapeia socketId do peer para sua respectiva RTCPeerConnection
         const peerConnections = {}; 
-        // Objeto que mapeia socketId para o MediaStream remoto persistente
         const remoteStreams = {}; 
-        // Objeto que enfileira ICE Candidates caso cheguem antes da remoteDescription
         const iceCandidateQueues = {}; 
-        // Objeto que mapeia socketId para o nome do usuário remoto
         const peerUsernames = {}; 
 
-        // Stream local que agrega áudio e vídeo local
         const localStream = new MediaStream();
 
-        // Servidores STUN públicos confiáveis
         const rtcConfiguration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -2012,12 +2003,30 @@
             iceCandidatePoolSize: 10
         };
 
-        // Suporte a preenchimento automático de sala via query parameter (?room=...)
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('room')) {
-            const initialRoom = urlParams.get('room').trim();
-            if (initialRoom) {
-                roomInput.value = initialRoom;
+        // ==========================================
+        // 1. Gestão de Visibilidade do Palco Central (View Toggle)
+        // ==========================================
+        function setViewMode(mode) {
+            currentViewMode = mode;
+            console.log('🎯 Alternando Palco Central para:', mode);
+
+            communityWelcomeView.classList.remove('active');
+            mainTextChatView.classList.remove('active');
+            voiceStageView.classList.remove('active');
+
+            if (mode === 'empty') {
+                communityWelcomeView.classList.add('active');
+                controlDock.style.display = 'none';
+                if (chatSidebar.classList.contains('open')) toggleChatSidebar(false);
+            } else if (mode === 'text') {
+                mainTextChatView.classList.add('active');
+                controlDock.style.display = 'none';
+                if (chatSidebar.classList.contains('open')) toggleChatSidebar(false);
+                setTimeout(() => mainChatExpandedInput.focus(), 100);
+            } else if (mode === 'voice') {
+                voiceStageView.classList.add('active');
+                controlDock.style.display = 'flex';
+                updateGridLayout();
             }
         }
 
@@ -2036,13 +2045,12 @@
 
         function updateAuthUI(isAuthenticated) {
             if (isAuthenticated && authToken) {
-                authContent.style.display = 'none';
+                authSection.style.display = 'none';
                 authenticatedUserBadge.style.display = 'flex';
                 authenticatedUsername.innerText = currentAuthUser || 'Autenticado';
-                authStatusNotice.innerText = 'Autenticado';
-                authStatusNotice.style.color = '#10b981';
                 updateCurrentUserUI(currentAuthUser || 'Usuário');
             } else {
+                authSection.style.display = 'flex';
                 authContent.style.display = 'block';
                 authenticatedUserBadge.style.display = 'none';
                 authStatusNotice.innerText = 'Token necessário para conectar';
@@ -2070,13 +2078,9 @@
             authToken = token;
             currentAuthUser = username;
             localStorage.setItem('nexuscomm_jwt_token', token);
-            if (username) {
-                localStorage.setItem('nexuscomm_username', username);
-            }
+            if (username) localStorage.setItem('nexuscomm_username', username);
             socket.auth = { token: authToken, username: currentAuthUser };
-            if (socket.connected) {
-                socket.disconnect();
-            }
+            if (socket.connected) socket.disconnect();
             socket.connect();
             updateCurrentUserUI(username || 'Usuário');
             fetchServersList();
@@ -2098,9 +2102,7 @@
                     body: JSON.stringify({ username, password })
                 });
                 const data = await res.json();
-                if (!res.ok) {
-                    throw new Error(data.error || 'Erro ao realizar login');
-                }
+                if (!res.ok) throw new Error(data.error || 'Erro ao realizar login');
                 showAuthAlert('Login realizado com sucesso! Conectando...', 'success');
                 setAuthToken(data.token, data.user?.username || username);
             } catch (err) {
@@ -2127,9 +2129,7 @@
                     body: JSON.stringify({ username, password })
                 });
                 const data = await res.json();
-                if (!res.ok) {
-                    throw new Error(data.error || 'Erro ao registrar usuário');
-                }
+                if (!res.ok) throw new Error(data.error || 'Erro ao registrar usuário');
                 showAuthAlert('Cadastro realizado com sucesso! Efetuando login...', 'success');
                 btnLogin.click();
             } catch (err) {
@@ -2162,7 +2162,7 @@
         });
 
         // ==========================================
-        // Integração do Menu de Servidores (Fase 2)
+        // 2. Menu de Servidores (Server Sidebar)
         // ==========================================
         function getServerInitials(name) {
             if (!name) return 'NX';
@@ -2181,7 +2181,6 @@
                 if (data.servers && Array.isArray(data.servers)) {
                     loadedServers = data.servers;
                     renderServersList(loadedServers);
-                    // Se não tiver nenhum servidor selecionado, seleciona o primeiro por padrão
                     if (!activeServerId && loadedServers.length > 0) {
                         selectServer(loadedServers[0]);
                     }
@@ -2218,6 +2217,7 @@
 
         async function selectServer(server) {
             activeServerId = server.id;
+            activeServerObj = server;
             document.body.classList.remove('home-view');
             channelsSidebar.classList.remove('hidden');
 
@@ -2225,38 +2225,42 @@
             const activeEl = document.getElementById(`server-item-${server.id}`);
             if (activeEl) activeEl.classList.add('active');
 
-            if (selectedServerTitle) {
-                selectedServerTitle.innerText = server.nome;
-            }
+            if (selectedServerTitle) selectedServerTitle.innerText = server.nome;
+            if (mainServerHeading) mainServerHeading.innerText = server.nome;
+            if (welcomeServerTitle) welcomeServerTitle.innerText = `Bem-vindo ao ${server.nome}!`;
+            if (welcomeServerAvatar) welcomeServerAvatar.innerText = getServerInitials(server.nome);
+            if (mainHeaderSub) mainHeaderSub.innerText = `Comunidade: ${server.nome} • Navegue pelos canais à esquerda`;
 
-            if (mainHeaderSub) {
-                mainHeaderSub.innerText = `Comunidade: ${server.nome} • Navegue pelos canais de texto e voz`;
-            }
-
-            console.log(`🌐 Servidor ativo: [${server.nome}] (ID: ${server.id})`);
+            // Ao clicar na bolinha do servidor, exibe a tela de boas-vindas da comunidade (Estado Vazio)
+            setViewMode('empty');
             await fetchServerChannels(server.id);
         }
 
         btnServerHome.addEventListener('click', () => {
             activeServerId = null;
+            activeServerObj = null;
             document.body.classList.add('home-view');
             channelsSidebar.classList.add('hidden');
 
             document.querySelectorAll('.server-icon-wrapper').forEach(el => el.classList.remove('active'));
             btnServerHome.classList.add('active');
-            if (roomSectionTitle) {
-                roomSectionTitle.innerText = '🚪 Acesso à Sala Privada / Rápida';
-            }
-            if (roomInput) {
-                roomInput.value = 'sala-publica';
-            }
-            if (mainHeaderSub) {
-                mainHeaderSub.innerText = 'Videoconferência & Colaboração em Salas Rápidas';
-            }
+            if (mainServerHeading) mainServerHeading.innerText = 'NexusComm Salas Rápidas';
+            if (mainHeaderSub) mainHeaderSub.innerText = 'Videoconferência & Colaboração WebRTC';
+            
+            // Retorna ao modo de sala pública rápida
+            const defaultRoom = 'sala-publica';
+            connectToRoom(defaultRoom);
+            setViewMode('voice');
         });
 
+        if (btnOpenServerHome) {
+            btnOpenServerHome.addEventListener('click', () => {
+                if (activeServerObj) setViewMode('empty');
+            });
+        }
+
         // ==========================================
-        // Painel de Canais: Categorias e Roteamento (Fase 2.5)
+        // 3. Painel de Canais & Alternância de Palco Central
         // ==========================================
         async function fetchServerChannels(serverId) {
             try {
@@ -2269,22 +2273,9 @@
                 if (data.channels && Array.isArray(data.channels)) {
                     loadedChannels = data.channels;
                     renderChannels(loadedChannels);
-
-                    // Seleciona o primeiro canal disponível se nenhum estiver ativo
-                    if (loadedChannels.length > 0) {
-                        const firstText = loadedChannels.find(c => c.tipo === 'texto');
-                        const defaultChannel = firstText || loadedChannels[0];
-                        if (defaultChannel) {
-                            if (defaultChannel.tipo === 'texto') {
-                                selectTextChannel(defaultChannel);
-                            } else {
-                                selectVoiceChannel(defaultChannel);
-                            }
-                        }
-                    }
                 }
             } catch (err) {
-                console.error('Erro ao buscar canais do servidor:', err);
+                console.error('Erro ao buscar canais:', err);
                 textChannelsList.innerHTML = '<div style="font-size: 0.8rem; color: #fca5a5; padding: 6px;">Erro ao carregar canais.</div>';
             }
         }
@@ -2333,41 +2324,45 @@
             }
         }
 
-        // Ao clicar em um canal de texto: exibe o histórico e conecta o chat daquele canal
+        // 🟢 COMPORTAMENTO MODO TEXTO: Oculta Vídeos e Expande Chat no Palco Central
         function selectTextChannel(channel) {
             activeChannelId = channel.id;
-            activeChannelType = 'texto';
+            currentActiveChannelObj = channel;
             highlightActiveChannel(channel.id);
 
-            const channelRoomName = `comunidade-${activeServerId}-txt-${channel.nome}`;
-            roomInput.value = channelRoomName;
-            roomSectionTitle.innerText = `💬 Canal de Texto: #${channel.nome}`;
-            chatPanelTitle.innerText = `Chat • #${channel.nome}`;
+            const textRoomName = `comunidade-${activeServerId}-txt-${channel.nome}`;
 
-            // Conecta ao socket na sala do canal de texto para carregar mensagens
-            if (currentRoom !== channelRoomName) {
-                connectToRoom(channelRoomName);
-            }
+            // Configura os títulos e cabeçalhos do chat expandido
+            mainChatChannelName.innerText = channel.nome;
+            mainChatChannelTopic.innerText = `Canal de texto da comunidade • #${channel.nome}`;
+            channelWelcomeHeading.innerText = `Bem-vindo ao #${channel.nome}!`;
+            channelWelcomeDesc.innerText = `Este é o início do canal #${channel.nome}. As mensagens são persistidas no PostgreSQL.`;
+            mainChatExpandedInput.placeholder = `Conversar em #${channel.nome}...`;
 
-            // Abre o chat automaticamente para dar foco nas mensagens
-            if (!isChatOpen) {
-                toggleChat();
+            // Alterna o palco para o Modo Texto Expandido
+            setViewMode('text');
+
+            // Conecta ao Socket na sala de texto para sincronizar histórico do Supabase
+            if (currentRoom !== textRoomName) {
+                connectToRoom(textRoomName, false);
             }
         }
 
-        // Ao clicar em um canal de voz: conecta à sala WebRTC daquele canal
+        // 🔊 COMPORTAMENTO MODO VOZ: Palco Central para Grid WebRTC e Chat na Lateral
         async function selectVoiceChannel(channel) {
             activeChannelId = channel.id;
-            activeChannelType = 'voz';
+            currentActiveChannelObj = channel;
             highlightActiveChannel(channel.id);
 
             const voiceRoomName = `comunidade-${activeServerId}-voz-${channel.nome}`;
-            roomInput.value = voiceRoomName;
-            roomSectionTitle.innerText = `🔊 Canal de Voz: ${channel.nome}`;
-            chatPanelTitle.innerText = `Voz & Chat • ${channel.nome}`;
+            voiceChannelHeading.innerText = `🔊 Canal de Voz: ${channel.nome}`;
+            chatPanelTitle.innerText = `Chat de Apoio • ${channel.nome}`;
 
-            // Conecta à sala WebRTC com áudio ativo
-            connectToRoom(voiceRoomName);
+            // Alterna o palco para o Modo Voz (Grid de Vídeos)
+            setViewMode('voice');
+
+            // Conecta à sala WebRTC ativando áudio/vídeo
+            connectToRoom(voiceRoomName, true);
         }
 
         function highlightActiveChannel(channelId) {
@@ -2376,7 +2371,22 @@
             if (activeEl) activeEl.classList.add('active');
         }
 
-        // Modais de Criação de Servidor e Canais
+        // Botões de Acesso Rápido na Tela de Boas-Vindas
+        btnQuickEnterGeneralText.addEventListener('click', () => {
+            const firstText = loadedChannels.find(c => c.tipo === 'texto');
+            if (firstText) selectTextChannel(firstText);
+            else if (loadedChannels.length > 0) selectTextChannel(loadedChannels[0]);
+        });
+
+        btnQuickEnterGeneralVoice.addEventListener('click', () => {
+            const firstVoice = loadedChannels.find(c => c.tipo === 'voz');
+            if (firstVoice) selectVoiceChannel(firstVoice);
+            else if (loadedChannels.length > 0) selectVoiceChannel(loadedChannels[0]);
+        });
+
+        // ==========================================
+        // Modais de Criação de Servidor e Canal
+        // ==========================================
         btnOpenAddServerModal.addEventListener('click', () => {
             if (!authToken) {
                 showAuthAlert('Faça login primeiro para criar comunidades.', 'error');
@@ -2389,10 +2399,7 @@
             inputServerName.focus();
         });
 
-        function closeAddServerModal() {
-            modalAddServer.style.display = 'none';
-        }
-
+        function closeAddServerModal() { modalAddServer.style.display = 'none'; }
         btnCloseServerModal.addEventListener('click', closeAddServerModal);
         btnCancelServerModal.addEventListener('click', closeAddServerModal);
 
@@ -2430,7 +2437,6 @@
             }
         });
 
-        // Modal de Criação de Canais
         btnOpenAddChannelModal.addEventListener('click', () => {
             if (!activeServerId) {
                 alert('Selecione um servidor antes de criar um canal.');
@@ -2461,10 +2467,7 @@
             optTypeText.classList.remove('selected');
         });
 
-        function closeAddChannelModal() {
-            modalAddChannel.style.display = 'none';
-        }
-
+        function closeAddChannelModal() { modalAddChannel.style.display = 'none'; }
         btnCloseChannelModal.addEventListener('click', closeAddChannelModal);
         btnCancelChannelModal.addEventListener('click', closeAddChannelModal);
 
@@ -2509,11 +2512,8 @@
             }
         });
 
-        userBarMuteBtn.addEventListener('click', () => {
-            toggleMute();
-        });
+        userBarMuteBtn.addEventListener('click', () => toggleMute());
 
-        // Carrega servidores na inicialização
         fetchServersList();
 
         // ==========================================
@@ -2547,62 +2547,43 @@
         }
 
         // ==========================================
-        // UX: Geração de Nova Reunião e Cópia de Link
+        // Cópia de Link do Canal
         // ==========================================
-        btnNewRoom.addEventListener('click', () => {
-            const randomCode = `sala-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 6)}`;
-            roomInput.value = randomCode;
-            roomInput.focus();
-        });
-
         async function copyRoomLinkAction() {
             if (!currentRoom) return;
             const fullUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoom)}`;
             try {
                 await navigator.clipboard.writeText(fullUrl);
-                if (copyBtnText) copyBtnText.innerText = 'Copiado!';
                 toastCopied.style.display = 'flex';
-                setTimeout(() => {
-                    if (copyBtnText) copyBtnText.innerText = 'Copiar Link';
-                    toastCopied.style.display = 'none';
-                }, 3000);
+                setTimeout(() => { toastCopied.style.display = 'none'; }, 3000);
             } catch (err) {
-                console.error('Erro ao copiar link:', err);
-                prompt('Copie o link da sala:', fullUrl);
+                prompt('Copie o link do canal:', fullUrl);
             }
         }
 
-        btnCopyRoomLink.addEventListener('click', copyRoomLinkAction);
+        if (btnCopyChannelLink) btnCopyChannelLink.addEventListener('click', copyRoomLinkAction);
         btnEmptyStateCopy.addEventListener('click', copyRoomLinkAction);
 
-        // Atualiza a visualização do Grid e Estado Vazio
         function updateGridLayout() {
             const peerCount = Object.keys(peerConnections).length;
-            if (!currentRoom) {
-                emptyStateContainer.style.display = 'none';
-                videoGrid.classList.add('single-peer');
-                controlDock.style.display = 'none';
-                return;
-            }
-
-            controlDock.style.display = 'flex';
-
             if (peerCount === 0) {
                 videoGrid.classList.add('single-peer');
                 emptyStateContainer.style.display = 'flex';
-                webrtcStatusText.innerText = `WebRTC: No canal [${currentRoom}]. Aguardando participantes...`;
+                if (voiceParticipantsCount) voiceParticipantsCount.innerText = '1 Participante (Você)';
+                webrtcStatusText.innerText = `Voz: Aguardando membros no canal...`;
             } else {
                 videoGrid.classList.remove('single-peer');
                 emptyStateContainer.style.display = 'none';
-                webrtcStatusText.innerText = `WebRTC: Conectado com ${peerCount} participante(s)`;
+                if (voiceParticipantsCount) voiceParticipantsCount.innerText = `${peerCount + 1} Participantes`;
+                webrtcStatusText.innerText = `Voz: Conectado com ${peerCount} membro(s)`;
             }
         }
 
         // ==========================================
-        // Chat de Texto em Tempo Real (UI & Socket.IO)
+        // Chat: Renderização & Disparo (Central Expandido e Lateral)
         // ==========================================
-        function toggleChat() {
-            isChatOpen = !isChatOpen;
+        function toggleChatSidebar(forceState = null) {
+            isChatOpen = (forceState !== null) ? forceState : !isChatOpen;
             if (isChatOpen) {
                 chatSidebar.classList.add('open');
                 btnToggleChat.classList.add('btn-active-highlight');
@@ -2615,8 +2596,8 @@
             }
         }
 
-        btnToggleChat.addEventListener('click', toggleChat);
-        btnCloseChat.addEventListener('click', toggleChat);
+        btnToggleChat.addEventListener('click', () => toggleChatSidebar());
+        btnCloseChat.addEventListener('click', () => toggleChatSidebar(false));
 
         function formatTime(timestamp) {
             const date = new Date(timestamp);
@@ -2630,12 +2611,9 @@
         }
 
         function appendChatMessage({ text, sender, timestamp, isMine }) {
-            const group = document.createElement('div');
-            group.className = `message-group ${isMine ? 'mine' : 'other'}`;
-
             const displayName = isMine ? (currentAuthUser ? `${currentAuthUser} (Você)` : 'Você') : escapeHtml(sender);
 
-            group.innerHTML = `
+            const msgHtml = `
                 <div class="message-meta">
                     <strong>${displayName}</strong>
                     <span>${formatTime(timestamp)}</span>
@@ -2643,8 +2621,23 @@
                 <div class="message-bubble">${escapeHtml(text)}</div>
             `;
 
-            chatMessages.appendChild(group);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            // 1. Renderiza no Chat Expandido Central (Modo Texto)
+            if (mainChatMessagesList) {
+                const groupMain = document.createElement('div');
+                groupMain.className = `message-group ${isMine ? 'mine' : 'other'}`;
+                groupMain.innerHTML = msgHtml;
+                mainChatMessagesList.appendChild(groupMain);
+                mainChatMessagesList.scrollTop = mainChatMessagesList.scrollHeight;
+            }
+
+            // 2. Renderiza no Chat Lateral Retrátil (Modo Voz)
+            if (chatMessages) {
+                const groupSide = document.createElement('div');
+                groupSide.className = `message-group ${isMine ? 'mine' : 'other'}`;
+                groupSide.innerHTML = msgHtml;
+                chatMessages.appendChild(groupSide);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
         }
 
         function sendChatMessage(text) {
@@ -2659,10 +2652,8 @@
                 timestamp: timestamp
             };
 
-            // Emite o evento de mensagem para o servidor
             socket.emit('chat-message', messageData);
 
-            // Exibe imediatamente a mensagem enviada pelo próprio usuário com seu nome real
             appendChatMessage({
                 text: cleanText,
                 sender: currentAuthUser || 'Você',
@@ -2670,15 +2661,22 @@
                 isMine: true
             });
 
-            chatInput.value = '';
+            if (mainChatExpandedInput) mainChatExpandedInput.value = '';
+            if (chatInput) chatInput.value = '';
         }
 
+        // Formulário do Chat Expandido Central
+        mainChatExpandedForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendChatMessage(mainChatExpandedInput.value);
+        });
+
+        // Formulário do Chat Lateral Retrátil
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
             sendChatMessage(chatInput.value);
         });
 
-        // Recebe mensagens do chat de outros participantes
         socket.on('chat-message', (data) => {
             console.log('💬 Mensagem recebida no chat:', data);
             const isMine = Boolean(currentAuthUser && data.sender && data.sender === currentAuthUser);
@@ -2689,24 +2687,38 @@
                 isMine: isMine
             });
 
-            // Se o chat estiver fechado, exibe a bolinha vermelha de notificação
-            if (!isChatOpen) {
+            // Notificação vermelha na doca flutuante se estiver no Modo Voz com o chat fechado
+            if (currentViewMode === 'voice' && !isChatOpen) {
                 unreadCount++;
                 chatUnreadDot.style.display = 'block';
             }
         });
 
-        // Carrega o histórico de mensagens salvas no PostgreSQL para esta sala
         socket.on('room-history', (data) => {
-            console.log(`📜 Histórico de mensagens carregado para [${data.room}]:`, data.messages);
-            chatMessages.innerHTML = `
-                <div class="chat-system-notice">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    <span>Histórico sincronizado com PostgreSQL para #${data.room}.</span>
-                </div>
-            `;
+            console.log(`📜 Histórico carregado do Supabase para [${data.room}]:`, data.messages);
+
+            // Reseta a lista central do canal
+            if (mainChatMessagesList) {
+                mainChatMessagesList.innerHTML = `
+                    <div class="channel-welcome-banner">
+                        <div class="channel-welcome-avatar">#</div>
+                        <h2>Bem-vindo ao #${currentActiveChannelObj ? currentActiveChannelObj.nome : 'canal'}!</h2>
+                        <p>Histórico sincronizado do Supabase PostgreSQL.</p>
+                    </div>
+                `;
+            }
+
+            // Reseta a lista lateral do canal
+            if (chatMessages) {
+                chatMessages.innerHTML = `
+                    <div class="chat-system-notice">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <span>Histórico sincronizado com PostgreSQL.</span>
+                    </div>
+                `;
+            }
 
             if (Array.isArray(data.messages)) {
                 data.messages.forEach((msg) => {
@@ -2722,7 +2734,7 @@
         });
 
         // ==========================================
-        // Gerenciador de Cards Remotos no Grid Dinâmico
+        // Gerenciador de Cards Remotos no Grid
         // ==========================================
         function getOrCreateRemoteCard(socketId, username) {
             let card = document.getElementById(`card-${socketId}`);
@@ -2752,10 +2764,9 @@
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
-                        <span id="placeholderText-${socketId}">Conectando transmissão...</span>
+                        <span id="placeholderText-${socketId}">Conectando áudio/vídeo...</span>
                     </div>
                     <video id="video-${socketId}" autoplay playsinline controls></video>
-                    <!-- Indicadores Flutuantes (Mute / Câmera) -->
                     <div class="floating-media-badges">
                         <span class="floating-badge active-green" id="floatMic-${socketId}" title="Microfone Ativo">
                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2774,9 +2785,7 @@
             videoGrid.appendChild(card);
 
             const videoEl = card.querySelector(`#video-${socketId}`);
-            if (!remoteStreams[socketId]) {
-                remoteStreams[socketId] = new MediaStream();
-            }
+            if (!remoteStreams[socketId]) remoteStreams[socketId] = new MediaStream();
             videoEl.srcObject = remoteStreams[socketId];
 
             updateGridLayout();
@@ -2784,12 +2793,10 @@
         }
 
         // ==========================================
-        // Arquitetura WebRTC Multi-Peer (RTCPeerConnection)
+        // WebRTC Multi-Peer (RTCPeerConnection)
         // ==========================================
         function createPeerConnection(targetSocketId, isInitiator, targetUsername) {
-            if (peerConnections[targetSocketId]) {
-                return peerConnections[targetSocketId];
-            }
+            if (peerConnections[targetSocketId]) return peerConnections[targetSocketId];
 
             console.log(`🌐 Criando RTCPeerConnection para [${targetSocketId}] | Initiator: ${isInitiator}`);
             const pc = new RTCPeerConnection(rtcConfiguration);
@@ -2800,7 +2807,6 @@
 
             localStream.getTracks().forEach((track) => {
                 pc.addTrack(track, localStream);
-                console.log(`➕ Track local adicionada ao peer [${targetSocketId}]:`, track.kind);
             });
 
             pc.onicecandidate = (event) => {
@@ -2814,23 +2820,17 @@
             };
 
             pc.ontrack = (event) => {
-                console.log(`🎥 Recebida track remota de [${targetSocketId}]:`, event.track.kind, event.track.id);
-                if (!remoteStreams[targetSocketId]) {
-                    remoteStreams[targetSocketId] = new MediaStream();
-                }
+                console.log(`🎥 Recebida track remota de [${targetSocketId}]:`, event.track.kind);
+                if (!remoteStreams[targetSocketId]) remoteStreams[targetSocketId] = new MediaStream();
                 const stream = remoteStreams[targetSocketId];
 
                 stream.getTracks().forEach((t) => {
-                    if (t.kind === event.track.kind && t.id !== event.track.id) {
-                        stream.removeTrack(t);
-                    }
+                    if (t.kind === event.track.kind && t.id !== event.track.id) stream.removeTrack(t);
                 });
                 stream.addTrack(event.track);
 
                 const videoEl = document.getElementById(`video-${targetSocketId}`);
-                if (videoEl && videoEl.srcObject !== stream) {
-                    videoEl.srcObject = stream;
-                }
+                if (videoEl && videoEl.srcObject !== stream) videoEl.srcObject = stream;
 
                 const placeholder = document.getElementById(`placeholder-${targetSocketId}`);
                 const floatCam = document.getElementById(`floatCam-${targetSocketId}`);
@@ -2869,7 +2869,7 @@
                         statusBadge.innerHTML = '<span class="spinner-small"></span> Conectando...';
                     }
                     if (spinner) spinner.style.display = 'block';
-                    if (placeholderText) placeholderText.innerText = 'Negociando conexão P2P...';
+                    if (placeholderText) placeholderText.innerText = 'Negociando P2P...';
                 } else if (state === 'disconnected' || state === 'failed') {
                     if (statusBadge) {
                         statusBadge.className = 'badge-status badge-offline';
@@ -2879,20 +2879,16 @@
             };
 
             if (isInitiator) {
-                pc.createOffer({
-                    offerToReceiveAudio: true,
-                    offerToReceiveVideo: true
-                })
+                pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
                 .then(offer => pc.setLocalDescription(offer).then(() => offer))
                 .then(offer => {
-                    console.log(`📤 Enviando Offer para o peer [${targetSocketId}]`);
                     socket.emit('offer', {
                         target: targetSocketId,
                         room: currentRoom,
                         offer: offer
                     });
                 })
-                .catch(err => console.error('Erro ao criar offer para peer:', err));
+                .catch(err => console.error('Erro ao criar offer:', err));
             }
 
             updateGridLayout();
@@ -2908,15 +2904,13 @@
                 const candidate = queue.shift();
                 try {
                     await pc.addIceCandidate(candidate);
-                    console.log(`✅ ICE Candidate processado para [${socketId}]`);
                 } catch (e) {
-                    console.error('Erro ao aplicar ICE Candidate da fila:', e);
+                    console.error('Erro ao aplicar ICE Candidate:', e);
                 }
             }
         }
 
         function closePeerConnection(targetSocketId) {
-            console.log(`🚪 Encerrando conexão P2P com [${targetSocketId}]`);
             if (peerConnections[targetSocketId]) {
                 peerConnections[targetSocketId].close();
                 delete peerConnections[targetSocketId];
@@ -2929,9 +2923,7 @@
             delete peerUsernames[targetSocketId];
 
             const card = document.getElementById(`card-${targetSocketId}`);
-            if (card) {
-                card.remove();
-            }
+            if (card) card.remove();
 
             updateGridLayout();
         }
@@ -2944,28 +2936,20 @@
             for (const [peerId, pc] of Object.entries(peerConnections)) {
                 const senders = pc.getSenders();
                 const audioSender = senders.find(s => (s.track && s.track.kind === 'audio') || (!s.track && s.kind === 'audio'));
-                if (audioSender) {
-                    audioSender.replaceTrack(track);
-                } else {
-                    pc.addTrack(track, localStream);
-                }
+                if (audioSender) audioSender.replaceTrack(track);
+                else pc.addTrack(track, localStream);
             }
         }
 
         function updateAllPeersVideoTrack(track) {
             localStream.getVideoTracks().forEach(t => localStream.removeTrack(t));
-            if (track) {
-                localStream.addTrack(track);
-            }
+            if (track) localStream.addTrack(track);
 
             for (const [peerId, pc] of Object.entries(peerConnections)) {
                 const senders = pc.getSenders();
                 const videoSender = senders.find(s => (s.track && s.track.kind === 'video') || (!s.track && s.kind === 'video'));
-                if (videoSender) {
-                    videoSender.replaceTrack(track || null);
-                } else if (track) {
-                    pc.addTrack(track, localStream);
-                }
+                if (videoSender) videoSender.replaceTrack(track || null);
+                else if (track) pc.addTrack(track, localStream);
             }
         }
 
@@ -2986,11 +2970,7 @@
             }
             try {
                 micStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
                 });
                 const audioTrack = micStream.getAudioTracks()[0];
                 audioTrack.enabled = !isMicMuted;
@@ -3013,10 +2993,10 @@
                 btnCamera.classList.remove('btn-active-danger');
             } else if (activeVideoType === 'screen') {
                 localStatusBadge.className = 'badge-status badge-live';
-                localStatusBadge.innerText = 'Compartilhando Tela';
+                localStatusBadge.innerText = 'Tela Compartilhada';
                 localFloatCam.classList.add('active-green');
                 localFloatCam.classList.remove('active-danger');
-                localFloatCam.title = 'Compartilhando Tela';
+                localFloatCam.title = 'Tela Compartilhada';
                 btnCamera.classList.add('btn-active-danger');
             } else if (micStream && !isMicMuted) {
                 localStatusBadge.className = 'badge-status badge-live';
@@ -3044,35 +3024,35 @@
                 btnMute.classList.remove('btn-active-danger');
             }
 
-            if (activeVideoType === 'screen') {
-                btnScreen.classList.add('btn-active-highlight');
-            } else {
-                btnScreen.classList.remove('btn-active-highlight');
-            }
+            if (activeVideoType === 'screen') btnScreen.classList.add('btn-active-highlight');
+            else btnScreen.classList.remove('btn-active-highlight');
 
             emitMediaStateChange();
         }
 
         // ==========================================
-        // Eventos de Sinalização WebRTC Multi-Peer
+        // Eventos WebRTC do Socket.IO
         // ==========================================
         socket.on('room-users', async (data) => {
-            console.log('👥 Participantes já presentes na sala:', data.users);
-            await getOrCreateMicrophone();
-
-            for (const otherUserId of data.users) {
-                createPeerConnection(otherUserId, true);
+            console.log('👥 Participantes na sala:', data.users);
+            if (currentViewMode === 'voice') {
+                await getOrCreateMicrophone();
+                for (const otherUserId of data.users) {
+                    createPeerConnection(otherUserId, true);
+                }
+                updateGridLayout();
             }
-            updateGridLayout();
         });
 
         socket.on('user-joined', async (data) => {
-            console.log('👤 Novo participante entrou:', data);
-            await getOrCreateMicrophone();
-            peerUsernames[data.id] = data.username;
-            getOrCreateRemoteCard(data.id, data.username);
-            emitMediaStateChange();
-            updateGridLayout();
+            console.log('👤 Participante entrou:', data);
+            if (currentViewMode === 'voice') {
+                await getOrCreateMicrophone();
+                peerUsernames[data.id] = data.username;
+                getOrCreateRemoteCard(data.id, data.username);
+                emitMediaStateChange();
+                updateGridLayout();
+            }
         });
 
         socket.on('offer', async (data) => {
@@ -3080,9 +3060,8 @@
             const senderId = data.sender;
             if (!offer || !offer.type || !senderId) return;
 
-            console.log(`📥 Recebida Offer de [${senderId}]`);
             try {
-                await getOrCreateMicrophone();
+                if (currentViewMode === 'voice') await getOrCreateMicrophone();
                 const pc = createPeerConnection(senderId, false, data.username);
 
                 await pc.setRemoteDescription(new RTCSessionDescription(offer));
@@ -3091,14 +3070,13 @@
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
 
-                console.log(`📤 Enviando Answer para [${senderId}]`);
                 socket.emit('answer', {
                     target: senderId,
                     room: currentRoom,
                     answer: answer
                 });
             } catch (err) {
-                console.error(`Erro ao processar Offer de [${senderId}]:`, err);
+                console.error(`Erro ao processar Offer:`, err);
             }
         });
 
@@ -3107,7 +3085,6 @@
             const senderId = data.sender;
             if (!answer || !answer.type || !senderId) return;
 
-            console.log(`📥 Recebida Answer de [${senderId}]`);
             try {
                 const pc = peerConnections[senderId];
                 if (pc) {
@@ -3115,7 +3092,7 @@
                     await processIceCandidateQueueForPeer(senderId);
                 }
             } catch (err) {
-                console.error(`Erro ao processar Answer de [${senderId}]:`, err);
+                console.error(`Erro ao processar Answer:`, err);
             }
         });
 
@@ -3130,13 +3107,11 @@
                 if (pc && pc.remoteDescription && pc.remoteDescription.type) {
                     await pc.addIceCandidate(candidate);
                 } else {
-                    if (!iceCandidateQueues[senderId]) {
-                        iceCandidateQueues[senderId] = [];
-                    }
+                    if (!iceCandidateQueues[senderId]) iceCandidateQueues[senderId] = [];
                     iceCandidateQueues[senderId].push(candidate);
                 }
             } catch (err) {
-                console.error(`Erro ao processar ICE Candidate de [${senderId}]:`, err);
+                console.error(`Erro ao processar ICE Candidate:`, err);
             }
         });
 
@@ -3177,15 +3152,14 @@
         });
 
         // ==========================================
-        // Entrada e Saída de Sala / Canal
+        // Conexão de Sala / Canal
         // ==========================================
-        async function connectToRoom(roomName) {
+        async function connectToRoom(roomName, isVoice = false) {
             if (!authToken || !socket.connected) {
                 showAuthAlert('Você precisa estar autenticado para acessar este canal.', 'error');
                 return;
             }
 
-            // Se já estava em outra sala, sai dela primeiro
             if (currentRoom && currentRoom !== roomName) {
                 for (const peerId of Object.keys(peerConnections)) {
                     closePeerConnection(peerId);
@@ -3195,32 +3169,14 @@
 
             currentRoom = roomName;
             socket.emit('join-room', currentRoom);
-            console.log('🚪 Conectado ao canal/sala:', currentRoom);
+            console.log('🚪 Entrando no canal/sala:', currentRoom, '| Modo Voz:', isVoice);
 
-            roomFormContainer.style.display = 'none';
-            activeRoomBadge.style.display = 'inline-flex';
-            roomNameDisplay.innerText = currentRoom;
-
-            updateGridLayout();
-            await getOrCreateMicrophone();
+            if (isVoice) {
+                updateGridLayout();
+                await getOrCreateMicrophone();
+            }
         }
 
-        btnJoinRoom.addEventListener('click', () => {
-            const roomName = roomInput.value.trim();
-            if (!roomName) {
-                alert('Por favor, digite o nome da sala.');
-                return;
-            }
-            connectToRoom(roomName);
-        });
-
-        roomInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                btnJoinRoom.click();
-            }
-        });
-
-        // Sair da Chamada (Leave Room)
         function leaveRoom() {
             if (!currentRoom) return;
 
@@ -3244,36 +3200,21 @@
             socket.emit('leave-room', currentRoom);
             currentRoom = null;
 
-            if (isChatOpen) toggleChat();
-            chatMessages.innerHTML = `
-                <div class="chat-system-notice">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    <span>Você foi desconectado do canal.</span>
-                </div>
-            `;
-            chatUnreadDot.style.display = 'none';
-            unreadCount = 0;
-
-            roomFormContainer.style.display = 'flex';
-            activeRoomBadge.style.display = 'none';
+            if (isChatOpen) toggleChatSidebar(false);
             updateGridLayout();
             updateLocalStatus();
-            webrtcStatusText.innerText = 'WebRTC: Você saiu do canal.';
+
+            // Retorna à tela inicial da comunidade
+            setViewMode('empty');
+            webrtcStatusText.innerText = 'Desconectado do canal de voz.';
         }
 
         btnLeaveRoom.addEventListener('click', leaveRoom);
 
         // ==========================================
-        // Controles de Mídia Locais
+        // Controles de Mídia
         // ==========================================
         async function toggleCamera() {
-            if (!currentRoom) {
-                alert('Por favor, entre em um canal primeiro.');
-                return;
-            }
-
             if (activeVideoType === 'camera') {
                 if (cameraStream) {
                     cameraStream.getTracks().forEach((t) => t.stop());
@@ -3287,13 +3228,10 @@
                 return;
             }
 
-            if (activeVideoType === 'screen') {
-                stopScreenShareTracks();
-            }
+            if (activeVideoType === 'screen') stopScreenShareTracks();
 
             try {
                 await getOrCreateMicrophone();
-
                 cameraStream = await navigator.mediaDevices.getUserMedia({
                     video: { width: { ideal: 1280 }, height: { ideal: 720 } }
                 });
@@ -3306,7 +3244,7 @@
                 updateAllPeersVideoTrack(cameraStream.getVideoTracks()[0]);
                 updateLocalStatus();
             } catch (err) {
-                console.error('Erro ao acessar a câmera:', err);
+                console.error('Erro ao acessar câmera:', err);
                 alert(`Não foi possível acessar a câmera: ${err.message || 'Permissão negada'}`);
             }
         }
@@ -3319,11 +3257,6 @@
         }
 
         async function toggleScreenShare() {
-            if (!currentRoom) {
-                alert('Por favor, entre em um canal primeiro.');
-                return;
-            }
-
             if (activeVideoType === 'screen') {
                 stopScreenShareTracks();
                 activeVideoType = 'none';
@@ -3343,10 +3276,7 @@
 
             try {
                 await getOrCreateMicrophone();
-
-                screenStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true
-                });
+                screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
 
                 activeVideoType = 'screen';
                 localVideo.style.transform = 'none';
@@ -3359,23 +3289,16 @@
                 const videoTrack = screenStream.getVideoTracks()[0];
                 if (videoTrack) {
                     videoTrack.onended = () => {
-                        if (activeVideoType === 'screen') {
-                            toggleScreenShare();
-                        }
+                        if (activeVideoType === 'screen') toggleScreenShare();
                     };
                 }
             } catch (err) {
                 console.error('Erro ao compartilhar tela:', err);
-                if (err.name !== 'NotAllowedError') {
-                    alert(`Não foi possível compartilhar a tela: ${err.message || 'Erro desconhecido'}`);
-                }
             }
         }
 
         async function toggleMute() {
-            if (!micStream) {
-                await getOrCreateMicrophone();
-            }
+            if (!micStream) await getOrCreateMicrophone();
             if (!micStream) {
                 alert('Não foi possível obter acesso ao microfone.');
                 return;
@@ -3386,10 +3309,8 @@
 
             if (isMicMuted) {
                 micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />`;
-                console.log('🔇 Microfone mutado');
             } else {
                 micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />`;
-                console.log('🎤 Microfone ativado');
             }
             updateLocalStatus();
         }
