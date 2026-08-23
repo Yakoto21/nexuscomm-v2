@@ -127,7 +127,8 @@ routes.get('/me', ensureAuthenticated, async (req: Request, res: Response) => {
 // Rota para buscar o histórico de mensagens de um canal/sala (GET /messages/:channelId)
 routes.get('/messages/:channelId', async (req: Request, res: Response) => {
     try {
-        const { channelId } = req.params;
+        const channelIdParam = req.params.channelId;
+        const channelId = Array.isArray(channelIdParam) ? channelIdParam[0] : channelIdParam;
         const limit = Number(req.query.limit) || 50;
 
         if (!channelId) {
@@ -198,7 +199,13 @@ routes.post('/servers', ensureAuthenticated, async (req: Request, res: Response)
 // Listar Canais de um Servidor (GET /servers/:serverId/channels)
 routes.get('/servers/:serverId/channels', async (req: Request, res: Response) => {
     try {
-        const { serverId } = req.params;
+        const serverIdParam = req.params.serverId;
+        const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
+
+        if (isNaN(serverId)) {
+            return res.status(400).json({ error: 'ID do servidor inválido.' });
+        }
+
         const result = await pool.query(
             'SELECT * FROM channels WHERE server_id = $1 ORDER BY tipo ASC, nome ASC',
             [serverId]
