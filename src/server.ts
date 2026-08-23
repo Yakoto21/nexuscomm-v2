@@ -6,7 +6,7 @@ import path from 'path';
 import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { routes } from './routes';
-import { initDb, saveMessage, getMessagesByChannel } from './db';
+import { initDb, saveMessage, getMessagesByChannel, findUserById } from './db';
 
 // Carrega as variáveis de ambiente
 dotenv.config();
@@ -43,7 +43,7 @@ const io = new Server(httpServer, {
 });
 
 // Middleware de Autenticação do Socket.IO (io.use) para interceptar conexões iniciais
-io.use((socket, next) => {
+io.use(async (socket, next) => {
     // 1. Extrai o token enviado pelo cliente via socket.handshake.auth.token ou headers
     const rawToken = socket.handshake.auth?.token || 
                      socket.handshake.headers?.authorization;
@@ -66,11 +66,41 @@ io.use((socket, next) => {
     try {
         // 2. Valida o token JWT usando a chave secreta
         const jwtSecret = process.env.JWT_SECRET || 'nexuscomm_super_secret_jwt_key_2026';
-        const decoded = jwt.verify(token, jwtSecret);
+        const decoded = jwt.verify(token, jwtSecret) as any;
+
+        let username = decoded.username;
+        const rawUserId = decoded.id ?? decoded.sub;
+        const userId = (rawUserId !== undefined && rawUserId !== null && !isNaN(Number(rawUserId))) ? Number(rawUserId) : null;
+
+        // Se o token JWT não tiver o username embutido, busca no PostgreSQL pelo ID
+        if (!username && userId) {
+            try {
+                const dbUser = await findUserById(userId);
+                if (dbUser && dbUser.username) {
+                    username = dbUser.username;
+                }
+            } catch (dbErr) {
+                console.warn(`Aviso ao buscar usuário [${userId}] no DB:`, dbErr);
+            }
+        }
+
+        // Se ainda não tiver username, verifica se o cliente enviou no handshake auth
+        if (!username && socket.handshake.auth?.username) {
+            username = String(socket.handshake.auth.username).trim();
+        }
+
+        // Se ainda não tiver, gera identificador
+        if (!username) {
+            username = `User-${socket.id.substring(0, 5)}`;
+        }
 
         // 3. Anexa os dados do usuário autenticado no socket
-        socket.data.user = decoded;
-        console.log(`🔑 Socket [${socket.id}] autenticado com sucesso para o usuário:`, (decoded as any).username || (decoded as any).id || 'ID autenticado');
+        socket.data.user = {
+            id: userId,
+            username: username
+        };
+
+        console.log(`🔑 Socket [${socket.id}] autenticado com sucesso para o usuário: ${username} (ID: ${userId})`);
         return next();
     } catch (err: any) {
         console.warn(`🔒 Conexão bloqueada no Socket [${socket.id}]: Token inválido ou expirado. Detalhes:`, err.message);
@@ -80,11 +110,17 @@ io.use((socket, next) => {
 
 // Gerenciamento de conexões em tempo real, Sinalização WebRTC e Chat Persistido
 io.on('connection', (socket) => {
-    const userPayload = socket.data.user as any;
+    const userPayload = socket.data.user as { id: number | null, username: string };
     const username = userPayload?.username || `User-${socket.id.substring(0, 5)}`;
-    const rawUserId = userPayload?.id ?? userPayload?.sub;
-    const userId = (rawUserId !== undefined && rawUserId !== null && !isNaN(Number(rawUserId))) ? Number(rawUserId) : null;
+    const userId = userPayload?.id || null;
     console.log(`⚡ Usuário conectado: ${socket.id} (${username}) | UserID: ${userId}`);
+
+    // Emite os dados autenticados confirmados de volta ao cliente
+    socket.emit('authenticated', {
+        id: socket.id,
+        username: username,
+        userId: userId
+    });
 
     // Entrada na Sala (Room)
     socket.on('join-room', async (room) => {
@@ -196,6 +232,9 @@ io.on('connection', (socket) => {
 
         const roomName = String(data.room).trim();
         const messageText = String(data.text).trim();
+        // Extrai o username real autenticado do socket
+        const senderUsername = socket.data.user?.username || username || String(data.sender || 'Anônimo').trim();
+
         if (!roomName || !messageText) return;
 
         try {
@@ -203,13 +242,13 @@ io.on('connection', (socket) => {
             const savedMsg = await saveMessage(
                 roomName,
                 userId,
-                username,
+                senderUsername,
                 messageText
             );
 
-            console.log(`💬 [${roomName}] ${username}: ${messageText} (ID: ${savedMsg.id})`);
+            console.log(`💬 [${roomName}] ${senderUsername}: ${messageText} (ID: ${savedMsg.id})`);
 
-            // Envia a mensagem persistida para todos os outros participantes da sala
+            // Envia a mensagem persistida com o nome real do remetente para todos os outros participantes da sala
             socket.to(roomName).emit('chat-message', {
                 id: savedMsg.id,
                 text: savedMsg.text,
@@ -223,7 +262,7 @@ io.on('connection', (socket) => {
             socket.to(roomName).emit('chat-message', {
                 id: `fallback-${Date.now()}`,
                 text: messageText,
-                sender: username,
+                sender: senderUsername,
                 senderId: socket.id,
                 timestamp: data.timestamp || Date.now()
             });

@@ -1300,12 +1300,25 @@
         const socketStatusText = document.getElementById('socketStatusText');
         const webrtcStatusText = document.getElementById('webrtcStatusText');
 
-        // 2. Inicialização do cliente Socket.IO com o token JWT no objeto auth
+        // 2. Inicialização do cliente Socket.IO com o token JWT e username no objeto auth
         const socket = io({
             auth: {
-                token: authToken
+                token: authToken,
+                username: currentAuthUser
             },
             autoConnect: true
+        });
+
+        // Atualização da identidade confirmada pelo servidor
+        socket.on('authenticated', (data) => {
+            console.log('✅ Identidade confirmada pelo servidor:', data);
+            if (data.username) {
+                currentAuthUser = data.username;
+                localStorage.setItem('nexuscomm_username', data.username);
+                if (authenticatedUsername) authenticatedUsername.innerText = currentAuthUser;
+                const localUserTitle = document.getElementById('localUserTitle');
+                if (localUserTitle) localUserTitle.innerText = `${currentAuthUser} (Você)`;
+            }
         });
 
         // 3. Estruturas de Estado para Suporte Multi-Participante (Full Mesh)
@@ -1607,9 +1620,11 @@
             const group = document.createElement('div');
             group.className = `message-group ${isMine ? 'mine' : 'other'}`;
 
+            const displayName = isMine ? (currentAuthUser ? `${currentAuthUser} (Você)` : 'Você') : escapeHtml(sender);
+
             group.innerHTML = `
                 <div class="message-meta">
-                    <strong>${isMine ? 'Você' : escapeHtml(sender)}</strong>
+                    <strong>${displayName}</strong>
                     <span>${formatTime(timestamp)}</span>
                 </div>
                 <div class="message-bubble">${escapeHtml(text)}</div>
@@ -1627,17 +1642,17 @@
             const messageData = {
                 room: currentRoom,
                 text: cleanText,
-                sender: currentAuthUser || `User-${socket.id.substring(0, 5)}`,
+                sender: currentAuthUser || 'Você',
                 timestamp: timestamp
             };
 
             // Emite o evento de mensagem para o servidor
             socket.emit('chat-message', messageData);
 
-            // Exibe imediatamente a mensagem enviada pelo próprio usuário
+            // Exibe imediatamente a mensagem enviada pelo próprio usuário com seu nome real
             appendChatMessage({
                 text: cleanText,
-                sender: 'Você',
+                sender: currentAuthUser || 'Você',
                 timestamp: timestamp,
                 isMine: true
             });
@@ -1653,11 +1668,12 @@
         // Recebe mensagens do chat de outros participantes
         socket.on('chat-message', (data) => {
             console.log('💬 Mensagem recebida no chat:', data);
+            const isMine = Boolean(currentAuthUser && data.sender && data.sender === currentAuthUser);
             appendChatMessage({
                 text: data.text,
                 sender: data.sender || 'Participante',
                 timestamp: data.timestamp || Date.now(),
-                isMine: false
+                isMine: isMine
             });
 
             // Se o chat estiver fechado, exibe a bolinha vermelha de notificação
@@ -1681,10 +1697,10 @@
 
             if (Array.isArray(data.messages)) {
                 data.messages.forEach((msg) => {
-                    const isMine = (currentAuthUser && msg.sender === currentAuthUser);
+                    const isMine = Boolean(currentAuthUser && msg.sender && msg.sender === currentAuthUser);
                     appendChatMessage({
                         text: msg.text,
-                        sender: msg.sender,
+                        sender: msg.sender || 'Participante',
                         timestamp: new Date(msg.timestamp).getTime(),
                         isMine: isMine
                     });
