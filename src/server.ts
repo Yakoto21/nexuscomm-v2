@@ -6,12 +6,30 @@ import path from 'path';
 import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { routes } from './routes';
+import { initDb, saveMessage, getMessagesByChannel } from './db';
 
-// Carrega as nossas variáveis secretas (como senhas e portas)
+// Carrega as variáveis de ambiente
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3333;
+
+// Configurações de Segurança e Tráfego
+app.use(cors()); // Permite que o nosso frontend converse com este backend
+app.use(express.json()); // Prepara o servidor para receber dados em formato JSON
+
+// Rotas da aplicação
+app.use(routes);
+
+// Servir arquivos estáticos da pasta public (para renderizar index.html)
+app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../../public')));
+
+// Rota de teste/status da API
+app.get('/api/status', (_req, res) => {
+    res.json({ status: 'Online', message: 'Servidor NexusComm V2 blindado e operante com PostgreSQL!' });
+});
 
 // Cria o servidor HTTP integrando com o Express
 const httpServer = http.createServer(app);
@@ -52,7 +70,7 @@ io.use((socket, next) => {
 
         // 3. Anexa os dados do usuário autenticado no socket
         socket.data.user = decoded;
-        console.log(`🔑 Socket [${socket.id}] autenticado com sucesso para o usuário:`, (decoded as any).id || (decoded as any).username || 'ID autenticado');
+        console.log(`🔑 Socket [${socket.id}] autenticado com sucesso para o usuário:`, (decoded as any).username || (decoded as any).id || 'ID autenticado');
         return next();
     } catch (err: any) {
         console.warn(`🔒 Conexão bloqueada no Socket [${socket.id}]: Token inválido ou expirado. Detalhes:`, err.message);
@@ -60,14 +78,15 @@ io.use((socket, next) => {
     }
 });
 
-// Gerenciamento de conexões em tempo real e Sinalização WebRTC Multi-Participante via Socket.IO
+// Gerenciamento de conexões em tempo real, Sinalização WebRTC e Chat Persistido
 io.on('connection', (socket) => {
     const userPayload = socket.data.user as any;
     const username = userPayload?.username || `User-${socket.id.substring(0, 5)}`;
+    const userId = userPayload?.id ? Number(userPayload.id) : null;
     console.log(`⚡ Usuário conectado: ${socket.id} (${username})`);
 
     // Entrada na Sala (Room)
-    socket.on('join-room', (room) => {
+    socket.on('join-room', async (room) => {
         socket.join(room);
         console.log(`🚪 Usuário ${socket.id} (${username}) entrou na sala: "${room}"`);
 
@@ -89,7 +108,18 @@ io.on('connection', (socket) => {
             room: room
         });
 
-        // 2. Notifica todos os participantes existentes sobre a chegada do novo usuário
+        // 2. Carrega o histórico de mensagens salvas no PostgreSQL para o canal/sala
+        try {
+            const history = await getMessagesByChannel(room, 50);
+            socket.emit('room-history', {
+                room: room,
+                messages: history
+            });
+        } catch (err) {
+            console.warn(`Erro ao carregar histórico da sala [${room}]:`, err);
+        }
+
+        // 3. Notifica todos os participantes existentes sobre a chegada do novo usuário
         socket.to(room).emit('user-joined', {
             id: socket.id,
             username: username
@@ -158,19 +188,40 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 5. Chat de Texto em Tempo Real por Sala
-    socket.on('chat-message', (data) => {
+    // 5. Chat de Texto Persistido no PostgreSQL antes do Broadcast
+    socket.on('chat-message', async (data) => {
         if (!data.text || !data.room) return;
-        const msgPayload = {
-            id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-            text: data.text,
-            sender: username,
-            senderId: socket.id,
-            timestamp: data.timestamp || Date.now()
-        };
-        console.log(`💬 [${data.room}] ${username}: ${data.text}`);
-        // Envia a mensagem para todos os outros participantes da sala
-        socket.to(data.room).emit('chat-message', msgPayload);
+
+        try {
+            // Salva a mensagem no banco de dados PostgreSQL antes do broadcast
+            const savedMsg = await saveMessage(
+                data.room,
+                userId,
+                username,
+                data.text
+            );
+
+            console.log(`💬 [${data.room}] ${username}: ${data.text} (ID: ${savedMsg.id})`);
+
+            // Envia a mensagem persistida para todos os outros participantes da sala
+            socket.to(data.room).emit('chat-message', {
+                id: savedMsg.id,
+                text: savedMsg.text,
+                sender: savedMsg.sender,
+                senderId: socket.id,
+                timestamp: savedMsg.timestamp
+            });
+        } catch (err) {
+            console.error('Erro ao persistir mensagem no banco de dados:', err);
+            // Em caso de falha transitória no banco, realiza o broadcast
+            socket.to(data.room).emit('chat-message', {
+                id: `fallback-${Date.now()}`,
+                text: data.text,
+                sender: username,
+                senderId: socket.id,
+                timestamp: data.timestamp || Date.now()
+            });
+        }
     });
 
     // Notifica quando o usuário estiver desconectando das salas
@@ -187,28 +238,16 @@ io.on('connection', (socket) => {
     });
 });
 
-// Servir arquivos estáticos da pasta public (para renderizar index.html)
-app.use(express.static('public'));
-app.use(express.static(path.join(__dirname, '../public')));
-app.use(express.static(path.join(__dirname, '../../public')));
-
-// Configurações de Segurança e Tráfego
-app.use(cors()); // Permite que o nosso frontend converse com este backend
-app.use(express.json()); // Prepara o servidor para receber dados em formato JSON
-
-// Rotas da aplicação
-app.use(routes);
-
-// Rota de teste/status da API
-app.get('/api/status', (req, res) => {
-    res.json({ status: 'Online', message: 'Servidor NexusComm V2 blindado e operante!' });
-});
-
-// Ligando os motores usando httpServer.listen para suportar HTTP e WebSockets
-httpServer.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta http://localhost:${PORT}`);
+// Inicialização do Banco de Dados PostgreSQL e Servidor HTTP/Socket.IO
+initDb().then(() => {
+    httpServer.listen(PORT, () => {
+        console.log(`🚀 Servidor NexusComm V2 rodando na porta http://localhost:${PORT}`);
+    });
+}).catch(err => {
+    console.error('Falha crítica na inicialização do banco:', err);
+    httpServer.listen(PORT, () => {
+        console.log(`🚀 Servidor NexusComm V2 rodando em modo de contingência na porta http://localhost:${PORT}`);
+    });
 });
 
 export { io, httpServer, app };
-
-
