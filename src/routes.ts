@@ -7,6 +7,14 @@ import {
     findUserById,
     createUser,
     getMessagesByChannel,
+    createDefaultServerRoles,
+    createServerRole,
+    getServerRoles,
+    addMemberToServer,
+    assignRoleToMember,
+    removeRoleFromMember,
+    getMemberRoles,
+    getServerMembers,
     pool
 } from './db';
 
@@ -25,30 +33,37 @@ routes.post('/register', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Username e password são obrigatórios.' });
         }
 
-        // Verifica se o usuário já existe no PostgreSQL
-        const userExists = await findUserByUsername(username);
-
-        if (userExists) {
-            return res.status(400).json({ error: 'Este nome de usuário já está em uso.' });
+        if (username.length < 3) {
+            return res.status(400).json({ error: 'O nome de usuário deve ter pelo menos 3 caracteres.' });
         }
 
-        // Criptografa a senha antes de salvar usando pelo menos 10 salt rounds
-        const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+        if (password.length < 6) {
+            return res.status(400).json({ error: 'A senha deve ter pelo menos 6 caracteres.' });
+        }
 
-        // Salva o usuário no PostgreSQL
-        const newUser = await createUser(username, hashedPassword);
+        // 1. Verifica se o usuário já existe
+        const userExists = await findUserByUsername(username);
+        if (userExists) {
+            return res.status(400).json({ error: 'Nome de usuário já cadastrado.' });
+        }
+
+        // 2. Gera o hash da senha utilizando bcrypt com pelo menos 10 salt rounds
+        const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+
+        // 3. Salva o usuário no banco de dados PostgreSQL
+        const newUser = await createUser(username, passwordHash);
 
         return res.status(201).json({
             message: 'Usuário cadastrado com sucesso!',
             user: {
                 id: newUser.id,
                 username: newUser.username,
-                createdAt: newUser.created_at
+                created_at: newUser.created_at
             }
         });
     } catch (error) {
-        console.error('Erro ao registrar usuário:', error);
-        return res.status(500).json({ error: 'Erro interno ao registrar usuário.' });
+        console.error('Erro ao cadastrar usuário:', error);
+        return res.status(500).json({ error: 'Erro interno ao cadastrar usuário.' });
     }
 });
 
@@ -62,9 +77,8 @@ routes.post('/login', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Username e password são obrigatórios.' });
         }
 
-        // 1. Busca o usuário no PostgreSQL
+        // 1. Busca o usuário pelo username
         const user = await findUserByUsername(username);
-
         if (!user) {
             return res.status(400).json({ error: 'Usuário ou senha inválidos.' });
         }
@@ -115,27 +129,34 @@ routes.get('/me', ensureAuthenticated, async (req: Request, res: Response) => {
         }
 
         return res.status(200).json({
-            userId,
-            user
+            user: {
+                id: user.id,
+                username: user.username,
+                created_at: user.created_at
+            }
         });
     } catch (error) {
-        console.error('Erro ao buscar dados do usuário autenticado:', error);
-        return res.status(500).json({ error: 'Erro interno no servidor.' });
+        console.error('Erro ao buscar perfil do usuário:', error);
+        return res.status(500).json({ error: 'Erro interno ao buscar perfil.' });
     }
 });
 
-// Rota para buscar o histórico de mensagens de um canal/sala (GET /messages/:channelId)
+// ==========================================
+// Rotas de Mensagens Persistidas
+// ==========================================
+
+// Buscar histórico de mensagens de um canal ou sala WebRTC (GET /messages/:channelId)
 routes.get('/messages/:channelId', async (req: Request, res: Response) => {
     try {
         const channelIdParam = req.params.channelId;
         const channelId = Array.isArray(channelIdParam) ? channelIdParam[0] : channelIdParam;
-        const limit = Number(req.query.limit) || 50;
+        const limitParam = req.query.limit ? Number(req.query.limit) : 50;
 
         if (!channelId) {
-            return res.status(400).json({ error: 'O ID do canal é obrigatório.' });
+            return res.status(400).json({ error: 'ID do canal é obrigatório.' });
         }
 
-        const messages = await getMessagesByChannel(channelId, limit);
+        const messages = await getMessagesByChannel(channelId, limitParam);
 
         return res.status(200).json({
             channelId,
@@ -144,7 +165,7 @@ routes.get('/messages/:channelId', async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error('Erro ao buscar histórico de mensagens:', error);
-        return res.status(500).json({ error: 'Erro interno ao buscar mensagens.' });
+        return res.status(500).json({ error: 'Erro ao buscar histórico de mensagens.' });
     }
 });
 
@@ -175,7 +196,7 @@ routes.post('/servers', ensureAuthenticated, async (req: Request, res: Response)
 
         const result = await pool.query(
             'INSERT INTO servers (nome, dono_id) VALUES ($1, $2) RETURNING *',
-            [nome, userId || null]
+            [nome.trim(), userId || null]
         );
 
         const newServer = result.rows[0];
@@ -185,6 +206,9 @@ routes.post('/servers', ensureAuthenticated, async (req: Request, res: Response)
             "INSERT INTO channels (server_id, nome, tipo) VALUES ($1, 'geral', 'texto'), ($1, 'Voz Geral', 'voz')",
             [newServer.id]
         );
+
+        // Cria automaticamente os cargos dinâmicos padrão: @everyone e Admin
+        await createDefaultServerRoles(newServer.id, userId || null);
 
         return res.status(201).json({
             message: 'Servidor criado com sucesso!',
@@ -246,6 +270,165 @@ routes.post('/servers/:serverId/channels', ensureAuthenticated, async (req: Requ
     } catch (error) {
         console.error('Erro ao criar canal no servidor:', error);
         return res.status(500).json({ error: 'Erro ao criar canal.' });
+    }
+});
+
+// ==========================================
+// Rotas de Cargos e Permissões (Discord-Style Roles)
+// ==========================================
+
+// Listar todos os cargos de um servidor (GET /servers/:serverId/roles)
+routes.get('/servers/:serverId/roles', async (req: Request, res: Response) => {
+    try {
+        const serverIdParam = req.params.serverId;
+        const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
+
+        if (isNaN(serverId)) {
+            return res.status(400).json({ error: 'ID do servidor inválido.' });
+        }
+
+        const roles = await getServerRoles(serverId);
+        return res.status(200).json({ roles });
+    } catch (error) {
+        console.error('Erro ao buscar cargos do servidor:', error);
+        return res.status(500).json({ error: 'Erro ao buscar cargos.' });
+    }
+});
+
+// Criar novo cargo em um servidor (POST /servers/:serverId/roles)
+routes.post('/servers/:serverId/roles', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const serverIdParam = req.params.serverId;
+        const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
+        const { nome, cor_hex, posicao, hoist, permissoes } = req.body;
+
+        if (isNaN(serverId)) {
+            return res.status(400).json({ error: 'ID do servidor inválido.' });
+        }
+
+        if (!nome) {
+            return res.status(400).json({ error: 'O nome do cargo é obrigatório.' });
+        }
+
+        const newRole = await createServerRole(
+            serverId,
+            nome,
+            cor_hex || '#94a3b8',
+            Number(posicao) || 1,
+            Boolean(hoist),
+            permissoes || {}
+        );
+
+        return res.status(201).json({
+            message: 'Cargo criado com sucesso!',
+            role: newRole
+        });
+    } catch (error) {
+        console.error('Erro ao criar cargo:', error);
+        return res.status(500).json({ error: 'Erro ao criar cargo.' });
+    }
+});
+
+// Listar todos os membros de um servidor com seus cargos (GET /servers/:serverId/members)
+routes.get('/servers/:serverId/members', async (req: Request, res: Response) => {
+    try {
+        const serverIdParam = req.params.serverId;
+        const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
+
+        if (isNaN(serverId)) {
+            return res.status(400).json({ error: 'ID do servidor inválido.' });
+        }
+
+        const members = await getServerMembers(serverId);
+        return res.status(200).json({ members });
+    } catch (error) {
+        console.error('Erro ao listar membros do servidor:', error);
+        return res.status(500).json({ error: 'Erro ao listar membros.' });
+    }
+});
+
+// Entrar como membro em um servidor (POST /servers/:serverId/join)
+routes.post('/servers/:serverId/join', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const serverIdParam = req.params.serverId;
+        const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
+        const userId = Number(req.userId);
+
+        if (isNaN(serverId) || !userId) {
+            return res.status(400).json({ error: 'ID de servidor ou usuário inválido.' });
+        }
+
+        await addMemberToServer(userId, serverId);
+        const userRoles = await getMemberRoles(userId, serverId);
+
+        return res.status(200).json({
+            message: 'Você entrou no servidor com sucesso!',
+            roles: userRoles
+        });
+    } catch (error) {
+        console.error('Erro ao entrar no servidor:', error);
+        return res.status(500).json({ error: 'Erro ao entrar no servidor.' });
+    }
+});
+
+// Atribuir cargo a um membro (POST /servers/:serverId/members/:targetUserId/roles/:roleId)
+routes.post('/servers/:serverId/members/:targetUserId/roles/:roleId', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const serverId = Number(req.params.serverId);
+        const targetUserId = Number(req.params.targetUserId);
+        const roleId = Number(req.params.roleId);
+
+        if (isNaN(serverId) || isNaN(targetUserId) || isNaN(roleId)) {
+            return res.status(400).json({ error: 'IDs fornecidos são inválidos.' });
+        }
+
+        const assigned = await assignRoleToMember(targetUserId, serverId, roleId);
+        return res.status(200).json({
+            message: 'Cargo atribuído com sucesso!',
+            assignment: assigned
+        });
+    } catch (error) {
+        console.error('Erro ao atribuir cargo:', error);
+        return res.status(500).json({ error: 'Erro ao atribuir cargo.' });
+    }
+});
+
+// Remover cargo de um membro (DELETE /servers/:serverId/members/:targetUserId/roles/:roleId)
+routes.delete('/servers/:serverId/members/:targetUserId/roles/:roleId', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const serverId = Number(req.params.serverId);
+        const targetUserId = Number(req.params.targetUserId);
+        const roleId = Number(req.params.roleId);
+
+        if (isNaN(serverId) || isNaN(targetUserId) || isNaN(roleId)) {
+            return res.status(400).json({ error: 'IDs fornecidos são inválidos.' });
+        }
+
+        await removeRoleFromMember(targetUserId, serverId, roleId);
+        return res.status(200).json({
+            message: 'Cargo removido com sucesso!'
+        });
+    } catch (error) {
+        console.error('Erro ao remover cargo:', error);
+        return res.status(500).json({ error: 'Erro ao remover cargo.' });
+    }
+});
+
+// Obter meus cargos e permissões neste servidor (GET /servers/:serverId/my-roles)
+routes.get('/servers/:serverId/my-roles', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const serverId = Number(req.params.serverId);
+        const userId = Number(req.userId);
+
+        if (isNaN(serverId) || !userId) {
+            return res.status(400).json({ error: 'ID de servidor ou usuário inválido.' });
+        }
+
+        const roles = await getMemberRoles(userId, serverId);
+        return res.status(200).json({ roles });
+    } catch (error) {
+        console.error('Erro ao buscar meus cargos no servidor:', error);
+        return res.status(500).json({ error: 'Erro ao buscar cargos.' });
     }
 });
 

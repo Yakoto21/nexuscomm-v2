@@ -66,7 +66,44 @@ export async function initDb() {
             );
         `);
 
-        // 5. Migração automática: se a tabela messages foi criada previamente com channel_id INTEGER, converte para VARCHAR(255)
+        // 5. Tabela de Cargos do Servidor (server_roles)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS server_roles (
+                id SERIAL PRIMARY KEY,
+                server_id INTEGER NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+                nome VARCHAR(100) NOT NULL,
+                cor_hex VARCHAR(10) DEFAULT '#94a3b8',
+                posicao INTEGER DEFAULT 0,
+                hoist BOOLEAN DEFAULT FALSE,
+                permissoes JSONB DEFAULT '{"can_manage_server": false, "can_manage_channels": false, "can_kick_users": false, "can_delete_messages": false, "can_send_messages": true, "can_connect_voice": true}'::jsonb,
+                data_criacao TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        // 6. Tabela de Membros do Servidor (server_members)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS server_members (
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                server_id INTEGER NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+                nickname VARCHAR(100),
+                joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, server_id)
+            );
+        `);
+
+        // 7. Tabela de Vínculo Membro-Cargo (member_roles - N:N)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS member_roles (
+                user_id INTEGER NOT NULL,
+                server_id INTEGER NOT NULL,
+                role_id INTEGER NOT NULL REFERENCES server_roles(id) ON DELETE CASCADE,
+                assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, server_id, role_id),
+                FOREIGN KEY (user_id, server_id) REFERENCES server_members(user_id, server_id) ON DELETE CASCADE
+            );
+        `);
+
+        // 8. Migração automática: se a tabela messages foi criada previamente com channel_id INTEGER, converte para VARCHAR(255)
         await pool.query(`
             DO $$
             BEGIN
@@ -82,13 +119,16 @@ export async function initDb() {
             END $$;
         `);
 
-        // Criação de índices para buscas rápidas de mensagens por canal e usuários
+        // Criação de índices para performance
         await pool.query(`
             CREATE INDEX IF NOT EXISTS idx_messages_channel_id ON messages(channel_id);
             CREATE INDEX IF NOT EXISTS idx_messages_data_envio ON messages(data_envio);
+            CREATE INDEX IF NOT EXISTS idx_server_roles_server ON server_roles(server_id);
+            CREATE INDEX IF NOT EXISTS idx_server_members_server ON server_members(server_id);
+            CREATE INDEX IF NOT EXISTS idx_member_roles_user_server ON member_roles(user_id, server_id);
         `);
 
-        // 6. Cria um servidor padrão de comunidade se nenhum existir
+        // 9. Cria um servidor padrão de comunidade se nenhum existir
         const serversCountRes = await pool.query('SELECT COUNT(*) FROM servers');
         if (parseInt(serversCountRes.rows[0].count, 10) === 0) {
             const defaultServerRes = await pool.query(
@@ -99,17 +139,268 @@ export async function initDb() {
                 "INSERT INTO channels (server_id, nome, tipo) VALUES ($1, 'geral', 'texto'), ($1, 'Voz Principal', 'voz')",
                 [defaultServerId]
             );
-            console.log('🎉 Servidor padrão [Comunidade NexusComm] criado com sucesso!');
+            await createDefaultServerRoles(defaultServerId);
+            console.log('🎉 Servidor padrão [Comunidade NexusComm] e cargos criados com sucesso!');
+        } else {
+            // Garante que todos os servidores existentes possuam o cargo @everyone
+            const allServers = await pool.query('SELECT id, dono_id FROM servers');
+            for (const s of allServers.rows) {
+                await ensureEveryoneRoleExists(s.id, s.dono_id);
+            }
         }
 
-        console.log('✅ Tabelas do PostgreSQL (Users, Servers, Channels, Messages) verificadas e sincronizadas com sucesso!');
+        console.log('✅ Tabelas relacionais do PostgreSQL (Users, Servers, Channels, Messages, Roles, Members) sincronizadas com sucesso!');
     } catch (err) {
         console.error('❌ Erro ao conectar ou inicializar tabelas no PostgreSQL:', err);
     }
 }
 
 // ==========================================
-// Helpers de Banco de Dados
+// Gestão de Cargos e Permissões Dinâmicas (Discord-Style)
+// ==========================================
+
+export interface RolePermissions {
+    can_manage_server?: boolean;
+    can_manage_channels?: boolean;
+    can_kick_users?: boolean;
+    can_delete_messages?: boolean;
+    can_send_messages?: boolean;
+    can_connect_voice?: boolean;
+    can_manage_roles?: boolean;
+}
+
+/**
+ * Cria o cargo padrão @everyone e opcionalmente o cargo de Admin para o dono do servidor.
+ */
+export async function createDefaultServerRoles(serverId: number, ownerId?: number | null) {
+    try {
+        // 1. Cargo padrão @everyone (posicao = 0)
+        const everyonePerms: RolePermissions = {
+            can_send_messages: true,
+            can_connect_voice: true,
+            can_manage_server: false,
+            can_manage_channels: false,
+            can_kick_users: false,
+            can_delete_messages: false,
+            can_manage_roles: false
+        };
+
+        const everyoneRes = await pool.query(
+            `INSERT INTO server_roles (server_id, nome, cor_hex, posicao, hoist, permissoes)
+             VALUES ($1, '@everyone', '#94a3b8', 0, FALSE, $2)
+             ON CONFLICT DO NOTHING
+             RETURNING id`,
+            [serverId, JSON.stringify(everyonePerms)]
+        );
+
+        let everyoneRoleId = everyoneRes.rows[0]?.id;
+        if (!everyoneRoleId) {
+            const findEveryone = await pool.query(
+                `SELECT id FROM server_roles WHERE server_id = $1 AND nome = '@everyone' LIMIT 1`,
+                [serverId]
+            );
+            everyoneRoleId = findEveryone.rows[0]?.id;
+        }
+
+        // 2. Se houver dono/criador, adiciona como membro e cria cargo de Dono / Admin (posicao = 100)
+        if (ownerId) {
+            await addMemberToServer(ownerId, serverId);
+
+            const adminPerms: RolePermissions = {
+                can_manage_server: true,
+                can_manage_channels: true,
+                can_kick_users: true,
+                can_delete_messages: true,
+                can_send_messages: true,
+                can_connect_voice: true,
+                can_manage_roles: true
+            };
+
+            const adminRoleRes = await pool.query(
+                `INSERT INTO server_roles (server_id, nome, cor_hex, posicao, hoist, permissoes)
+                 VALUES ($1, 'Admin', '#f59e0b', 100, TRUE, $2)
+                 RETURNING id`,
+                [serverId, JSON.stringify(adminPerms)]
+            );
+
+            const adminRoleId = adminRoleRes.rows[0]?.id;
+            if (adminRoleId) {
+                await assignRoleToMember(ownerId, serverId, adminRoleId);
+            }
+        }
+    } catch (err) {
+        console.error(`Erro ao criar cargos padrão para o servidor [${serverId}]:`, err);
+    }
+}
+
+/**
+ * Garante que o cargo @everyone exista em um servidor existente.
+ */
+export async function ensureEveryoneRoleExists(serverId: number, ownerId?: number | null) {
+    const res = await pool.query(
+        `SELECT id FROM server_roles WHERE server_id = $1 AND nome = '@everyone' LIMIT 1`,
+        [serverId]
+    );
+
+    if (res.rows.length === 0) {
+        await createDefaultServerRoles(serverId, ownerId);
+    }
+}
+
+/**
+ * Adiciona um usuário como membro de um servidor e atribui automaticamente o cargo @everyone.
+ */
+export async function addMemberToServer(userId: number, serverId: number, nickname?: string) {
+    // 1. Adiciona à tabela server_members
+    await pool.query(
+        `INSERT INTO server_members (user_id, server_id, nickname)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, server_id) DO NOTHING`,
+        [userId, serverId, nickname || null]
+    );
+
+    // 2. Localiza o cargo @everyone deste servidor
+    const everyoneRoleRes = await pool.query(
+        `SELECT id FROM server_roles WHERE server_id = $1 AND nome = '@everyone' LIMIT 1`,
+        [serverId]
+    );
+
+    if (everyoneRoleRes.rows.length > 0) {
+        const everyoneRoleId = everyoneRoleRes.rows[0].id;
+        await pool.query(
+            `INSERT INTO member_roles (user_id, server_id, role_id)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (user_id, server_id, role_id) DO NOTHING`,
+            [userId, serverId, everyoneRoleId]
+        );
+    }
+}
+
+/**
+ * Cria um novo cargo personalizado no servidor.
+ */
+export async function createServerRole(
+    serverId: number,
+    nome: string,
+    corHex = '#94a3b8',
+    posicao = 1,
+    hoist = false,
+    permissoes: RolePermissions = {}
+) {
+    const defaultPerms: RolePermissions = {
+        can_send_messages: true,
+        can_connect_voice: true,
+        can_manage_server: false,
+        can_manage_channels: false,
+        can_kick_users: false,
+        can_delete_messages: false,
+        can_manage_roles: false,
+        ...permissoes
+    };
+
+    const res = await pool.query(
+        `INSERT INTO server_roles (server_id, nome, cor_hex, posicao, hoist, permissoes)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [serverId, nome.trim(), corHex, posicao, hoist, JSON.stringify(defaultPerms)]
+    );
+    return res.rows[0];
+}
+
+/**
+ * Retorna todos os cargos de um servidor ordenados por hierarquia (posição decrescente).
+ */
+export async function getServerRoles(serverId: number) {
+    const res = await pool.query(
+        `SELECT * FROM server_roles WHERE server_id = $1 ORDER BY posicao DESC, id ASC`,
+        [serverId]
+    );
+    return res.rows;
+}
+
+/**
+ * Atribui um cargo específico a um membro do servidor.
+ */
+export async function assignRoleToMember(userId: number, serverId: number, roleId: number) {
+    // Garante que o membro está registrado no servidor antes de atribuir o cargo
+    await pool.query(
+        `INSERT INTO server_members (user_id, server_id)
+         VALUES ($1, $2)
+         ON CONFLICT (user_id, server_id) DO NOTHING`,
+        [userId, serverId]
+    );
+
+    const res = await pool.query(
+        `INSERT INTO member_roles (user_id, server_id, role_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, server_id, role_id) DO NOTHING
+         RETURNING *`,
+        [userId, serverId, roleId]
+    );
+    return res.rows[0] || null;
+}
+
+/**
+ * Remove um cargo de um membro do servidor.
+ */
+export async function removeRoleFromMember(userId: number, serverId: number, roleId: number) {
+    const res = await pool.query(
+        `DELETE FROM member_roles WHERE user_id = $1 AND server_id = $2 AND role_id = $3 RETURNING *`,
+        [userId, serverId, roleId]
+    );
+    return res.rows[0] || null;
+}
+
+/**
+ * Retorna todos os cargos que um membro possui em um servidor com suas cores e permissões.
+ */
+export async function getMemberRoles(userId: number, serverId: number) {
+    const res = await pool.query(
+        `SELECT r.id, r.nome, r.cor_hex, r.posicao, r.hoist, r.permissoes
+         FROM member_roles mr
+         JOIN server_roles r ON mr.role_id = r.id
+         WHERE mr.user_id = $1 AND mr.server_id = $2
+         ORDER BY r.posicao DESC`,
+        [userId, serverId]
+    );
+    return res.rows;
+}
+
+/**
+ * Retorna todos os membros de um servidor com seus cargos agregados.
+ */
+export async function getServerMembers(serverId: number) {
+    const res = await pool.query(
+        `SELECT 
+            u.id AS user_id,
+            u.username,
+            sm.nickname,
+            sm.joined_at,
+            COALESCE(
+                json_agg(
+                    json_build_object(
+                        'id', r.id,
+                        'nome', r.nome,
+                        'cor_hex', r.cor_hex,
+                        'posicao', r.posicao,
+                        'hoist', r.hoist
+                    ) ORDER BY r.posicao DESC
+                ) FILTER (WHERE r.id IS NOT NULL), '[]'
+            ) AS roles
+         FROM server_members sm
+         JOIN users u ON sm.user_id = u.id
+         LEFT JOIN member_roles mr ON sm.user_id = mr.user_id AND sm.server_id = mr.server_id
+         LEFT JOIN server_roles r ON mr.role_id = r.id
+         WHERE sm.server_id = $1
+         GROUP BY u.id, u.username, sm.nickname, sm.joined_at
+         ORDER BY sm.joined_at ASC`,
+        [serverId]
+    );
+    return res.rows;
+}
+
+// ==========================================
+// Helpers de Usuários e Mensagens
 // ==========================================
 
 export async function findUserByUsername(username: string) {
@@ -134,10 +425,8 @@ export async function createUser(username: string, passwordHash: string) {
 }
 
 export async function saveMessage(channelId: string, userId: number | string | null | undefined, senderName: string, conteudo: string) {
-    // Garante que o channelId seja estritamente string (ex: 'sala-abc-xyz' ou '123')
     const safeChannelId = String(channelId || 'geral');
 
-    // Valida o userId para evitar erro de NaN no PostgreSQL
     let safeUserId: number | null = null;
     if (userId !== null && userId !== undefined) {
         const parsed = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
