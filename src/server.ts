@@ -60,56 +60,115 @@ io.use((socket, next) => {
     }
 });
 
-// Gerenciamento de conexões em tempo real e Sinalização WebRTC por Sala via Socket.IO
+// Gerenciamento de conexões em tempo real e Sinalização WebRTC Multi-Participante via Socket.IO
 io.on('connection', (socket) => {
-    console.log(`⚡ Usuário conectado: ${socket.id}`);
+    const userPayload = socket.data.user as any;
+    const username = userPayload?.username || `User-${socket.id.substring(0, 5)}`;
+    console.log(`⚡ Usuário conectado: ${socket.id} (${username})`);
 
     // Entrada na Sala (Room)
     socket.on('join-room', (room) => {
         socket.join(room);
-        console.log(`🚪 Usuário ${socket.id} entrou na sala: "${room}"`);
-        // Notifica outros participantes da sala que um novo usuário entrou
-        socket.to(room).emit('user-joined', { id: socket.id });
+        console.log(`🚪 Usuário ${socket.id} (${username}) entrou na sala: "${room}"`);
+
+        // Obtém todos os outros sockets já presentes nesta sala
+        const roomSockets = io.sockets.adapter.rooms.get(room);
+        const otherUsersInRoom: string[] = [];
+        if (roomSockets) {
+            for (const socketId of roomSockets) {
+                if (socketId !== socket.id) {
+                    otherUsersInRoom.push(socketId);
+                }
+            }
+        }
+
+        // 1. Envia ao usuário que entrou a lista de participantes já existentes na sala
+        socket.emit('room-users', {
+            users: otherUsersInRoom,
+            selfId: socket.id,
+            room: room
+        });
+
+        // 2. Notifica todos os participantes existentes sobre a chegada do novo usuário
+        socket.to(room).emit('user-joined', {
+            id: socket.id,
+            username: username
+        });
     });
 
-    // 1. Repasse da Oferta WebRTC (offer) para a sala específica
+    // 1. Repasse da Oferta WebRTC (offer) direcionada para um peer específico ou para a sala
     socket.on('offer', (data) => {
-        console.log(`📡 Repassando offer de ${socket.id} para a sala: "${data.room}"`);
-        socket.to(data.room).emit('offer', {
+        const payload = {
             offer: data.offer || data,
-            sender: socket.id
-        });
+            sender: socket.id,
+            username: username,
+            room: data.room
+        };
+
+        if (data.target) {
+            console.log(`📡 Repassando offer de ${socket.id} -> ${data.target}`);
+            io.to(data.target).emit('offer', payload);
+        } else if (data.room) {
+            console.log(`📡 Repassando offer de ${socket.id} para a sala: "${data.room}"`);
+            socket.to(data.room).emit('offer', payload);
+        }
     });
 
-    // 2. Repasse da Resposta WebRTC (answer) para a sala específica
+    // 2. Repasse da Resposta WebRTC (answer) direcionada para o peer que fez a oferta
     socket.on('answer', (data) => {
-        console.log(`📡 Repassando answer de ${socket.id} para a sala: "${data.room}"`);
-        socket.to(data.room).emit('answer', {
+        const payload = {
             answer: data.answer || data,
-            sender: socket.id
-        });
+            sender: socket.id,
+            room: data.room
+        };
+
+        if (data.target) {
+            console.log(`📡 Repassando answer de ${socket.id} -> ${data.target}`);
+            io.to(data.target).emit('answer', payload);
+        } else if (data.room) {
+            console.log(`📡 Repassando answer de ${socket.id} para a sala: "${data.room}"`);
+            socket.to(data.room).emit('answer', payload);
+        }
     });
 
-    // 3. Repasse dos Candidatos ICE (ice-candidate) para a sala específica
+    // 3. Repasse dos Candidatos ICE (ice-candidate) direcionado ao peer correspondente
     socket.on('ice-candidate', (data) => {
-        console.log(`❄️ Repassando ice-candidate de ${socket.id} para a sala: "${data.room}"`);
-        socket.to(data.room).emit('ice-candidate', {
+        const payload = {
             candidate: data.candidate,
-            sender: socket.id
-        });
+            sender: socket.id,
+            room: data.room
+        };
+
+        if (data.target) {
+            io.to(data.target).emit('ice-candidate', payload);
+        } else if (data.room) {
+            socket.to(data.room).emit('ice-candidate', payload);
+        }
+    });
+
+    // 4. Sincronização do estado de mídia (Microfone Mutado / Câmera Desligada)
+    socket.on('media-state-change', (data) => {
+        if (data.room) {
+            socket.to(data.room).emit('user-media-state-changed', {
+                sender: socket.id,
+                isMicMuted: data.isMicMuted,
+                isCameraOff: data.isCameraOff,
+                activeVideoType: data.activeVideoType
+            });
+        }
     });
 
     // Notifica quando o usuário estiver desconectando das salas
     socket.on('disconnecting', () => {
         for (const room of socket.rooms) {
             if (room !== socket.id) {
-                socket.to(room).emit('user-left', { id: socket.id });
+                socket.to(room).emit('user-left', { id: socket.id, username: username });
             }
         }
     });
 
     socket.on('disconnect', () => {
-        console.log(`❌ Usuário desconectado: ${socket.id}`);
+        console.log(`❌ Usuário desconectado: ${socket.id} (${username})`);
     });
 });
 

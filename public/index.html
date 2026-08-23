@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusComm V2 - Salas Privadas & WebRTC P2P</title>
+    <title>NexusComm V2 - Salas Privadas & WebRTC Multi-Peer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -52,7 +52,7 @@
 
         .container {
             width: 100%;
-            max-width: 1200px;
+            max-width: 1280px;
             background: var(--bg-card);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
@@ -63,7 +63,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 28px;
+            gap: 26px;
             animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -101,7 +101,7 @@
         /* Seção de Autenticação JWT */
         .auth-section {
             width: 100%;
-            max-width: 540px;
+            max-width: 600px;
             background: rgba(8, 12, 20, 0.85);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 18px;
@@ -127,7 +127,7 @@
             font-family: inherit;
             font-size: 0.85rem;
             font-weight: 600;
-            padding: 6px 12px;
+            padding: 6px 14px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -153,10 +153,11 @@
 
         .auth-alert {
             display: none;
-            padding: 8px 14px;
-            border-radius: 10px;
-            font-size: 0.82rem;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
             font-weight: 500;
+            animation: fadeIn 0.3s ease;
         }
 
         .auth-alert.error {
@@ -176,7 +177,7 @@
         /* Seção de Entrada na Sala (Room) */
         .room-section {
             width: 100%;
-            max-width: 540px;
+            max-width: 600px;
             background: rgba(8, 12, 20, 0.85);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 18px;
@@ -195,6 +196,34 @@
             font-size: 0.9rem;
             font-weight: 600;
             color: #cbd5e1;
+        }
+
+        .room-action-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn-room-action {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-room-action:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            transform: translateY(-1px);
         }
 
         .room-form {
@@ -231,8 +260,8 @@
             gap: 8px;
             background: rgba(99, 102, 241, 0.15);
             border: 1px solid rgba(99, 102, 241, 0.35);
-            padding: 8px 16px;
-            border-radius: 12px;
+            padding: 10px 18px;
+            border-radius: 14px;
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.88rem;
             color: #a5b4fc;
@@ -242,28 +271,41 @@
             color: #ffffff;
         }
 
-        /* Grid dos Vídeos Local e Remoto */
+        /* Grid Dinâmico de Vídeos (Flexível e Responsivo para Multi-Peer) */
         .video-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-            gap: 24px;
+            gap: 20px;
             width: 100%;
+            transition: all 0.4s ease;
+        }
+
+        @media (max-width: 768px) {
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+            .auth-row, .room-form {
+                flex-direction: column;
+            }
         }
 
         .video-card {
             background: rgba(8, 12, 20, 0.85);
             border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             overflow: hidden;
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
             display: flex;
             flex-direction: column;
-            transition: transform 0.3s ease, border-color 0.3s ease;
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            animation: fadeIn 0.4s ease-out;
         }
 
         .video-card:hover {
-            border-color: rgba(99, 102, 241, 0.3);
+            border-color: rgba(99, 102, 241, 0.4);
             transform: translateY(-2px);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
         }
 
         .video-card-header {
@@ -272,7 +314,7 @@
             align-items: center;
             justify-content: space-between;
             background: rgba(255, 255, 255, 0.02);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .video-card-title {
@@ -311,18 +353,63 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             gap: 12px;
             color: var(--text-muted);
             pointer-events: none;
             transition: opacity 0.3s ease;
+            text-align: center;
+            padding: 20px;
+            z-index: 2;
         }
 
         .video-placeholder svg {
             width: 44px;
             height: 44px;
-            opacity: 0.4;
+            opacity: 0.35;
         }
 
+        /* Indicadores Flutuantes sobre o Vídeo (Mute / Câmera) */
+        .floating-media-badges {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .floating-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .floating-badge.active-green {
+            background: rgba(16, 185, 129, 0.85);
+            border-color: rgba(16, 185, 129, 0.5);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+        }
+
+        .floating-badge.active-danger {
+            background: rgba(239, 68, 68, 0.85);
+            border-color: rgba(239, 68, 68, 0.5);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Spinners de Feedback de Conexão */
         .badge-status {
             padding: 4px 12px;
             border-radius: 9999px;
@@ -340,6 +427,34 @@
             background: rgba(148, 163, 184, 0.1);
             color: var(--text-muted);
             border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .badge-connecting {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+        }
+
+        .spinner-small {
+            width: 10px;
+            height: 10px;
+            border: 2px solid rgba(245, 158, 11, 0.3);
+            border-top-color: var(--warning);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .spinner-pulse {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(99, 102, 241, 0.2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         .badge-live {
@@ -363,9 +478,9 @@
             50% { opacity: 0.4; transform: scale(1.3); }
         }
 
-        /* Botões e Controles */
+        /* Botões e Controles de Mídia */
         .controls {
-            display: none; /* Inicialmente ocultos até entrar na sala */
+            display: none;
             gap: 16px;
             flex-wrap: wrap;
             justify-content: center;
@@ -466,8 +581,8 @@
         .status-bar {
             background: rgba(0, 0, 0, 0.35);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 10px 20px;
+            border-radius: 14px;
+            padding: 12px 20px;
             width: 100%;
             display: flex;
             align-items: center;
@@ -498,6 +613,25 @@
             background-color: var(--success);
             box-shadow: 0 0 8px var(--success);
         }
+
+        /* Toast de Cópia de Link */
+        .toast-copied {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #10b981;
+            color: #ffffff;
+            padding: 12px 22px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+            display: none;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -505,7 +639,7 @@
     <main class="container">
         <header>
             <h1>NexusComm WebRTC P2P</h1>
-            <p>Comunicação e vídeo chamadas em Salas Privadas</p>
+            <p>Comunicação e videoconferência em Salas Privadas Multi-Participante</p>
         </header>
 
         <!-- Seção de Autenticação JWT -->
@@ -538,7 +672,7 @@
 
                 <!-- Formulário de Token Direto -->
                 <div id="tokenFormContainer" class="auth-form-grid" style="display: none; margin-top: 10px;">
-                    <input type="text" id="directTokenInput" class="room-input" placeholder="Cole aqui seu Token JWT gerado no /login..." />
+                    <input type="text" id="directTokenInput" class="room-input" placeholder="Cole aqui seu Token JWT..." />
                     <div class="auth-row" style="justify-content: flex-end;">
                         <button type="button" id="btnApplyToken" class="btn btn-primary" style="padding: 10px 22px; font-size: 0.85rem;">Conectar com Token</button>
                     </div>
@@ -561,10 +695,17 @@
         <div class="room-section">
             <div class="room-section-header">
                 <span>🚪 Acesso à Sala Privada</span>
-                <span id="roomStatusNotice" style="font-size: 0.78rem; color: #94a3b8;">Informe a sala para iniciar</span>
+                <div class="room-action-buttons">
+                    <button type="button" id="btnNewRoom" class="btn-room-action" title="Gerar código aleatório para nova reunião">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Nova Reunião
+                    </button>
+                </div>
             </div>
             <div id="roomFormContainer" class="room-form">
-                <input type="text" id="roomInput" class="room-input" placeholder="Digite o nome da sala (ex: reuniao-dev)" />
+                <input type="text" id="roomInput" class="room-input" placeholder="Digite ou gere o nome da sala (ex: sala-reuniao-dev)" />
                 <button id="btnJoinRoom" class="btn btn-join">
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
@@ -572,24 +713,32 @@
                     Entrar na Sala
                 </button>
             </div>
-            <div id="activeRoomBadge" class="badge-room">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Conectado na sala: <strong id="roomNameDisplay"></strong></span>
+            <div id="activeRoomBadge" class="badge-room" style="justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Conectado na sala: <strong id="roomNameDisplay"></strong></span>
+                </div>
+                <button type="button" id="btnCopyRoomLink" class="btn-room-action" style="background: rgba(99, 102, 241, 0.25); border-color: rgba(99, 102, 241, 0.4); color: #c7d2fe;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span id="copyBtnText">Copiar Link</span>
+                </button>
             </div>
         </div>
 
-        <!-- Grid de Vídeos: Local e Remoto lado a lado -->
-        <div class="video-grid">
+        <!-- Grid Dinâmico de Vídeos: Suporta Múltiplos Participantes -->
+        <div class="video-grid" id="videoGrid">
             <!-- Vídeo Local -->
-            <div class="video-card">
+            <div class="video-card" id="localVideoCard">
                 <div class="video-card-header">
                     <span class="video-card-title">
                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        Seu Vídeo (Local)
+                        <span id="localUserTitle">Você (Local)</span>
                     </span>
                     <span id="localStatusBadge" class="badge-status badge-offline">Offline</span>
                 </div>
@@ -601,30 +750,22 @@
                         <span>Câmera desligada</span>
                     </div>
                     <video id="localVideo" autoplay muted playsinline></video>
-                </div>
-            </div>
-
-            <!-- Vídeo Remoto -->
-            <div class="video-card">
-                <div class="video-card-header">
-                    <span class="video-card-title">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        Participante Remoto
-                    </span>
-                    <span id="remoteStatusBadge" class="badge-status badge-offline">Aguardando</span>
-                </div>
-                <div class="video-wrapper">
-                    <div id="remotePlaceholder" class="video-placeholder">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 4.243a9 9 0 01-2.828-5.657m0 0a9 9 0 012.828-5.657m0 0L5.636 5.636M9.879 9.879a3 3 0 014.242 4.242" />
-                        </svg>
-                        <span>Aguardando conexão remota</span>
+                    <!-- Badges Flutuantes de Mute / Câmera do Local -->
+                    <div class="floating-media-badges">
+                        <span class="floating-badge active-green" id="localFloatMic" title="Microfone Ativo">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                        </span>
+                        <span class="floating-badge" id="localFloatCam" title="Câmera Desligada">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                        </span>
                     </div>
-                    <video id="remoteVideo" autoplay playsinline controls></video>
                 </div>
             </div>
+            <!-- Vídeos Remotos são gerados dinamicamente via JS -->
         </div>
 
         <!-- Botões de Controle de Mídia (Inicialmente ocultos até entrar na sala) -->
@@ -659,6 +800,14 @@
         </div>
     </main>
 
+    <!-- Toast de Notificação de Cópia -->
+    <div id="toastCopied" class="toast-copied">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span>Link da sala copiado para a área de transferência!</span>
+    </div>
+
     <!-- Client do Socket.IO -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -684,37 +833,25 @@
         const btnLogout = document.getElementById('btnLogout');
         const authStatusNotice = document.getElementById('authStatusNotice');
 
-        // Inicialização do cliente Socket.IO com o token JWT no objeto auth
-        const socket = io({
-            auth: {
-                token: authToken
-            },
-            autoConnect: true
-        });
-
-        let currentRoom = null;
-        let cameraStream = null;
-        let micStream = null;
-        let screenStream = null;
-        let activeVideoType = 'none'; // 'none' | 'camera' | 'screen'
-        let isMicMuted = false;
-        let iceCandidateQueue = [];
-
-        // Elementos do DOM
-        const socketDot = document.getElementById('socketDot');
-        const socketStatusText = document.getElementById('socketStatusText');
-        const webrtcStatusText = document.getElementById('webrtcStatusText');
-
+        // Elementos de Sala & UX
         const roomInput = document.getElementById('roomInput');
         const btnJoinRoom = document.getElementById('btnJoinRoom');
+        const btnNewRoom = document.getElementById('btnNewRoom');
+        const btnCopyRoomLink = document.getElementById('btnCopyRoomLink');
+        const copyBtnText = document.getElementById('copyBtnText');
+        const toastCopied = document.getElementById('toastCopied');
         const roomFormContainer = document.getElementById('roomFormContainer');
         const activeRoomBadge = document.getElementById('activeRoomBadge');
         const roomNameDisplay = document.getElementById('roomNameDisplay');
-        const roomStatusNotice = document.getElementById('roomStatusNotice');
 
-        const mediaControls = document.getElementById('mediaControls');
+        // Elementos de Vídeo e Controles
+        const videoGrid = document.getElementById('videoGrid');
         const localVideo = document.getElementById('localVideo');
-        const remoteVideo = document.getElementById('remoteVideo');
+        const localStatusBadge = document.getElementById('localStatusBadge');
+        const localPlaceholder = document.getElementById('localPlaceholder');
+        const localFloatMic = document.getElementById('localFloatMic');
+        const localFloatCam = document.getElementById('localFloatCam');
+        const mediaControls = document.getElementById('mediaControls');
         const btnCamera = document.getElementById('btnCamera');
         const cameraBtnText = document.getElementById('cameraBtnText');
         const cameraIcon = document.getElementById('cameraIcon');
@@ -724,13 +861,63 @@
         const btnMute = document.getElementById('btnMute');
         const muteBtnText = document.getElementById('muteBtnText');
         const micIcon = document.getElementById('micIcon');
+        const socketDot = document.getElementById('socketDot');
+        const socketStatusText = document.getElementById('socketStatusText');
+        const webrtcStatusText = document.getElementById('webrtcStatusText');
 
-        const localStatusBadge = document.getElementById('localStatusBadge');
-        const remoteStatusBadge = document.getElementById('remoteStatusBadge');
-        const localPlaceholder = document.getElementById('localPlaceholder');
-        const remotePlaceholder = document.getElementById('remotePlaceholder');
+        // 2. Inicialização do cliente Socket.IO com o token JWT no objeto auth
+        const socket = io({
+            auth: {
+                token: authToken
+            },
+            autoConnect: true
+        });
 
+        // 3. Estruturas de Estado para Suporte Multi-Participante (Full Mesh)
+        let currentRoom = null;
+        let cameraStream = null;
+        let micStream = null;
+        let screenStream = null;
+        let activeVideoType = 'none'; // 'none' | 'camera' | 'screen'
+        let isMicMuted = false;
+
+        // Objeto que mapeia socketId do peer para sua respectiva RTCPeerConnection
+        const peerConnections = {}; 
+        // Objeto que mapeia socketId para o MediaStream remoto persistente
+        const remoteStreams = {}; 
+        // Objeto que enfileira ICE Candidates caso cheguem antes da remoteDescription
+        const iceCandidateQueues = {}; 
+        // Objeto que mapeia socketId para o nome do usuário remoto
+        const peerUsernames = {}; 
+
+        // Stream local que agrega áudio e vídeo local
+        const localStream = new MediaStream();
+
+        // Servidores STUN públicos confiáveis
+        const rtcConfiguration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                { urls: 'stun:stun.cloudflare.com:3478' }
+            ],
+            iceCandidatePoolSize: 10
+        };
+
+        // Suporte a preenchimento automático de sala via query parameter (?room=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('room')) {
+            const initialRoom = urlParams.get('room').trim();
+            if (initialRoom) {
+                roomInput.value = initialRoom;
+            }
+        }
+
+        // ==========================================
         // Funções de UI para Autenticação
+        // ==========================================
         function showAuthAlert(msg, type = 'error') {
             authAlert.className = `auth-alert ${type}`;
             authAlert.innerText = msg;
@@ -756,7 +943,6 @@
             }
         }
 
-        // Alternância de abas de autenticação
         tabLogin.addEventListener('click', () => {
             tabLogin.classList.add('active');
             tabToken.classList.remove('active');
@@ -773,7 +959,6 @@
             hideAuthAlert();
         });
 
-        // Configura e salva o token JWT e reconecta o Socket.IO
         function setAuthToken(token, username = '') {
             authToken = token;
             currentAuthUser = username;
@@ -781,16 +966,13 @@
             if (username) {
                 localStorage.setItem('nexuscomm_username', username);
             }
-            // Injeta o novo token na configuração de autenticação do socket
             socket.auth = { token: authToken };
-            console.log('🔑 Token configurado no socket. Reconectando...');
             if (socket.connected) {
                 socket.disconnect();
             }
             socket.connect();
         }
 
-        // Login via API (POST /login)
         btnLogin.addEventListener('click', async () => {
             const username = authUsername.value.trim();
             const password = authPassword.value.trim();
@@ -820,7 +1002,6 @@
             }
         });
 
-        // Cadastro via API (POST /register)
         btnRegister.addEventListener('click', async () => {
             const username = authUsername.value.trim();
             const password = authPassword.value.trim();
@@ -850,7 +1031,6 @@
             }
         });
 
-        // Conectar com Token inserido diretamente
         btnApplyToken.addEventListener('click', () => {
             const token = directTokenInput.value.trim();
             if (!token) {
@@ -861,7 +1041,6 @@
             setAuthToken(token, 'Token Manual');
         });
 
-        // Logout
         btnLogout.addEventListener('click', () => {
             localStorage.removeItem('nexuscomm_jwt_token');
             localStorage.removeItem('nexuscomm_username');
@@ -873,7 +1052,9 @@
             showAuthAlert('Você saiu. Faça login ou informe um token para conectar.', 'error');
         });
 
-        // Feedback da conexão Socket.IO e interceptação de erros de autenticação
+        // ==========================================
+        // Eventos do Socket.IO (Conexão e Autenticação)
+        // ==========================================
         socket.on('connect_error', (err) => {
             console.warn('🔒 Conexão rejeitada pelo servidor:', err.message);
             socketDot.classList.remove('connected');
@@ -901,133 +1082,307 @@
             updateAuthUI(true);
         }
 
-        // 2. Configuração de Servidores STUN públicos confiáveis
-        const rtcConfiguration = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
-                { urls: 'stun:stun.cloudflare.com:3478' }
-            ],
-            iceCandidatePoolSize: 10
-        };
+        // ==========================================
+        // UX: Geração de Nova Reunião e Cópia de Link
+        // ==========================================
+        btnNewRoom.addEventListener('click', () => {
+            const randomCode = `sala-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 6)}`;
+            roomInput.value = randomCode;
+            roomInput.focus();
+        });
 
-        const peerConnection = new RTCPeerConnection(rtcConfiguration);
+        btnCopyRoomLink.addEventListener('click', async () => {
+            if (!currentRoom) return;
+            const fullUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoom)}`;
+            try {
+                await navigator.clipboard.writeText(fullUrl);
+                copyBtnText.innerText = 'Copiado!';
+                toastCopied.style.display = 'flex';
+                setTimeout(() => {
+                    copyBtnText.innerText = 'Copiar Link';
+                    toastCopied.style.display = 'none';
+                }, 3000);
+            } catch (err) {
+                console.error('Erro ao copiar link:', err);
+                prompt('Copie o link da sala:', fullUrl);
+            }
+        });
 
-        // 3. Envia ICE Candidates encontrados localmente para a sala específica via Socket.IO
-        peerConnection.onicecandidate = (event) => {
-            if (event.candidate && currentRoom) {
-                console.log('📤 Enviando ICE Candidate local');
-                socket.emit('ice-candidate', {
-                    room: currentRoom,
-                    candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate
+        // ==========================================
+        // Gerenciador de Cards Remotos no Grid Dinâmico
+        // ==========================================
+        function getOrCreateRemoteCard(socketId, username) {
+            let card = document.getElementById(`card-${socketId}`);
+            if (card) return card;
+
+            const displayUsername = username || peerUsernames[socketId] || `Participante (${socketId.substring(0, 5)})`;
+            peerUsernames[socketId] = displayUsername;
+
+            card = document.createElement('div');
+            card.className = 'video-card';
+            card.id = `card-${socketId}`;
+            card.innerHTML = `
+                <div class="video-card-header">
+                    <span class="video-card-title">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span id="name-${socketId}">${displayUsername}</span>
+                    </span>
+                    <span id="status-${socketId}" class="badge-status badge-connecting">
+                        <span class="spinner-small"></span> Conectando...
+                    </span>
+                </div>
+                <div class="video-wrapper">
+                    <div id="placeholder-${socketId}" class="video-placeholder">
+                        <div class="spinner-pulse" id="spinner-${socketId}"></div>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span id="placeholderText-${socketId}">Conectando transmissão...</span>
+                    </div>
+                    <video id="video-${socketId}" autoplay playsinline controls></video>
+                    <!-- Indicadores Flutuantes (Mute / Câmera) -->
+                    <div class="floating-media-badges">
+                        <span class="floating-badge active-green" id="floatMic-${socketId}" title="Microfone Ativo">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                        </span>
+                        <span class="floating-badge" id="floatCam-${socketId}" title="Câmera Desligada">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            videoGrid.appendChild(card);
+
+            const videoEl = card.querySelector(`#video-${socketId}`);
+            if (!remoteStreams[socketId]) {
+                remoteStreams[socketId] = new MediaStream();
+            }
+            videoEl.srcObject = remoteStreams[socketId];
+
+            return card;
+        }
+
+        // ==========================================
+        // Arquitetura WebRTC Multi-Peer (RTCPeerConnection)
+        // ==========================================
+        function createPeerConnection(targetSocketId, isInitiator, targetUsername) {
+            if (peerConnections[targetSocketId]) {
+                return peerConnections[targetSocketId];
+            }
+
+            console.log(`🌐 Criando RTCPeerConnection para [${targetSocketId}] | Initiator: ${isInitiator}`);
+            const pc = new RTCPeerConnection(rtcConfiguration);
+            peerConnections[targetSocketId] = pc;
+            iceCandidateQueues[targetSocketId] = [];
+
+            // Garante que o card do participante existe no grid
+            getOrCreateRemoteCard(targetSocketId, targetUsername);
+
+            // Adiciona todas as tracks do stream local para o novo peer
+            localStream.getTracks().forEach((track) => {
+                pc.addTrack(track, localStream);
+                console.log(`➕ Track local adicionada ao peer [${targetSocketId}]:`, track.kind);
+            });
+
+            // Envia ICE Candidates encontrados localmente para o peer alvo
+            pc.onicecandidate = (event) => {
+                if (event.candidate && currentRoom) {
+                    socket.emit('ice-candidate', {
+                        target: targetSocketId,
+                        room: currentRoom,
+                        candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate
+                    });
+                }
+            };
+
+            // Recebe tracks de áudio e vídeo do peer remoto
+            pc.ontrack = (event) => {
+                console.log(`🎥 Recebida track remota de [${targetSocketId}]:`, event.track.kind, event.track.id);
+                if (!remoteStreams[targetSocketId]) {
+                    remoteStreams[targetSocketId] = new MediaStream();
+                }
+                const stream = remoteStreams[targetSocketId];
+
+                // Remove track anterior do mesmo tipo
+                stream.getTracks().forEach((t) => {
+                    if (t.kind === event.track.kind && t.id !== event.track.id) {
+                        stream.removeTrack(t);
+                    }
                 });
-            }
-        };
+                stream.addTrack(event.track);
 
-        // 4. Recebe tracks remotas (áudio e vídeo) e insere no remoteStream persistente
-        peerConnection.ontrack = (event) => {
-            console.log('🎥 Recebida track remota:', event.track.kind, event.track.id);
-
-            // Remove track anterior do mesmo tipo para evitar conflitos
-            remoteStream.getTracks().forEach((t) => {
-                if (t.kind === event.track.kind && t.id !== event.track.id) {
-                    remoteStream.removeTrack(t);
+                const videoEl = document.getElementById(`video-${targetSocketId}`);
+                if (videoEl && videoEl.srcObject !== stream) {
+                    videoEl.srcObject = stream;
                 }
-            });
 
-            remoteStream.addTrack(event.track);
-
-            if (event.track.kind === 'video') {
-                remotePlaceholder.style.opacity = '0';
-                remoteStatusBadge.className = 'badge-status badge-live';
-                remoteStatusBadge.innerText = 'Ao Vivo';
-            } else if (event.track.kind === 'audio') {
-                if (remoteStatusBadge.innerText === 'Aguardando' || remoteStatusBadge.innerText === 'Offline') {
-                    remoteStatusBadge.className = 'badge-status badge-live';
-                    remoteStatusBadge.innerText = 'Áudio Conectado';
+                const placeholder = document.getElementById(`placeholder-${targetSocketId}`);
+                const floatCam = document.getElementById(`floatCam-${targetSocketId}`);
+                if (event.track.kind === 'video') {
+                    if (placeholder) placeholder.style.opacity = '0';
+                    if (floatCam) {
+                        floatCam.classList.add('active-green');
+                        floatCam.classList.remove('active-danger');
+                        floatCam.title = 'Câmera Ativa';
+                    }
                 }
+
+                if (videoEl) {
+                    videoEl.play().catch(e => console.warn('Autoplay aguardando interação:', e));
+                }
+            };
+
+            // Monitor de status da conexão ICE (Feedback com Spinner)
+            pc.oniceconnectionstatechange = () => {
+                const state = pc.iceConnectionState;
+                console.log(`🔄 ICE state do peer [${targetSocketId}]:`, state);
+                const statusBadge = document.getElementById(`status-${targetSocketId}`);
+                const spinner = document.getElementById(`spinner-${targetSocketId}`);
+                const placeholderText = document.getElementById(`placeholderText-${targetSocketId}`);
+
+                if (state === 'connected' || state === 'completed') {
+                    if (statusBadge) {
+                        statusBadge.className = 'badge-status badge-live';
+                        statusBadge.innerText = 'Ao Vivo';
+                    }
+                    if (spinner) spinner.style.display = 'none';
+                    if (placeholderText) placeholderText.innerText = 'Câmera desligada';
+                    webrtcStatusText.innerText = `WebRTC: Conectado com ${Object.keys(peerConnections).length} participante(s)`;
+                } else if (state === 'checking') {
+                    if (statusBadge) {
+                        statusBadge.className = 'badge-status badge-connecting';
+                        statusBadge.innerHTML = '<span class="spinner-small"></span> Conectando...';
+                    }
+                    if (spinner) spinner.style.display = 'block';
+                    if (placeholderText) placeholderText.innerText = 'Negociando conexão P2P...';
+                } else if (state === 'disconnected' || state === 'failed') {
+                    if (statusBadge) {
+                        statusBadge.className = 'badge-status badge-offline';
+                        statusBadge.innerText = state === 'failed' ? 'Falha' : 'Desconectado';
+                    }
+                }
+            };
+
+            // Se for o iniciador da conexão, gera e envia a Offer para o peer alvo
+            if (isInitiator) {
+                pc.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                })
+                .then(offer => pc.setLocalDescription(offer).then(() => offer))
+                .then(offer => {
+                    console.log(`📤 Enviando Offer para o peer [${targetSocketId}]`);
+                    socket.emit('offer', {
+                        target: targetSocketId,
+                        room: currentRoom,
+                        offer: offer
+                    });
+                })
+                .catch(err => console.error('Erro ao criar offer para peer:', err));
             }
 
-            webrtcStatusText.innerText = 'WebRTC: Transmissão Ativa';
+            return pc;
+        }
 
-            // Garante que o elemento de vídeo toque áudio e vídeo corretamente
-            remoteVideo.play().catch((e) => {
-                console.warn('Autoplay aguardando interação do usuário:', e);
-            });
-        };
+        // Função para drenar fila de ICE Candidates pendentes de um peer
+        async function processIceCandidateQueueForPeer(socketId) {
+            const queue = iceCandidateQueues[socketId];
+            const pc = peerConnections[socketId];
+            if (!queue || !pc) return;
 
-        // Monitoramento do estado da conexão P2P
-        peerConnection.oniceconnectionstatechange = () => {
-            const state = peerConnection.iceConnectionState;
-            console.log('🔄 Estado ICE alterado para:', state);
-            if (state === 'connected' || state === 'completed') {
-                webrtcStatusText.innerText = 'WebRTC: Conexão Estabelecida!';
-                remoteStatusBadge.className = 'badge-status badge-live';
-                remoteStatusBadge.innerText = 'Ao Vivo';
-            } else if (state === 'checking') {
-                webrtcStatusText.innerText = 'WebRTC: Negociando conexão P2P...';
-            } else if (state === 'disconnected' || state === 'failed') {
-                webrtcStatusText.innerText = `WebRTC: ${state === 'failed' ? 'Falha na Conexão' : 'Desconectado'}`;
-                remoteStatusBadge.className = 'badge-status badge-offline';
-                remoteStatusBadge.innerText = 'Offline';
-            }
-        };
-
-        peerConnection.onconnectionstatechange = () => {
-            console.log('🔄 ConnectionState alterado para:', peerConnection.connectionState);
-        };
-
-        // Função para drenar a fila de ICE Candidates recebidos antes do setRemoteDescription
-        async function processIceCandidateQueue() {
-            while (iceCandidateQueue.length > 0) {
-                const candidate = iceCandidateQueue.shift();
+            while (queue.length > 0) {
+                const candidate = queue.shift();
                 try {
-                    await peerConnection.addIceCandidate(candidate);
-                    console.log('✅ ICE Candidate da fila processado com sucesso');
+                    await pc.addIceCandidate(candidate);
+                    console.log(`✅ ICE Candidate processado para [${socketId}]`);
                 } catch (e) {
-                    console.error('Erro ao adicionar ICE Candidate da fila:', e);
+                    console.error('Erro ao aplicar ICE Candidate da fila:', e);
                 }
             }
         }
 
-        // Helpers para atualizar tracks no PeerConnection
-        function updatePeerAudioTrack(track) {
+        // Fecha e remove conexão e card de um participante desconectado
+        function closePeerConnection(targetSocketId) {
+            console.log(`🚪 Encerrando conexão P2P com [${targetSocketId}]`);
+            if (peerConnections[targetSocketId]) {
+                peerConnections[targetSocketId].close();
+                delete peerConnections[targetSocketId];
+            }
+            if (remoteStreams[targetSocketId]) {
+                remoteStreams[targetSocketId].getTracks().forEach(t => t.stop());
+                delete remoteStreams[targetSocketId];
+            }
+            delete iceCandidateQueues[targetSocketId];
+            delete peerUsernames[targetSocketId];
+
+            const card = document.getElementById(`card-${targetSocketId}`);
+            if (card) {
+                card.remove();
+            }
+
+            const activePeers = Object.keys(peerConnections).length;
+            if (activePeers === 0) {
+                webrtcStatusText.innerText = `WebRTC: Na sala [${currentRoom}]. Aguardando participantes...`;
+            } else {
+                webrtcStatusText.innerText = `WebRTC: Conectado com ${activePeers} participante(s)`;
+            }
+        }
+
+        // Atualiza a trilha de áudio em todos os PeerConnections ativos
+        function updateAllPeersAudioTrack(track) {
             if (!track) return;
-            localStream.getAudioTracks().forEach((t) => localStream.removeTrack(t));
+            localStream.getAudioTracks().forEach(t => localStream.removeTrack(t));
             localStream.addTrack(track);
 
-            const senders = peerConnection.getSenders();
-            const audioSender = senders.find((s) => (s.track && s.track.kind === 'audio') || (!s.track && s.kind === 'audio'));
-            if (audioSender) {
-                audioSender.replaceTrack(track);
-                console.log('🔄 Audio track substituída no WebRTC sender');
-            } else {
-                peerConnection.addTrack(track, localStream);
-                console.log('➕ Nova audio track adicionada ao PeerConnection');
+            for (const [peerId, pc] of Object.entries(peerConnections)) {
+                const senders = pc.getSenders();
+                const audioSender = senders.find(s => (s.track && s.track.kind === 'audio') || (!s.track && s.kind === 'audio'));
+                if (audioSender) {
+                    audioSender.replaceTrack(track);
+                } else {
+                    pc.addTrack(track, localStream);
+                }
             }
         }
 
-        function updatePeerVideoTrack(track) {
-            localStream.getVideoTracks().forEach((t) => localStream.removeTrack(t));
+        // Atualiza a trilha de vídeo em todos os PeerConnections ativos
+        function updateAllPeersVideoTrack(track) {
+            localStream.getVideoTracks().forEach(t => localStream.removeTrack(t));
             if (track) {
                 localStream.addTrack(track);
             }
 
-            const senders = peerConnection.getSenders();
-            const videoSender = senders.find((s) => (s.track && s.track.kind === 'video') || (!s.track && s.kind === 'video'));
-            if (videoSender) {
-                videoSender.replaceTrack(track || null);
-                console.log('🔄 Video track atualizada no WebRTC sender:', track ? track.label : 'null');
-            } else if (track) {
-                peerConnection.addTrack(track, localStream);
-                console.log('➕ Nova video track adicionada ao PeerConnection');
+            for (const [peerId, pc] of Object.entries(peerConnections)) {
+                const senders = pc.getSenders();
+                const videoSender = senders.find(s => (s.track && s.track.kind === 'video') || (!s.track && s.kind === 'video'));
+                if (videoSender) {
+                    videoSender.replaceTrack(track || null);
+                } else if (track) {
+                    pc.addTrack(track, localStream);
+                }
             }
         }
 
-        // Obter ou criar microfone com cancelamento de eco e ganho automáticos nativos
+        // Notifica outros participantes sobre mudanças de estado de mídia (mute/câmera)
+        function emitMediaStateChange() {
+            if (currentRoom && socket.connected) {
+                socket.emit('media-state-change', {
+                    room: currentRoom,
+                    isMicMuted: isMicMuted,
+                    isCameraOff: activeVideoType === 'none',
+                    activeVideoType: activeVideoType
+                });
+            }
+        }
+
+        // Captura o microfone nativo com DSP ativo
         async function getOrCreateMicrophone() {
             if (micStream && micStream.getAudioTracks().some((t) => t.readyState === 'live')) {
                 return micStream;
@@ -1042,9 +1397,8 @@
                 });
                 const audioTrack = micStream.getAudioTracks()[0];
                 audioTrack.enabled = !isMicMuted;
-                updatePeerAudioTrack(audioTrack);
+                updateAllPeersAudioTrack(audioTrack);
                 updateLocalStatus();
-                console.log('🎤 Microfone capturado e associado ao WebRTC');
                 return micStream;
             } catch (err) {
                 console.warn('Microfone não acessível:', err);
@@ -1056,118 +1410,174 @@
             if (activeVideoType === 'camera') {
                 localStatusBadge.className = 'badge-status badge-live';
                 localStatusBadge.innerText = 'Câmera Ativa';
+                localFloatCam.classList.add('active-green');
+                localFloatCam.classList.remove('active-danger');
+                localFloatCam.title = 'Câmera Ativa';
             } else if (activeVideoType === 'screen') {
                 localStatusBadge.className = 'badge-status badge-live';
                 localStatusBadge.innerText = 'Compartilhando Tela';
+                localFloatCam.classList.add('active-green');
+                localFloatCam.classList.remove('active-danger');
+                localFloatCam.title = 'Compartilhando Tela';
             } else if (micStream && !isMicMuted) {
                 localStatusBadge.className = 'badge-status badge-live';
                 localStatusBadge.innerText = 'Microfone Ativo';
+                localFloatCam.classList.remove('active-green', 'active-danger');
+                localFloatCam.title = 'Câmera Desligada';
             } else {
                 localStatusBadge.className = 'badge-status badge-offline';
                 localStatusBadge.innerText = 'Offline';
+                localFloatCam.classList.remove('active-green', 'active-danger');
+                localFloatCam.title = 'Câmera Desligada';
             }
+
+            if (isMicMuted) {
+                localFloatMic.className = 'floating-badge active-danger';
+                localFloatMic.title = 'Microfone Mutado';
+                localFloatMic.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>`;
+            } else {
+                localFloatMic.className = 'floating-badge active-green';
+                localFloatMic.title = 'Microfone Ativo';
+                localFloatMic.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>`;
+            }
+
+            emitMediaStateChange();
         }
 
-        // Função para criar e enviar uma Offer WebRTC
-        async function createAndSendOffer() {
-            if (!currentRoom) return;
-            try {
-                console.log('📤 Criando Offer WebRTC...');
-                const offer = await peerConnection.createOffer({
-                    offerToReceiveAudio: true,
-                    offerToReceiveVideo: true
-                });
-                await peerConnection.setLocalDescription(offer);
+        // ==========================================
+        // Eventos de Sinalização WebRTC Multi-Peer
+        // ==========================================
 
-                console.log('📤 Enviando Offer para a sala:', currentRoom);
-                socket.emit('offer', {
-                    room: currentRoom,
-                    offer: offer
-                });
-                webrtcStatusText.innerText = `WebRTC: Chamando participantes da sala [${currentRoom}]...`;
-            } catch (err) {
-                console.error('Erro ao criar/enviar Offer:', err);
-            }
-        }
-
-        // 5. Tratamento de Sinalização via Socket.IO
-
-        // Quando um novo participante entra na sala
-        socket.on('user-joined', async (data) => {
-            console.log('👤 Novo participante entrou na sala:', data);
-            webrtcStatusText.innerText = 'Novo participante conectado! Iniciando chamada...';
+        // 1. Recebe a lista de usuários que já estão na sala e inicia a chamada para cada um
+        socket.on('room-users', async (data) => {
+            console.log('👥 Participantes já presentes na sala:', data.users);
             await getOrCreateMicrophone();
-            await createAndSendOffer();
+
+            for (const otherUserId of data.users) {
+                // Cria conexão P2P atuando como initiator (cria offer)
+                createPeerConnection(otherUserId, true);
+            }
         });
 
-        // A. Escuta Offer -> Define Remote Description, adiciona microfone se necessário, gera Answer
+        // 2. Notificado quando um novo participante entra na sala
+        socket.on('user-joined', async (data) => {
+            console.log('👤 Novo participante entrou:', data);
+            await getOrCreateMicrophone();
+            peerUsernames[data.id] = data.username;
+            // Cria o card e aguarda a Offer do novo usuário
+            getOrCreateRemoteCard(data.id, data.username);
+            emitMediaStateChange();
+        });
+
+        // 3. Recebe Offer -> Cria PeerConnection (receiver), responde com Answer
         socket.on('offer', async (data) => {
             const offer = data.offer || data;
-            if (!offer || !offer.type) return;
-            console.log('📥 Recebida Offer:', offer);
+            const senderId = data.sender;
+            if (!offer || !offer.type || !senderId) return;
+
+            console.log(`📥 Recebida Offer de [${senderId}]`);
             try {
                 await getOrCreateMicrophone();
+                const pc = createPeerConnection(senderId, false, data.username);
 
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-                await processIceCandidateQueue();
+                await pc.setRemoteDescription(new RTCSessionDescription(offer));
+                await processIceCandidateQueueForPeer(senderId);
 
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
 
-                console.log('📤 Enviando Answer para a sala:', currentRoom);
+                console.log(`📤 Enviando Answer para [${senderId}]`);
                 socket.emit('answer', {
+                    target: senderId,
                     room: currentRoom,
                     answer: answer
                 });
-                webrtcStatusText.innerText = 'WebRTC: Respondendo chamada...';
             } catch (err) {
-                console.error('Erro ao processar Offer:', err);
+                console.error(`Erro ao processar Offer de [${senderId}]:`, err);
             }
         });
 
-        // B. Escuta Answer -> Define Remote Description com a resposta
+        // 4. Recebe Answer -> Aplica Remote Description
         socket.on('answer', async (data) => {
             const answer = data.answer || data;
-            if (!answer || !answer.type) return;
-            console.log('📥 Recebida Answer do par remoto');
-            try {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-                await processIceCandidateQueue();
-                webrtcStatusText.innerText = 'WebRTC: Par Conectado na Sala!';
-            } catch (err) {
-                console.error('Erro ao definir Remote Description com Answer:', err);
-            }
-        });
+            const senderId = data.sender;
+            if (!answer || !answer.type || !senderId) return;
 
-        // C. Escuta ICE Candidate -> Adiciona ao RTCPeerConnection ou enfileira
-        socket.on('ice-candidate', async (data) => {
-            const candidateData = data.candidate || data;
-            if (!candidateData || !candidateData.candidate) return;
-            
+            console.log(`📥 Recebida Answer de [${senderId}]`);
             try {
-                const candidate = new RTCIceCandidate(candidateData);
-                if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
-                    await peerConnection.addIceCandidate(candidate);
-                } else {
-                    console.log('⏳ Enfileirando ICE Candidate (remoteDescription ainda não definida)');
-                    iceCandidateQueue.push(candidate);
+                const pc = peerConnections[senderId];
+                if (pc) {
+                    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+                    await processIceCandidateQueueForPeer(senderId);
                 }
             } catch (err) {
-                console.error('Erro ao processar ICE Candidate remoto:', err);
+                console.error(`Erro ao processar Answer de [${senderId}]:`, err);
             }
         });
 
-        // D. Quando outro usuário sai da sala
-        socket.on('user-left', (data) => {
-            console.log('🚪 Usuário saiu da sala:', data);
-            webrtcStatusText.innerText = 'Participante saiu da sala';
-            remoteStatusBadge.className = 'badge-status badge-offline';
-            remoteStatusBadge.innerText = 'Desconectado';
-            remotePlaceholder.style.opacity = '1';
-            remoteStream.getTracks().forEach((t) => remoteStream.removeTrack(t));
+        // 5. Recebe ICE Candidate -> Aplica ou enfileira
+        socket.on('ice-candidate', async (data) => {
+            const candidateData = data.candidate;
+            const senderId = data.sender;
+            if (!candidateData || !candidateData.candidate || !senderId) return;
+
+            try {
+                const candidate = new RTCIceCandidate(candidateData);
+                const pc = peerConnections[senderId];
+                if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+                    await pc.addIceCandidate(candidate);
+                } else {
+                    if (!iceCandidateQueues[senderId]) {
+                        iceCandidateQueues[senderId] = [];
+                    }
+                    iceCandidateQueues[senderId].push(candidate);
+                }
+            } catch (err) {
+                console.error(`Erro ao processar ICE Candidate de [${senderId}]:`, err);
+            }
         });
 
-        // 6. Ação de Entrar na Sala (join-room)
+        // 6. Sincronização de Estado de Mídia de Outros Participantes
+        socket.on('user-media-state-changed', (data) => {
+            const senderId = data.sender;
+            const floatMic = document.getElementById(`floatMic-${senderId}`);
+            const floatCam = document.getElementById(`floatCam-${senderId}`);
+            const placeholder = document.getElementById(`placeholder-${senderId}`);
+
+            if (floatMic) {
+                if (data.isMicMuted) {
+                    floatMic.className = 'floating-badge active-danger';
+                    floatMic.title = 'Microfone Mutado';
+                    floatMic.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>`;
+                } else {
+                    floatMic.className = 'floating-badge active-green';
+                    floatMic.title = 'Microfone Ativo';
+                    floatMic.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>`;
+                }
+            }
+
+            if (floatCam) {
+                if (data.isCameraOff) {
+                    floatCam.className = 'floating-badge';
+                    floatCam.title = 'Câmera Desligada';
+                    if (placeholder) placeholder.style.opacity = '1';
+                } else {
+                    floatCam.className = 'floating-badge active-green';
+                    floatCam.title = 'Câmera Ativa';
+                    if (placeholder) placeholder.style.opacity = '0';
+                }
+            }
+        });
+
+        // 7. Participante Saiu da Sala
+        socket.on('user-left', (data) => {
+            console.log('🚪 Participante saiu:', data);
+            closePeerConnection(data.id);
+        });
+
+        // ==========================================
+        // Ação de Entrada na Sala (join-room)
+        // ==========================================
         btnJoinRoom.addEventListener('click', async () => {
             if (!authToken || !socket.connected) {
                 showAuthAlert('Você precisa estar autenticado com um token JWT válido para acessar as salas.', 'error');
@@ -1181,70 +1591,60 @@
                 return;
             }
 
-            // Salva o nome da sala na variável
             currentRoom = roomName;
-
-            // Emite o evento para o backend colocar o socket na sala
             socket.emit('join-room', currentRoom);
             console.log('🚪 Entrando na sala:', currentRoom);
 
-            // Atualiza a interface
             roomFormContainer.style.display = 'none';
             activeRoomBadge.style.display = 'inline-flex';
             roomNameDisplay.innerText = currentRoom;
-            roomStatusNotice.innerText = 'Sala conectada';
-            roomStatusNotice.style.color = '#10b981';
-
-            // Revela os botões de controle de mídia
             mediaControls.style.display = 'flex';
             webrtcStatusText.innerText = `WebRTC: Conectado na sala [${currentRoom}]. Microfone ativado.`;
 
-            // Inicializa o microfone automaticamente para áudio imediato na sala
             await getOrCreateMicrophone();
         });
 
-        // Permitir entrar na sala ao pressionar Enter no input
         roomInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 btnJoinRoom.click();
             }
         });
 
-        // 7. Ligar / Desligar Câmera
+        // ==========================================
+        // Controles de Mídia Locais
+        // ==========================================
         async function toggleCamera() {
             if (!currentRoom) {
                 alert('Por favor, entre em uma sala primeiro.');
                 return;
             }
 
-            // Se a câmera já estiver ligada -> DESLIGAR
+            // Desligar Câmera
             if (activeVideoType === 'camera') {
                 if (cameraStream) {
                     cameraStream.getTracks().forEach((t) => t.stop());
                     cameraStream = null;
                 }
                 activeVideoType = 'none';
-                updatePeerVideoTrack(null);
+                updateAllPeersVideoTrack(null);
                 localVideo.srcObject = null;
                 localPlaceholder.style.opacity = '1';
-                
+
                 cameraBtnText.innerText = 'Ligar Câmera';
                 btnCamera.classList.remove('btn-active-danger');
                 btnCamera.classList.add('btn-primary');
                 cameraIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />`;
 
                 updateLocalStatus();
-                await createAndSendOffer();
                 return;
             }
 
-            // Se a tela estiver sendo compartilhada -> para o compartilhamento de tela primeiro
+            // Parar compartilhamento de tela se estiver ativo
             if (activeVideoType === 'screen') {
                 stopScreenShareTracks();
             }
 
             try {
-                // Garante que o microfone está ativo para a chamada
                 await getOrCreateMicrophone();
 
                 cameraStream = await navigator.mediaDevices.getUserMedia({
@@ -1261,17 +1661,14 @@
                 btnCamera.classList.add('btn-active-danger');
                 cameraIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />`;
 
-                updatePeerVideoTrack(cameraStream.getVideoTracks()[0]);
+                updateAllPeersVideoTrack(cameraStream.getVideoTracks()[0]);
                 updateLocalStatus();
-
-                await createAndSendOffer();
             } catch (err) {
                 console.error('Erro ao acessar a câmera:', err);
                 alert(`Não foi possível acessar a câmera: ${err.message || 'Permissão negada'}`);
             }
         }
 
-        // 8. Compartilhar / Parar Compartilhamento de Tela
         function stopScreenShareTracks() {
             if (screenStream) {
                 screenStream.getTracks().forEach((t) => t.stop());
@@ -1289,19 +1686,16 @@
                 return;
             }
 
-            // Se já estiver compartilhando tela -> PARAR
             if (activeVideoType === 'screen') {
                 stopScreenShareTracks();
                 activeVideoType = 'none';
-                updatePeerVideoTrack(null);
+                updateAllPeersVideoTrack(null);
                 localVideo.srcObject = null;
                 localPlaceholder.style.opacity = '1';
                 updateLocalStatus();
-                await createAndSendOffer();
                 return;
             }
 
-            // Se a câmera estiver ligada -> desliga a câmera primeiro
             if (activeVideoType === 'camera') {
                 if (cameraStream) {
                     cameraStream.getTracks().forEach((t) => t.stop());
@@ -1310,11 +1704,10 @@
                 cameraBtnText.innerText = 'Ligar Câmera';
                 btnCamera.classList.remove('btn-active-danger');
                 btnCamera.classList.add('btn-primary');
-                cameraIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />`;
+                cameraIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />`;
             }
 
             try {
-                // Garante que o microfone continue ativo!
                 await getOrCreateMicrophone();
 
                 screenStream = await navigator.mediaDevices.getDisplayMedia({
@@ -1331,10 +1724,9 @@
                 btnScreen.classList.add('btn-active-danger');
                 screenIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />`;
 
-                updatePeerVideoTrack(screenStream.getVideoTracks()[0]);
+                updateAllPeersVideoTrack(screenStream.getVideoTracks()[0]);
                 updateLocalStatus();
 
-                // Quando o usuário clicar em "Interromper compartilhamento" na barra nativa do navegador
                 const videoTrack = screenStream.getVideoTracks()[0];
                 if (videoTrack) {
                     videoTrack.onended = () => {
@@ -1343,8 +1735,6 @@
                         }
                     };
                 }
-
-                await createAndSendOffer();
             } catch (err) {
                 console.error('Erro ao compartilhar tela:', err);
                 if (err.name !== 'NotAllowedError') {
@@ -1353,7 +1743,6 @@
             }
         }
 
-        // 9. Mutar / Desmutar Microfone
         async function toggleMute() {
             if (!micStream) {
                 await getOrCreateMicrophone();
@@ -1380,7 +1769,6 @@
             updateLocalStatus();
         }
 
-        // Eventos dos botões de controle
         btnCamera.addEventListener('click', toggleCamera);
         btnScreen.addEventListener('click', toggleScreenShare);
         btnMute.addEventListener('click', toggleMute);
