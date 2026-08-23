@@ -34,6 +34,26 @@ export async function initDb() {
             );
         `);
 
+        // Migração automática para adicionar avatar_url e display_name na tabela users
+        await pool.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'avatar_url'
+                ) THEN
+                    ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255);
+                END IF;
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'display_name'
+                ) THEN
+                    ALTER TABLE users ADD COLUMN display_name VARCHAR(100);
+                END IF;
+            END $$;
+        `);
+
         // 2. Tabela de Servidores/Comunidades (Servers)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS servers (
@@ -164,7 +184,14 @@ export async function initDb() {
             );
             await createDefaultServerRoles(defaultServerId);
             console.log('🎉 Servidor padrão [Comunidade NexusComm] e cargos criados com sucesso!');
-        } else {
+            // Garante que todos os donos de servidores existentes estejam em server_members
+            await pool.query(`
+                INSERT INTO server_members (user_id, server_id)
+                SELECT dono_id, id FROM servers
+                WHERE dono_id IS NOT NULL
+                ON CONFLICT (user_id, server_id) DO NOTHING;
+            `);
+
             // Garante que todos os servidores existentes possuam o cargo @everyone
             const allServers = await pool.query('SELECT id, dono_id FROM servers');
             for (const s of allServers.rows) {
@@ -172,10 +199,10 @@ export async function initDb() {
             }
         }
 
-        // Inicializa o bucket server_media no Supabase Storage
+        // Inicializa os buckets server_media e user_avatars no Supabase Storage
         await initSupabaseBucket();
 
-        console.log('✅ Tabelas relacionais do PostgreSQL (Users, Servers, Channels, Messages, Roles, Members, Media) sincronizadas com sucesso!');
+        console.log('✅ Tabelas relacionais do PostgreSQL (Users, Servers, Channels, Messages, Roles, Members, Media, Avatars) sincronizadas com sucesso!');
     } catch (err) {
         console.error('❌ Erro ao conectar ou inicializar tabelas no PostgreSQL:', err);
     }
@@ -438,13 +465,35 @@ export async function findUserById(id: number | string) {
     const numericId = typeof id === 'number' ? id : parseInt(String(id), 10);
     if (isNaN(numericId)) return null;
 
-    const res = await pool.query('SELECT id, username, created_at FROM users WHERE id = $1 LIMIT 1', [numericId]);
+    const res = await pool.query(
+        'SELECT id, username, display_name, avatar_url, created_at FROM users WHERE id = $1 LIMIT 1',
+        [numericId]
+    );
+    return res.rows[0] || null;
+}
+
+export async function updateUserProfile(
+    id: number | string,
+    displayName?: string | null,
+    avatarUrl?: string | null
+) {
+    const numericId = typeof id === 'number' ? id : parseInt(String(id), 10);
+    if (isNaN(numericId)) return null;
+
+    const res = await pool.query(
+        `UPDATE users
+         SET display_name = COALESCE($1, display_name),
+             avatar_url = COALESCE($2, avatar_url)
+         WHERE id = $3
+         RETURNING id, username, display_name, avatar_url, created_at`,
+        [displayName !== undefined ? displayName : null, avatarUrl !== undefined ? avatarUrl : null, numericId]
+    );
     return res.rows[0] || null;
 }
 
 export async function createUser(username: string, passwordHash: string) {
     const res = await pool.query(
-        'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username, created_at',
+        'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username, display_name, avatar_url, created_at',
         [username, passwordHash]
     );
     return res.rows[0];

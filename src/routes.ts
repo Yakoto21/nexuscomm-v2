@@ -2,10 +2,11 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { ensureAuthenticated } from './middlewares/ensureAuthenticated';
-import { uploadServerMediaFile } from './supabaseStorage';
+import { uploadServerMediaFile, uploadUserAvatar } from './supabaseStorage';
 import {
     findUserByUsername,
     findUserById,
+    updateUserProfile,
     createUser,
     getMessagesByChannel,
     createDefaultServerRoles,
@@ -65,6 +66,8 @@ routes.post('/register', async (req: Request, res: Response) => {
             user: {
                 id: newUser.id,
                 username: newUser.username,
+                display_name: newUser.display_name,
+                avatar_url: newUser.avatar_url,
                 created_at: newUser.created_at
             }
         });
@@ -111,7 +114,9 @@ routes.post('/login', async (req: Request, res: Response) => {
             token,
             user: {
                 id: user.id,
-                username: user.username
+                username: user.username,
+                display_name: user.display_name,
+                avatar_url: user.avatar_url
             }
         });
     } catch (error) {
@@ -139,12 +144,54 @@ routes.get('/me', ensureAuthenticated, async (req: Request, res: Response) => {
             user: {
                 id: user.id,
                 username: user.username,
+                display_name: user.display_name,
+                avatar_url: user.avatar_url,
                 created_at: user.created_at
             }
         });
     } catch (error) {
         console.error('Erro ao buscar perfil do usuário:', error);
         return res.status(500).json({ error: 'Erro interno ao buscar perfil.' });
+    }
+});
+
+// Rota para atualizar perfil do usuário autenticado (PATCH /me)
+routes.patch('/me', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        const { display_name, avatar, avatar_url } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'ID de usuário inválido.' });
+        }
+
+        const user = await findUserById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+
+        let finalAvatarUrl = user.avatar_url;
+        if (avatar && typeof avatar === 'string') {
+            finalAvatarUrl = await uploadUserAvatar(userId, avatar);
+        } else if (avatar_url !== undefined) {
+            finalAvatarUrl = avatar_url;
+        }
+
+        const cleanDisplayName = display_name !== undefined ? sanitizePlainText(display_name) : user.display_name;
+
+        const updatedUser = await updateUserProfile(
+            userId,
+            cleanDisplayName,
+            finalAvatarUrl
+        );
+
+        return res.status(200).json({
+            message: 'Perfil atualizado com sucesso!',
+            user: updatedUser
+        });
+    } catch (error) {
+        console.error('Erro ao atualizar perfil do usuário:', error);
+        return res.status(500).json({ error: 'Erro interno ao atualizar perfil.' });
     }
 });
 
@@ -180,13 +227,25 @@ routes.get('/messages/:channelId', async (req: Request, res: Response) => {
 // Rotas de Comunidades (Servers e Canais)
 // ==========================================
 
-// Listar Servidores / Comunidades (GET /servers)
-routes.get('/servers', async (_req: Request, res: Response) => {
+// Listar Servidores / Comunidades em que o Usuário Autenticado é Membro (GET /servers)
+routes.get('/servers', ensureAuthenticated, async (req: Request, res: Response) => {
     try {
-        const result = await pool.query('SELECT * FROM servers ORDER BY data_criacao DESC');
+        const userId = Number(req.userId);
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Usuário não autenticado.' });
+        }
+
+        const result = await pool.query(
+            `SELECT s.* FROM servers s
+             INNER JOIN server_members sm ON s.id = sm.server_id
+             WHERE sm.user_id = $1
+             ORDER BY s.data_criacao DESC`,
+            [userId]
+        );
         return res.status(200).json({ servers: result.rows });
     } catch (error) {
-        console.error('Erro ao listar servidores:', error);
+        console.error('Erro ao listar servidores do usuário:', error);
         return res.status(500).json({ error: 'Erro ao listar servidores.' });
     }
 });
@@ -208,6 +267,11 @@ routes.post('/servers', ensureAuthenticated, async (req: Request, res: Response)
         );
 
         const newServer = result.rows[0];
+
+        // Adiciona automaticamente o criador como membro do servidor
+        if (userId) {
+            await addMemberToServer(userId, newServer.id);
+        }
 
         // Cria automaticamente um canal geral de texto e um geral de voz
         await pool.query(

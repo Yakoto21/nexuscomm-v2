@@ -1708,615 +1708,845 @@
             height: 8px;
             border-radius: 50%;
         }
+
+        /* ==========================================
+           Auth Gate (Tela de Entrada / A Fortaleza)
+           ========================================== */
+        .auth-gate-wrapper {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 50% 15%, rgba(99, 102, 241, 0.25), transparent 60%),
+                        radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.18), transparent 55%),
+                        radial-gradient(circle at 20% 85%, rgba(168, 85, 247, 0.15), transparent 50%),
+                        #070a14;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .auth-gate-card {
+            width: 100%;
+            max-width: 460px;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 28px;
+            padding: 40px 34px;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            animation: fadeInScale 0.35s ease-out;
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .auth-gate-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 12px;
+        }
+
+        .auth-gate-logo {
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 50%, #0ea5e9 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.45);
+        }
+
+        .auth-gate-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 30%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .auth-gate-subtitle {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .auth-gate-tabs {
+            display: flex;
+            background: rgba(30, 41, 59, 0.6);
+            padding: 4px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            gap: 4px;
+        }
+
+        .auth-gate-tab {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .auth-gate-tab.active {
+            background: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+
+        .auth-gate-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Container Raiz da Aplicação */
+        .app-root {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Overlay de Configurações de Usuário */
+        .user-settings-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 14, 26, 0.88);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .user-settings-overlay.open {
+            display: flex;
+            animation: fadeInScale 0.25s ease-out;
+        }
+
+        .user-settings-modal {
+            width: 100%;
+            max-width: 540px;
+            background: rgba(15, 23, 42, 0.96);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
     </style>
 </head>
 <body>
 
-    <!-- 1. Barra Lateral de Servidores (Server Sidebar) -->
-    <nav id="server-sidebar" class="server-sidebar" aria-label="Menu de Servidores e Comunidades">
-        <div class="server-icon-wrapper active" id="btnServerHome" data-tooltip="Início / Salas Rápidas">
-            <span class="server-pill"></span>
-            <div class="server-icon server-home-btn">
-                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-            </div>
-        </div>
-
-        <div class="server-divider"></div>
-
-        <div id="serversList" class="servers-scroll-container">
-            <!-- Renderizado dinamicamente via JS -->
-        </div>
-
-        <div class="server-divider"></div>
-
-        <div class="server-icon-wrapper" id="btnOpenAddServerModal" data-tooltip="Criar uma Comunidade">
-            <span class="server-pill"></span>
-            <div class="server-icon btn-add-server">
-                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-                </svg>
-            </div>
-        </div>
-    </nav>
-
-    <!-- 2. Painel de Canais (Channels Sidebar) -->
-    <aside id="channels-sidebar" class="channels-sidebar">
-        <!-- Topo do Painel: Banner / Nome do Servidor Ativo + Configurações + Criar Canal -->
-        <div class="channels-header" id="channelsSidebarHeader">
-            <div class="channels-server-name" id="btnOpenServerHome">
-                <span id="selectedServerTitle">Comunidade Nexus</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <!-- ⚙️ Gatilho de Acesso: Configurações do Servidor -->
-                <button type="button" id="btnOpenServerSettings" class="btn-header-action" title="Configurações do Servidor">
-                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <!-- 0. O Portão de Autenticação (Auth Gate Front-end) -->
+    <div id="authGateContainer" class="auth-gate-wrapper">
+        <div class="auth-gate-card">
+            <div class="auth-gate-brand">
+                <div class="auth-gate-logo">
+                    <svg width="34" height="34" fill="none" stroke="#ffffff" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
+                </div>
+                <div>
+                    <h1 class="auth-gate-title">NexusComm V2</h1>
+                    <p class="auth-gate-subtitle">A Fortaleza • Acesso Seguro & Blindado</p>
+                </div>
+            </div>
+
+            <div class="auth-gate-tabs">
+                <button type="button" id="tabGateLogin" class="auth-gate-tab active">Entrar</button>
+                <button type="button" id="tabGateRegister" class="auth-gate-tab">Criar Conta</button>
+                <button type="button" id="tabGateToken" class="auth-gate-tab">Token Direto</button>
+            </div>
+
+            <div id="authGateAlert" class="auth-alert"></div>
+
+            <!-- Formulário de Login -->
+            <form id="formGateLogin" class="auth-gate-form">
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Usuário</label>
+                    <input type="text" id="gateLoginUsername" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Seu nome de usuário" required autocomplete="username" />
+                </div>
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Senha</label>
+                    <input type="password" id="gateLoginPassword" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="••••••••" required autocomplete="current-password" />
+                </div>
+                <button type="submit" id="btnSubmitGateLogin" class="btn-primary" style="padding: 13px; font-size: 0.95rem; margin-top: 6px;">
+                    Entrar no NexusComm
                 </button>
-                <button type="button" id="btnOpenAddChannelModal" class="btn-header-action" title="Criar novo canal">
-                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            </form>
+
+            <!-- Formulário de Cadastro -->
+            <form id="formGateRegister" class="auth-gate-form" style="display: none;">
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Novo Usuário</label>
+                    <input type="text" id="gateRegisterUsername" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Mínimo 3 caracteres" required autocomplete="username" />
+                </div>
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Senha</label>
+                    <input type="password" id="gateRegisterPassword" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Mínimo 6 caracteres" required autocomplete="new-password" />
+                </div>
+                <button type="submit" id="btnSubmitGateRegister" class="btn-primary" style="padding: 13px; font-size: 0.95rem; margin-top: 6px;">
+                    Criar Conta & Entrar
+                </button>
+            </form>
+
+            <!-- Formulário de Token Direto -->
+            <form id="formGateToken" class="auth-gate-form" style="display: none;">
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Token JWT</label>
+                    <input type="text" id="gateTokenInput" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Cole aqui seu token JWT..." required />
+                </div>
+                <button type="submit" id="btnSubmitGateToken" class="btn-primary" style="padding: 13px; font-size: 0.95rem; margin-top: 6px;">
+                    Validar & Conectar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ROOT DA APLICAÇÃO (Bloqueio Absoluto até Autenticação Válida) -->
+    <div id="appRoot" class="app-root" style="display: none;">
+
+        <!-- 1. Barra Lateral de Servidores (Server Sidebar) -->
+        <nav id="server-sidebar" class="server-sidebar" aria-label="Menu de Servidores e Comunidades">
+            <div class="server-icon-wrapper active" id="btnServerHome" data-tooltip="Início / Salas Rápidas">
+                <span class="server-pill"></span>
+                <div class="server-icon server-home-btn">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="server-divider"></div>
+
+            <div id="serversList" class="servers-scroll-container">
+                <!-- Renderizado dinamicamente via JS -->
+            </div>
+
+            <div class="server-divider"></div>
+
+            <div class="server-icon-wrapper" id="btnOpenAddServerModal" data-tooltip="Criar uma Comunidade">
+                <span class="server-pill"></span>
+                <div class="server-icon btn-add-server">
+                    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                     </svg>
-                </button>
-            </div>
-        </div>
-
-        <!-- Lista Rolável de Categorias e Canais -->
-        <div class="channels-list-container">
-            <div class="channel-category">
-                <div class="category-header">
-                    <span>CANAIS DE TEXTO</span>
                 </div>
-                <div id="textChannelsList" style="display: flex; flex-direction: column; gap: 3px;">
-                    <!-- Renderizado dinamicamente via JS -->
-                </div>
-            </div>
-
-            <div class="channel-category">
-                <div class="category-header">
-                    <span>CANAIS DE VOZ</span>
-                </div>
-                <div id="voiceChannelsList" style="display: flex; flex-direction: column; gap: 3px;">
-                    <!-- Renderizado dinamicamente via JS -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Base do Painel: Perfil do Usuário Autenticado -->
-        <div class="channels-user-bar">
-            <div class="user-bar-info">
-                <div class="user-avatar-circle" id="userBarAvatar">NX</div>
-                <div class="user-bar-details">
-                    <span class="user-bar-name" id="userBarName">Conectando...</span>
-                    <span class="user-bar-status">
-                        <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
-                        Online
-                    </span>
-                </div>
-            </div>
-            <button type="button" id="userBarMuteBtn" class="btn-header-action" title="Mutar/Desmutar Rápido">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-            </button>
-        </div>
-    </aside>
-
-    <!-- ==========================================
-         4. Interface de Administração do Servidor em Tela Cheia (Discord Style)
-         ========================================== -->
-    <div id="serverSettingsOverlay" class="settings-overlay">
-        <!-- Fechar no Topo Direito (X + ESC) -->
-        <div class="settings-close-container" id="btnCloseServerSettings" title="Fechar Configurações (ESC)">
-            <div class="settings-close-btn">
-                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </div>
-            <span class="settings-esc-badge">ESC</span>
-        </div>
-
-        <!-- Menu Lateral Esquerdo de Navegação -->
-        <nav class="settings-sidebar">
-            <div class="settings-server-badge">
-                <span id="settingsServerNameNav">Comunidade Nexus</span>
-            </div>
-            <div class="settings-nav-group">
-                <span class="settings-nav-header">CONFIGURAÇÕES DO SERVIDOR</span>
-                <button type="button" class="settings-nav-item active" id="tabSettingsOverview">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Visão Geral</span>
-                </button>
-                <button type="button" class="settings-nav-item" id="tabSettingsRoles">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    <span>Cargos</span>
-                </button>
-                <button type="button" class="settings-nav-item" id="tabSettingsMembers">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <span>Membros</span>
-                </button>
             </div>
         </nav>
 
-        <!-- Palco Central/Direito de Conteúdo -->
-        <main class="settings-content-stage">
-            <!-- 1. Aba: Visão Geral (Nome, Ícone 1:1 e Banner Supabase Storage) -->
-            <div id="panelSettingsOverview" class="settings-panel active">
-                <div class="settings-panel-header">
-                    <h2>Visão Geral do Servidor</h2>
-                    <p>Personalize o nome, ícone e banner de fundo da sua comunidade no Supabase Storage.</p>
+        <!-- 2. Painel de Canais (Channels Sidebar) -->
+        <aside id="channels-sidebar" class="channels-sidebar">
+            <!-- Topo do Painel: Banner / Nome do Servidor Ativo + Configurações + Criar Canal -->
+            <div class="channels-header" id="channelsSidebarHeader">
+                <div class="channels-server-name" id="btnOpenServerHome">
+                    <span id="selectedServerTitle">Comunidade Nexus</span>
                 </div>
-
-                <div class="settings-card">
-                    <!-- Linha 1: Ícone Personalizado do Servidor (1:1) -->
-                    <div class="settings-avatar-row">
-                        <div class="settings-avatar-large" id="settingsServerAvatar">NX</div>
-                        <div class="settings-avatar-text">
-                            <h4>Ícone do Servidor (Proporção 1:1)</h4>
-                            <p>Recomendado: 512x512px (PNG, JPG ou WEBP). Máx: 10MB.</p>
-                            <div style="display: flex; gap: 8px; align-items: center;">
-                                <input type="file" id="inputServerIconFile" accept="image/png, image/jpeg, image/webp, image/gif" style="display: none;" />
-                                <button type="button" id="btnUploadServerIcon" class="btn-primary" style="padding: 8px 16px; font-size: 0.82rem;">
-                                    Alterar Ícone
-                                </button>
-                                <button type="button" id="btnRemoveServerIcon" class="btn-room-action" style="padding: 8px 14px; font-size: 0.82rem;">
-                                    Remover
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Linha 2: Banner de Fundo do Servidor -->
-                    <div class="settings-banner-row">
-                        <label class="settings-label">Banner de Fundo do Servidor</label>
-                        <div class="settings-banner-preview-box" id="settingsServerBannerPreview">
-                            <div class="settings-banner-placeholder" id="settingsServerBannerPlaceholder">
-                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <span>Pré-visualização do Banner</span>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 10px; align-items: center; margin-top: 4px;">
-                            <input type="file" id="inputServerBannerFile" accept="image/png, image/jpeg, image/webp, image/gif" style="display: none;" />
-                            <button type="button" id="btnUploadServerBanner" class="btn-primary" style="padding: 8px 16px; font-size: 0.82rem;">
-                                Alterar Banner de Fundo
-                            </button>
-                            <button type="button" id="btnRemoveServerBanner" class="btn-room-action" style="padding: 8px 14px; font-size: 0.82rem;">
-                                Remover Banner
-                            </button>
-                            <span style="font-size: 0.78rem; color: var(--text-dark-muted);">Recomendado: 1920x1080 (16:9)</span>
-                        </div>
-                    </div>
-
-                    <!-- Linha 3: Formulário de Nome -->
-                    <form id="formServerOverview">
-                        <div class="settings-form-group">
-                            <label for="inputEditServerName" class="settings-label">Nome do Servidor</label>
-                            <input type="text" id="inputEditServerName" class="room-input" required />
-                        </div>
-
-                        <div id="settingsOverviewAlert" class="auth-alert" style="margin-top: 10px;"></div>
-
-                        <div class="settings-save-bar">
-                            <button type="submit" id="btnSaveServerOverview" class="btn-primary" style="padding: 12px 28px;">
-                                Salvar Alterações
-                            </button>
-                        </div>
-                    </form>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <!-- ⚙️ Gatilho de Acesso: Configurações do Servidor -->
+                    <button type="button" id="btnOpenServerSettings" class="btn-header-action" title="Configurações do Servidor">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </button>
+                    <button type="button" id="btnOpenAddChannelModal" class="btn-header-action" title="Criar novo canal">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
-            <!-- 2. Aba: Cargos -->
-            <div id="panelSettingsRoles" class="settings-panel">
-                <div class="settings-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <!-- Lista Rolável de Categorias e Canais -->
+            <div class="channels-list-container">
+                <div class="channel-category">
+                    <div class="category-header">
+                        <span>CANAIS DE TEXTO</span>
+                    </div>
+                    <div id="textChannelsList" style="display: flex; flex-direction: column; gap: 3px;">
+                        <!-- Renderizado dinamicamente via JS -->
+                    </div>
+                </div>
+
+                <div class="channel-category">
+                    <div class="category-header">
+                        <span>CANAIS DE VOZ</span>
+                    </div>
+                    <div id="voiceChannelsList" style="display: flex; flex-direction: column; gap: 3px;">
+                        <!-- Renderizado dinamicamente via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Base do Painel: Perfil do Usuário Autenticado + Engrenagem ⚙️ -->
+            <div class="channels-user-bar">
+                <div class="user-bar-info">
+                    <div class="user-avatar-circle" id="userBarAvatar">NX</div>
+                    <div class="user-bar-details">
+                        <span class="user-bar-name" id="userBarName">Conectando...</span>
+                        <span class="user-bar-status">
+                            <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                            Online
+                        </span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 4px; align-items: center;">
+                    <button type="button" id="userBarMuteBtn" class="btn-header-action" title="Mutar/Desmutar Microfone">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                    </button>
+                    <!-- ⚙️ Ícone de engrenagem para Configurações do Usuário -->
+                    <button type="button" id="btnOpenUserSettings" class="btn-header-action" title="Configurações do Perfil">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ==========================================
+             3. Interface de Administração do Servidor em Tela Cheia (Discord Style)
+             ========================================== -->
+        <div id="serverSettingsOverlay" class="settings-overlay">
+            <!-- Fechar no Topo Direito (X + ESC) -->
+            <div class="settings-close-container" id="btnCloseServerSettings" title="Fechar Configurações (ESC)">
+                <div class="settings-close-btn">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </div>
+                <span class="settings-esc-badge">ESC</span>
+            </div>
+
+            <!-- Menu Lateral Esquerdo de Navegação -->
+            <nav class="settings-sidebar">
+                <div class="settings-server-badge">
+                    <span id="settingsServerNameNav">Comunidade Nexus</span>
+                </div>
+                <div class="settings-nav-group">
+                    <span class="settings-nav-header">CONFIGURAÇÕES DO SERVIDOR</span>
+                    <button type="button" class="settings-nav-item active" id="tabSettingsOverview">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Visão Geral</span>
+                    </button>
+                    <button type="button" class="settings-nav-item" id="tabSettingsRoles">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        <span>Cargos</span>
+                    </button>
+                    <button type="button" class="settings-nav-item" id="tabSettingsMembers">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span>Membros</span>
+                    </button>
+                </div>
+            </nav>
+
+            <!-- Palco Central/Direito de Conteúdo -->
+            <main class="settings-content-stage">
+                <!-- 1. Aba: Visão Geral (Nome, Ícone 1:1 e Banner Supabase Storage) -->
+                <div id="panelSettingsOverview" class="settings-panel active">
+                    <div class="settings-panel-header">
+                        <h2>Visão Geral do Servidor</h2>
+                        <p>Personalize o nome, ícone e banner de fundo da sua comunidade no Supabase Storage.</p>
+                    </div>
+
+                    <div class="settings-card">
+                        <!-- Linha 1: Ícone Personalizado do Servidor (1:1) -->
+                        <div class="settings-avatar-row">
+                            <div class="settings-avatar-large" id="settingsServerAvatar">NX</div>
+                            <div class="settings-avatar-text">
+                                <h4>Ícone do Servidor (Proporção 1:1)</h4>
+                                <p>Recomendado: 512x512px (PNG, JPG ou WEBP). Máx: 10MB.</p>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <input type="file" id="inputServerIconFile" accept="image/png, image/jpeg, image/webp, image/gif" style="display: none;" />
+                                    <button type="button" id="btnUploadServerIcon" class="btn-primary" style="padding: 8px 16px; font-size: 0.82rem;">
+                                        Alterar Ícone
+                                    </button>
+                                    <button type="button" id="btnRemoveServerIcon" class="btn-room-action" style="padding: 8px 14px; font-size: 0.82rem;">
+                                        Remover
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Linha 2: Banner de Fundo do Servidor -->
+                        <div class="settings-banner-row">
+                            <label class="settings-label">Banner de Fundo do Servidor</label>
+                            <div class="settings-banner-preview-box" id="settingsServerBannerPreview">
+                                <div class="settings-banner-placeholder" id="settingsServerBannerPlaceholder">
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span>Pré-visualização do Banner</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center; margin-top: 4px;">
+                                <input type="file" id="inputServerBannerFile" accept="image/png, image/jpeg, image/webp, image/gif" style="display: none;" />
+                                <button type="button" id="btnUploadServerBanner" class="btn-primary" style="padding: 8px 16px; font-size: 0.82rem;">
+                                    Alterar Banner de Fundo
+                                </button>
+                                <button type="button" id="btnRemoveServerBanner" class="btn-room-action" style="padding: 8px 14px; font-size: 0.82rem;">
+                                    Remover Banner
+                                </button>
+                                <span style="font-size: 0.78rem; color: var(--text-dark-muted);">Recomendado: 1920x1080 (16:9)</span>
+                            </div>
+                        </div>
+
+                        <!-- Linha 3: Formulário de Nome -->
+                        <form id="formServerOverview">
+                            <div class="settings-form-group">
+                                <label for="inputEditServerName" class="settings-label">Nome do Servidor</label>
+                                <input type="text" id="inputEditServerName" class="room-input" required />
+                            </div>
+
+                            <div id="settingsOverviewAlert" class="auth-alert" style="margin-top: 10px;"></div>
+
+                            <div class="settings-save-bar">
+                                <button type="submit" id="btnSaveServerOverview" class="btn-primary" style="padding: 12px 28px;">
+                                    Salvar Alterações
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 2. Aba: Cargos -->
+                <div id="panelSettingsRoles" class="settings-panel">
+                    <div class="settings-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h2>Cargos do Servidor</h2>
+                            <p>Crie e organize os cargos para definir hierarquia, cores e permissões dos membros.</p>
+                        </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <div id="settingsRolesListContainer" class="settings-roles-list">
+                            <div style="font-size: 0.85rem; color: #64748b;">Carregando cargos...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Aba: Membros -->
+                <div id="panelSettingsMembers" class="settings-panel">
+                    <div class="settings-panel-header">
+                        <h2>Membros da Comunidade</h2>
+                        <p>Visualize os membros participantes e seus respectivos cargos.</p>
+                    </div>
+
+                    <div class="settings-card">
+                        <div id="settingsMembersListContainer" class="settings-members-list">
+                            <div style="font-size: 0.85rem; color: #64748b;">Carregando membros...</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- ==========================================
+             4. Modal de Configurações de Usuário (User Profile Modal)
+             ========================================== -->
+        <div id="userSettingsOverlay" class="user-settings-overlay">
+            <div class="user-settings-modal">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); display: flex; align-items: center; justify-content: center; color: #818cf8;">
+                            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin: 0;">Perfil do Usuário</h3>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Personalize sua identidade e avatar no Supabase Storage</p>
+                        </div>
+                    </div>
+                    <button type="button" id="btnCloseUserSettings" class="chat-close-btn" title="Fechar (ESC)">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Preview do Avatar -->
+                <div style="display: flex; align-items: center; gap: 18px; background: rgba(30, 41, 59, 0.45); padding: 18px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="user-avatar-circle" id="userSettingsAvatarPreview" style="width: 64px; height: 64px; font-size: 1.4rem;">
+                        NX
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div>
+                            <strong style="color: #fff; font-size: 0.95rem;">Avatar Pessoal</strong>
+                            <p style="font-size: 0.78rem; color: var(--text-muted); margin: 2px 0 0 0;">Upload no bucket <code>user_avatars</code> (PNG, JPG, WEBP até 10MB)</p>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="file" id="inputUserAvatarFile" accept="image/png, image/jpeg, image/webp, image/gif" style="display: none;" />
+                            <button type="button" id="btnUploadUserAvatar" class="btn-primary" style="padding: 7px 15px; font-size: 0.82rem;">
+                                Alterar Avatar
+                            </button>
+                            <button type="button" id="btnRemoveUserAvatar" class="btn-room-action" style="padding: 7px 13px; font-size: 0.82rem;">
+                                Remover
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulário de Perfil -->
+                <form id="formUserSettings" style="display: flex; flex-direction: column; gap: 14px;">
                     <div>
-                        <h2>Cargos do Servidor</h2>
-                        <p>Crie e organize os cargos para definir hierarquia, cores e permissões dos membros.</p>
+                        <label for="inputUserDisplayName" style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Nome de Exibição</label>
+                        <input type="text" id="inputUserDisplayName" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Como outros membros verão você" required />
+                    </div>
+
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Nome de Usuário Único (@)</label>
+                        <input type="text" id="inputUserUsernameDisplay" class="room-input" style="width: 100%; margin-top: 6px; opacity: 0.65; cursor: not-allowed;" readonly />
+                    </div>
+
+                    <div id="userSettingsAlert" class="auth-alert"></div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
+                        <button type="button" id="btnCancelUserSettings" class="btn-room-action" style="padding: 10px 18px;">Cancelar</button>
+                        <button type="submit" id="btnSaveUserSettings" class="btn-primary" style="padding: 10px 24px;">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal para Criar Novo Servidor -->
+        <div id="modalAddServer" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center; z-index: 2000;">
+            <div style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 24px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff;">Criar uma Nova Comunidade</h3>
+                    <button type="button" id="btnCloseServerModal" class="chat-close-btn">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">Sua comunidade reúne salas de áudio, vídeo e canais de texto persistidos para sua equipe.</p>
+                
+                <form id="formAddServer" style="display: flex; flex-direction: column; gap: 14px;">
+                    <div>
+                        <label for="inputServerName" style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Nome do Servidor</label>
+                        <input type="text" id="inputServerName" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Ex: Comunidade Devs, Nexus Squad" required />
+                    </div>
+                    <div id="serverModalAlert" class="auth-alert"></div>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
+                        <button type="button" id="btnCancelServerModal" class="btn-room-action" style="padding: 10px 18px;">Cancelar</button>
+                        <button type="submit" id="btnSubmitServerModal" class="btn-primary" style="padding: 10px 24px;">Criar Comunidade</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal para Criar Novo Canal -->
+        <div id="modalAddChannel" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center; z-index: 2000;">
+            <div style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 24px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff;">Criar Novo Canal</h3>
+                    <button type="button" id="btnCloseChannelModal" class="chat-close-btn">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <form id="formAddChannel" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <label style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Tipo de Canal</label>
+                        <div style="display: flex; gap: 10px; margin-top: 6px;">
+                            <div class="channel-type-option selected" id="optTypeText" style="flex: 1; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 1.2rem; font-weight: 700; color: #a5b4fc;">#</span>
+                                <div>
+                                    <div style="font-size: 0.9rem; font-weight: 600;">Texto</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Chat & Histórico</div>
+                                </div>
+                            </div>
+                            <div class="channel-type-option" id="optTypeVoice" style="flex: 1; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                                <svg width="20" height="20" fill="none" stroke="#38bdf8" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                                </svg>
+                                <div>
+                                    <div style="font-size: 0.9rem; font-weight: 600;">Voz</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Áudio & Vídeo WebRTC</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="inputChannelName" style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Nome do Canal</label>
+                        <input type="text" id="inputChannelName" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Ex: avisos, reunioes-geral" required />
+                    </div>
+
+                    <div id="channelModalAlert" class="auth-alert"></div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
+                        <button type="button" id="btnCancelChannelModal" class="btn-room-action" style="padding: 10px 18px;">Cancelar</button>
+                        <button type="submit" id="btnSubmitChannelModal" class="btn-primary" style="padding: 10px 24px;">Criar Canal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Conteúdo Central: Palco Principal -->
+        <main class="container">
+            <header style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div>
+                        <h1 id="mainServerHeading" style="font-size: 1.8rem; margin: 0;">NexusComm Comunidades</h1>
+                        <p id="mainHeaderSub" style="margin: 0; font-size: 0.9rem;">Videoconferência, Voz & Canais de Texto em Tempo Real</p>
+                    </div>
+
+                    <div id="authenticatedUserBadge" class="badge-room" style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                        <span>Olá, <strong id="authenticatedUsername">Usuário</strong></span>
+                        <button type="button" id="btnLogout" style="background: none; border: none; color: #fca5a5; font-size: 0.8rem; cursor: pointer; text-decoration: underline; margin-left: 6px;">Sair</button>
                     </div>
                 </div>
+            </header>
 
-                <div class="settings-card">
-                    <div id="settingsRolesListContainer" class="settings-roles-list">
-                        <div style="font-size: 0.85rem; color: #64748b;">Carregando cargos...</div>
+            <!-- ESTÁGIO 1: Home da Comunidade (Welcome View) -->
+            <div id="communityWelcomeView" class="view-stage active">
+                <div class="community-welcome-card">
+                    <div class="welcome-hero-avatar" id="welcomeServerAvatar">NX</div>
+                    <div>
+                        <h2 id="welcomeServerTitle">Bem-vindo à Comunidade NexusComm!</h2>
+                        <p>Esta é a página inicial da sua comunidade. Selecione um canal no menu lateral para começar a conversar ou entrar em uma chamada de voz e vídeo.</p>
+                    </div>
+
+                    <div class="welcome-quick-channels">
+                        <div class="welcome-channel-card" id="btnQuickEnterGeneralText">
+                            <span style="font-size: 1.4rem; font-weight: 700; color: #a5b4fc;">#</span>
+                            <div>
+                                <strong style="color: #fff; font-size: 0.95rem;">Canal Geral de Texto</strong>
+                                <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Conversar e ler histórico</p>
+                            </div>
+                        </div>
+
+                        <div class="welcome-channel-card" id="btnQuickEnterGeneralVoice">
+                            <svg width="22" height="22" fill="none" stroke="#38bdf8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                            </svg>
+                            <div>
+                                <strong style="color: #fff; font-size: 0.95rem;">Canal Geral de Voz</strong>
+                                <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Entrar na chamada WebRTC</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 3. Aba: Membros -->
-            <div id="panelSettingsMembers" class="settings-panel">
-                <div class="settings-panel-header">
-                    <h2>Membros da Comunidade</h2>
-                    <p>Visualize os membros participantes e seus respectivos cargos.</p>
+            <!-- ESTÁGIO 2: Modo Texto Expandido (Main Text Chat) -->
+            <div id="mainTextChatView" class="view-stage text-chat-stage">
+                <div class="text-chat-header">
+                    <div class="text-chat-header-title">
+                        <span class="hash-tag">#</span>
+                        <h3 id="mainChatChannelName">geral</h3>
+                        <span style="font-size: 0.82rem; color: var(--text-dark-muted); margin-left: 8px;" id="mainChatChannelTopic">Canal de texto da comunidade</span>
+                    </div>
+                    <button type="button" id="btnCopyChannelLink" class="btn-room-action" style="padding: 6px 12px; font-size: 0.78rem;">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span>Copiar Link do Canal</span>
+                    </button>
                 </div>
 
-                <div class="settings-card">
-                    <div id="settingsMembersListContainer" class="settings-members-list">
-                        <div style="font-size: 0.85rem; color: #64748b;">Carregando membros...</div>
+                <div id="mainChatMessagesList" class="main-chat-messages-container">
+                    <div class="channel-welcome-banner">
+                        <div class="channel-welcome-avatar">#</div>
+                        <h2 id="channelWelcomeHeading">Bem-vindo ao #geral!</h2>
+                        <p id="channelWelcomeDesc">Este é o início do canal #geral. As mensagens são persistidas no PostgreSQL.</p>
+                    </div>
+                </div>
+
+                <form id="mainChatExpandedForm" class="main-chat-input-area">
+                    <input type="text" id="mainChatExpandedInput" class="main-chat-input" placeholder="Conversar no canal..." autocomplete="off" />
+                    <button type="submit" class="chat-send-btn" title="Enviar Mensagem">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
+
+            <!-- ESTÁGIO 3: Modo Voz (WebRTC Video Grid) -->
+            <div id="voiceStageView" class="view-stage voice-stage">
+                <div class="room-section-header" style="width: 100%; margin-bottom: 4px;">
+                    <span id="voiceChannelHeading" style="font-size: 1.1rem; font-weight: 700; color: #fff;">🔊 Canal de Voz WebRTC</span>
+                    <span id="voiceParticipantsCount" class="badge-status badge-live">Ao Vivo</span>
+                </div>
+
+                <div id="webrtcStatus" class="webrtc-status-container">
+                    <div class="spinner-sm"></div>
+                    <span id="webrtcStatusText">Conectando ao canal de voz...</span>
+                </div>
+
+                <!-- Grid de Vídeos / Participantes -->
+                <div id="videoGrid" class="video-grid">
+                    <!-- Participante Local -->
+                    <div class="video-card local-card" id="localCard">
+                        <div class="card-video-wrapper">
+                            <video id="localVideo" autoplay playsinline muted></video>
+                            <div class="video-placeholder" id="localPlaceholder">
+                                <div class="placeholder-avatar" id="localPlaceholderAvatar">VC</div>
+                                <span class="placeholder-text">Câmera desligada</span>
+                            </div>
+                        </div>
+                        <div class="card-overlay">
+                            <span class="user-badge" id="localUserTitle">Você</span>
+                            <div class="status-indicators">
+                                <span id="localMicIndicator" class="mic-dot" title="Status Microfone"></span>
+                                <span id="localCamIndicator" class="cam-dot" title="Status Câmera"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
-    </div>
 
-    <!-- Modal para Criar Novo Servidor -->
-    <div id="modalAddServer" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center; z-index: 2000;">
-        <div style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 24px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; gap: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff;">Criar uma Nova Comunidade</h3>
-                <button type="button" id="btnCloseServerModal" class="chat-close-btn">
+        <!-- Dock de Controles de Chamada de Voz / Vídeo -->
+        <div id="controlDock" class="control-dock">
+            <button id="btnMute" class="dock-btn" title="Ligar/Desligar Microfone">
+                <svg id="micIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+            </button>
+
+            <button id="btnCamera" class="dock-btn" title="Ligar/Desligar Câmera">
+                <svg id="camIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+            </button>
+
+            <button id="btnScreen" class="dock-btn" title="Compartilhar Tela">
+                <svg id="screenIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+            </button>
+
+            <button id="btnToggleChat" class="dock-btn" title="Abrir Chat Lateral da Chamada" style="position: relative;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span id="chatUnreadDot" class="chat-unread-dot"></span>
+            </button>
+
+            <button id="btnLeaveRoom" class="dock-btn dock-btn-leave" title="Desconectar do Canal de Voz">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l4 4m0 0l-4 4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>Desconectar</span>
+            </button>
+        </div>
+
+        <!-- Painel Lateral Retrátil de Chat -->
+        <aside id="chatSidebar" class="chat-sidebar">
+            <div class="chat-header">
+                <div class="chat-header-title">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <span id="chatPanelTitle">Chat do Canal</span>
+                </div>
+                <button id="btnCloseChat" class="chat-close-btn" title="Fechar Chat">
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
-            <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">Sua comunidade reúne salas de áudio, vídeo e canais de texto persistidos para sua equipe.</p>
-            
-            <form id="formAddServer" style="display: flex; flex-direction: column; gap: 14px;">
-                <div>
-                    <label for="inputServerName" style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Nome do Servidor</label>
-                    <input type="text" id="inputServerName" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Ex: Comunidade Devs, Nexus Squad" required />
-                </div>
-                <div id="serverModalAlert" class="auth-alert"></div>
-                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
-                    <button type="button" id="btnCancelServerModal" class="btn-room-action" style="padding: 10px 18px;">Cancelar</button>
-                    <button type="submit" id="btnSubmitServerModal" class="btn-primary" style="padding: 10px 24px;">Criar Comunidade</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
-    <!-- Modal para Criar Novo Canal -->
-    <div id="modalAddChannel" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center; z-index: 2000;">
-        <div style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 24px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; gap: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff;">Criar Novo Canal</h3>
-                <button type="button" id="btnCloseChannelModal" class="chat-close-btn">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            
-            <form id="formAddChannel" style="display: flex; flex-direction: column; gap: 16px;">
-                <div>
-                    <label style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Tipo de Canal</label>
-                    <div style="display: flex; gap: 10px; margin-top: 6px;">
-                        <div class="channel-type-option selected" id="optTypeText" style="flex: 1; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 1.2rem; font-weight: 700; color: #a5b4fc;">#</span>
-                            <div>
-                                <div style="font-size: 0.9rem; font-weight: 600;">Texto</div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">Chat & Histórico</div>
-                            </div>
-                        </div>
-                        <div class="channel-type-option" id="optTypeVoice" style="flex: 1; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px;">
-                            <svg width="20" height="20" fill="none" stroke="#38bdf8" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
-                            </svg>
-                            <div>
-                                <div style="font-size: 0.9rem; font-weight: 600;">Voz</div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">Áudio & Vídeo WebRTC</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <label for="inputChannelName" style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Nome do Canal</label>
-                    <input type="text" id="inputChannelName" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Ex: avisos, reunioes-geral" required />
-                </div>
-
-                <div id="channelModalAlert" class="auth-alert"></div>
-
-                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
-                    <button type="button" id="btnCancelChannelModal" class="btn-room-action" style="padding: 10px 18px;">Cancelar</button>
-                    <button type="submit" id="btnSubmitChannelModal" class="btn-primary" style="padding: 10px 24px;">Criar Canal</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Conteúdo Central: Palco Principal -->
-    <main class="container">
-        <header style="width: 100%; display: flex; flex-direction: column; align-items: center;">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <div>
-                    <h1 id="mainServerHeading" style="font-size: 1.8rem; margin: 0;">NexusComm Comunidades</h1>
-                    <p id="mainHeaderSub" style="margin: 0; font-size: 0.9rem;">Videoconferência, Voz & Canais de Texto em Tempo Real</p>
-                </div>
-
-                <div id="authenticatedUserBadge" class="badge-room" style="display: none; align-items: center; gap: 8px;">
-                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
-                    <span>Olá, <strong id="authenticatedUsername"></strong></span>
-                    <button type="button" id="btnLogout" style="background: none; border: none; color: #fca5a5; font-size: 0.8rem; cursor: pointer; text-decoration: underline; margin-left: 6px;">Sair</button>
-                </div>
-            </div>
-        </header>
-
-        <!-- Seção de Autenticação JWT -->
-        <div id="authSection" class="auth-section">
-            <div class="room-section-header">
-                <span>🔐 Autenticação Segura JWT</span>
-                <span id="authStatusNotice" style="font-size: 0.78rem; color: #94a3b8;">Token necessário para interagir</span>
-            </div>
-
-            <div id="authAlert" class="auth-alert"></div>
-
-            <div id="authContent">
-                <div class="auth-tabs">
-                    <button type="button" id="tabLogin" class="auth-tab active">Entrar / Cadastrar</button>
-                    <button type="button" id="tabToken" class="auth-tab">Inserir Token Direto</button>
-                </div>
-
-                <div id="loginFormContainer" class="auth-form-grid" style="margin-top: 10px;">
-                    <div class="auth-row">
-                        <input type="text" id="authUsername" class="room-input" placeholder="Usuário (ex: dev_user)" />
-                        <input type="password" id="authPassword" class="room-input" placeholder="Senha" />
-                    </div>
-                    <div class="auth-row" style="justify-content: flex-end;">
-                        <button type="button" id="btnRegister" class="btn-room-action" style="padding: 10px 18px; font-size: 0.85rem;">Cadastrar</button>
-                        <button type="button" id="btnLogin" class="btn-primary" style="padding: 10px 22px; font-size: 0.85rem;">Entrar</button>
-                    </div>
-                </div>
-
-                <div id="tokenFormContainer" class="auth-form-grid" style="display: none; margin-top: 10px;">
-                    <input type="text" id="directTokenInput" class="room-input" placeholder="Cole aqui seu Token JWT..." />
-                    <div class="auth-row" style="justify-content: flex-end;">
-                        <button type="button" id="btnApplyToken" class="btn-primary" style="padding: 10px 22px; font-size: 0.85rem;">Conectar com Token</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ESTÁGIO 1: Home da Comunidade (Welcome View) -->
-        <div id="communityWelcomeView" class="view-stage active">
-            <div class="community-welcome-card">
-                <div class="welcome-hero-avatar" id="welcomeServerAvatar">NX</div>
-                <div>
-                    <h2 id="welcomeServerTitle">Bem-vindo à Comunidade NexusComm!</h2>
-                    <p>Esta é a página inicial da sua comunidade. Selecione um canal no menu lateral para começar a conversar ou entrar em uma chamada de voz e vídeo.</p>
-                </div>
-
-                <div class="welcome-quick-channels">
-                    <div class="welcome-channel-card" id="btnQuickEnterGeneralText">
-                        <span style="font-size: 1.4rem; font-weight: 700; color: #a5b4fc;">#</span>
-                        <div>
-                            <strong style="color: #fff; font-size: 0.95rem;">Canal Geral de Texto</strong>
-                            <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Conversar e ler histórico</p>
-                        </div>
-                    </div>
-
-                    <div class="welcome-channel-card" id="btnQuickEnterGeneralVoice">
-                        <svg width="22" height="22" fill="none" stroke="#38bdf8" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
-                        </svg>
-                        <div>
-                            <strong style="color: #fff; font-size: 0.95rem;">Canal Geral de Voz</strong>
-                            <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Entrar na chamada WebRTC</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ESTÁGIO 2: Modo Texto Expandido (Main Text Chat) -->
-        <div id="mainTextChatView" class="view-stage text-chat-stage">
-            <div class="text-chat-header">
-                <div class="text-chat-header-title">
-                    <span class="hash-tag">#</span>
-                    <h3 id="mainChatChannelName">geral</h3>
-                    <span style="font-size: 0.82rem; color: var(--text-dark-muted); margin-left: 8px;" id="mainChatChannelTopic">Canal de texto da comunidade</span>
-                </div>
-                <button type="button" id="btnCopyChannelLink" class="btn-room-action" style="padding: 6px 12px; font-size: 0.78rem;">
+            <div id="chatMessages" class="chat-messages">
+                <div class="chat-system-notice">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    <span>Copiar Link do Canal</span>
-                </button>
-            </div>
-
-            <div id="mainChatMessagesList" class="main-chat-messages-container">
-                <div class="channel-welcome-banner">
-                    <div class="channel-welcome-avatar">#</div>
-                    <h2 id="channelWelcomeHeading">Bem-vindo ao #geral!</h2>
-                    <p id="channelWelcomeDesc">Este é o início do canal #geral. As mensagens são persistidas no PostgreSQL.</p>
+                    <span>Mensagens do canal em tempo real.</span>
                 </div>
             </div>
 
-            <form id="mainChatExpandedForm" class="main-chat-input-area">
-                <input type="text" id="mainChatExpandedInput" class="main-chat-input" placeholder="Conversar no canal..." autocomplete="off" />
-                <button type="submit" class="chat-send-btn" title="Enviar Mensagem">
+            <form id="chatForm" class="chat-input-area">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Mensagem na chamada..." autocomplete="off" />
+                <button type="submit" id="btnSendChat" class="chat-send-btn" title="Enviar">
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
                 </button>
             </form>
+        </aside>
+
+        <!-- Toast de Notificação de Cópia -->
+        <div id="toastCopied" class="toast-copied">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Link copiado com sucesso!</span>
         </div>
 
-        <!-- ESTÁGIO 3: Modo Voz (WebRTC Video Grid) -->
-        <div id="voiceStageView" class="view-stage voice-stage">
-            <div class="room-section-header" style="width: 100%; margin-bottom: 4px;">
-                <span id="voiceChannelHeading" style="font-size: 1.1rem; font-weight: 700; color: #fff;">🔊 Canal de Voz WebRTC</span>
-                <span id="voiceParticipantsCount" class="badge-status badge-live">Ao Vivo</span>
-            </div>
-
-            <div class="video-grid single-peer" id="videoGrid">
-                <div class="video-card" id="localVideoCard">
-                    <div class="video-card-header">
-                        <span class="video-card-title">
-                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            <span id="localUserTitle">Você (Local)</span>
-                        </span>
-                        <span id="localStatusBadge" class="badge-status badge-offline">Offline</span>
-                    </div>
-                    <div class="video-wrapper">
-                        <div id="localPlaceholder" class="video-placeholder">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                            <span>Câmera desligada</span>
-                        </div>
-                        <video id="localVideo" autoplay muted playsinline></video>
-                        <div class="floating-media-badges">
-                            <span class="floating-badge active-green" id="localFloatMic" title="Microfone Ativo">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                </svg>
-                            </span>
-                            <span class="floating-badge" id="localFloatCam" title="Câmera Desligada">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="emptyStateContainer" class="empty-state-card">
-                <div class="empty-state-content">
-                    <div class="empty-state-icon">
-                        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                    </div>
-                    <div class="empty-state-text">
-                        <h4>Você é o único no canal de voz</h4>
-                        <p>Copie o link do canal ou aguarde outros membros entrarem.</p>
-                    </div>
-                </div>
-                <button type="button" id="btnEmptyStateCopy" class="btn-dock-invite">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <span>Copiar Link</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="status-bar" style="margin-top: auto;">
-            <div class="socket-status">
-                <div id="socketDot" class="socket-dot"></div>
-                <span id="socketStatusText">Conectando ao Socket.IO...</span>
-            </div>
-            <div id="webrtcStatusText">NexusComm: Pronto</div>
-        </div>
-    </main>
-
-    <!-- Doca Central de Controles Flutuante (Modo Voz) -->
-    <div id="controlDock" class="control-dock">
-        <button id="btnMute" class="dock-btn" title="Mutar / Desmutar Microfone">
-            <svg id="micIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
-        </button>
-
-        <button id="btnCamera" class="dock-btn" title="Ligar / Desligar Câmera">
-            <svg id="cameraIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-        </button>
-
-        <button id="btnScreen" class="dock-btn" title="Compartilhar Tela">
-            <svg id="screenIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-        </button>
-
-        <button id="btnToggleChat" class="dock-btn" title="Abrir Chat Lateral da Chamada" style="position: relative;">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <span id="chatUnreadDot" class="chat-unread-dot"></span>
-        </button>
-
-        <button id="btnLeaveRoom" class="dock-btn dock-btn-leave" title="Desconectar do Canal de Voz">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l4 4m0 0l-4 4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span>Desconectar</span>
-        </button>
-    </div>
-
-    <!-- Painel Lateral Retrátil de Chat -->
-    <aside id="chatSidebar" class="chat-sidebar">
-        <div class="chat-header">
-            <div class="chat-header-title">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <span id="chatPanelTitle">Chat do Canal</span>
-            </div>
-            <button id="btnCloseChat" class="chat-close-btn" title="Fechar Chat">
-                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-
-        <div id="chatMessages" class="chat-messages">
-            <div class="chat-system-notice">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <span>Mensagens do canal em tempo real.</span>
-            </div>
-        </div>
-
-        <form id="chatForm" class="chat-input-area">
-            <input type="text" id="chatInput" class="chat-input" placeholder="Mensagem na chamada..." autocomplete="off" />
-            <button type="submit" id="btnSendChat" class="chat-send-btn" title="Enviar">
-                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-            </button>
-        </form>
-    </aside>
-
-    <!-- Toast de Notificação de Cópia -->
-    <div id="toastCopied" class="toast-copied">
-        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>
-        <span>Link copiado com sucesso!</span>
-    </div>
+    </div> <!-- /appRoot -->
 
     <!-- Client do Socket.IO -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // 1. Gerenciamento do Token de Autenticação JWT
+        // 1. Gerenciamento do Token de Autenticação JWT e Usuário Ativo
         let authToken = localStorage.getItem('nexuscomm_jwt_token') || '';
-        let currentAuthUser = localStorage.getItem('nexuscomm_username') || '';
+        let currentUser = null; // { id, username, display_name, avatar_url }
 
-        // Elementos DOM Autenticação
-        const authSection = document.getElementById('authSection');
-        const authAlert = document.getElementById('authAlert');
-        const authContent = document.getElementById('authContent');
-        const tabLogin = document.getElementById('tabLogin');
-        const tabToken = document.getElementById('tabToken');
-        const loginFormContainer = document.getElementById('loginFormContainer');
-        const tokenFormContainer = document.getElementById('tokenFormContainer');
-        const authUsername = document.getElementById('authUsername');
-        const authPassword = document.getElementById('authPassword');
-        const btnRegister = document.getElementById('btnRegister');
-        const btnLogin = document.getElementById('btnLogin');
-        const directTokenInput = document.getElementById('directTokenInput');
-        const btnApplyToken = document.getElementById('btnApplyToken');
-        const authenticatedUserBadge = document.getElementById('authenticatedUserBadge');
-        const authenticatedUsername = document.getElementById('authenticatedUsername');
-        const btnLogout = document.getElementById('btnLogout');
-        const authStatusNotice = document.getElementById('authStatusNotice');
+        // Elementos DOM do Portão de Autenticação (Auth Gate)
+        const authGateContainer = document.getElementById('authGateContainer');
+        const authGateAlert = document.getElementById('authGateAlert');
+        const tabGateLogin = document.getElementById('tabGateLogin');
+        const tabGateRegister = document.getElementById('tabGateRegister');
+        const tabGateToken = document.getElementById('tabGateToken');
+        const formGateLogin = document.getElementById('formGateLogin');
+        const formGateRegister = document.getElementById('formGateRegister');
+        const formGateToken = document.getElementById('formGateToken');
+        const gateLoginUsername = document.getElementById('gateLoginUsername');
+        const gateLoginPassword = document.getElementById('gateLoginPassword');
+        const gateRegisterUsername = document.getElementById('gateRegisterUsername');
+        const gateRegisterPassword = document.getElementById('gateRegisterPassword');
+        const gateTokenInput = document.getElementById('gateTokenInput');
+        const btnSubmitGateLogin = document.getElementById('btnSubmitGateLogin');
+        const btnSubmitGateRegister = document.getElementById('btnSubmitGateRegister');
+        const btnSubmitGateToken = document.getElementById('btnSubmitGateToken');
+
+        // Root da Aplicação (Gating Absoluto)
+        const appRoot = document.getElementById('appRoot');
 
         // Elementos Cabeçalho & UX
         const mainServerHeading = document.getElementById('mainServerHeading');
@@ -2325,6 +2555,9 @@
         const btnCopyChannelLink = document.getElementById('btnCopyChannelLink');
         const emptyStateContainer = document.getElementById('emptyStateContainer');
         const btnEmptyStateCopy = document.getElementById('btnEmptyStateCopy');
+        const authenticatedUserBadge = document.getElementById('authenticatedUserBadge');
+        const authenticatedUsername = document.getElementById('authenticatedUsername');
+        const btnLogout = document.getElementById('btnLogout');
 
         // Estágios de Visualização
         const communityWelcomeView = document.getElementById('communityWelcomeView');
@@ -2379,9 +2612,7 @@
         const userBarName = document.getElementById('userBarName');
         const userBarMuteBtn = document.getElementById('userBarMuteBtn');
 
-        // ==========================================
         // Elementos da Interface de Administração (Server Settings)
-        // ==========================================
         const serverSettingsOverlay = document.getElementById('serverSettingsOverlay');
         const btnCloseServerSettings = document.getElementById('btnCloseServerSettings');
         const settingsServerNameNav = document.getElementById('settingsServerNameNav');
@@ -2402,7 +2633,7 @@
         const settingsRolesListContainer = document.getElementById('settingsRolesListContainer');
         const settingsMembersListContainer = document.getElementById('settingsMembersListContainer');
 
-        // Controles de Upload de Mídia (Ícone & Banner Supabase Storage)
+        // Controles de Upload de Mídia do Servidor (Ícone & Banner Supabase Storage)
         const inputServerIconFile = document.getElementById('inputServerIconFile');
         const btnUploadServerIcon = document.getElementById('btnUploadServerIcon');
         const btnRemoveServerIcon = document.getElementById('btnRemoveServerIcon');
@@ -2410,6 +2641,28 @@
         const settingsServerBannerPreview = document.getElementById('settingsServerBannerPreview');
         const settingsServerBannerPlaceholder = document.getElementById('settingsServerBannerPlaceholder');
         const inputServerBannerFile = document.getElementById('inputServerBannerFile');
+        const btnUploadServerBanner = document.getElementById('btnUploadServerBanner');
+        const btnRemoveServerBanner = document.getElementById('btnRemoveServerBanner');
+
+        let pendingServerIconBase64 = null;
+        let pendingServerBannerBase64 = null;
+
+        // Elementos de Configurações de Usuário (User Profile Settings Modal)
+        const userSettingsOverlay = document.getElementById('userSettingsOverlay');
+        const btnOpenUserSettings = document.getElementById('btnOpenUserSettings');
+        const btnCloseUserSettings = document.getElementById('btnCloseUserSettings');
+        const btnCancelUserSettings = document.getElementById('btnCancelUserSettings');
+        const formUserSettings = document.getElementById('formUserSettings');
+        const inputUserDisplayName = document.getElementById('inputUserDisplayName');
+        const inputUserUsernameDisplay = document.getElementById('inputUserUsernameDisplay');
+        const userSettingsAvatarPreview = document.getElementById('userSettingsAvatarPreview');
+        const inputUserAvatarFile = document.getElementById('inputUserAvatarFile');
+        const btnUploadUserAvatar = document.getElementById('btnUploadUserAvatar');
+        const btnRemoveUserAvatar = document.getElementById('btnRemoveUserAvatar');
+        const userSettingsAlert = document.getElementById('userSettingsAlert');
+        const btnSaveUserSettings = document.getElementById('btnSaveUserSettings');
+
+        let pendingUserAvatarBase64 = null;
         const btnUploadServerBanner = document.getElementById('btnUploadServerBanner');
         const btnRemoveServerBanner = document.getElementById('btnRemoveServerBanner');
 
@@ -2445,29 +2698,20 @@
         const socketStatusText = document.getElementById('socketStatusText');
         const webrtcStatusText = document.getElementById('webrtcStatusText');
 
-        // Inicialização do Socket.IO
+        // Inicialização do Socket.IO (Sem auto-conectar antes de autenticar)
         const socket = io({
             auth: {
                 token: authToken,
-                username: currentAuthUser
+                username: currentUser?.username || ''
             },
-            autoConnect: true
+            autoConnect: false
         });
-
-        function updateCurrentUserUI(username) {
-            currentAuthUser = username;
-            localStorage.setItem('nexuscomm_username', username);
-            if (authenticatedUsername) authenticatedUsername.innerText = username;
-            if (userBarName) userBarName.innerText = username;
-            if (userBarAvatar) userBarAvatar.innerText = getServerInitials(username);
-            const localUserTitle = document.getElementById('localUserTitle');
-            if (localUserTitle) localUserTitle.innerText = `${username} (Você)`;
-        }
 
         socket.on('authenticated', (data) => {
             console.log('✅ Identidade confirmada pelo servidor:', data);
-            if (data.username) {
-                updateCurrentUserUI(data.username);
+            if (data.username && !currentUser) {
+                currentUser = { username: data.username, id: data.userId };
+                updateCurrentUserUI(currentUser);
             }
         });
 
@@ -2597,8 +2841,13 @@
 
         // Tecla ESC para fechar as configurações
         window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && serverSettingsOverlay.classList.contains('open')) {
-                closeServerSettings();
+            if (e.key === 'Escape') {
+                if (serverSettingsOverlay.classList.contains('open')) {
+                    closeServerSettings();
+                }
+                if (userSettingsOverlay && userSettingsOverlay.classList.contains('open')) {
+                    closeUserSettings();
+                }
             }
         });
 
@@ -2930,69 +3179,96 @@
         }
 
         // ==========================================
-        // 3. Funções de Autenticação
+        // 3. Portão de Autenticação & Gestão de Sessão (Auth Gate)
         // ==========================================
-        function showAuthAlert(msg, type = 'error') {
-            authAlert.className = `auth-alert ${type}`;
-            authAlert.innerText = msg;
-            authAlert.style.display = 'block';
+        function showAuthGateAlert(msg, type = 'error') {
+            authGateAlert.className = `auth-alert ${type}`;
+            authGateAlert.innerText = msg;
+            authGateAlert.style.display = 'block';
         }
 
-        function hideAuthAlert() { authAlert.style.display = 'none'; }
+        function hideAuthGateAlert() {
+            authGateAlert.style.display = 'none';
+        }
 
-        function updateAuthUI(isAuthenticated) {
-            if (isAuthenticated && authToken) {
-                authSection.style.display = 'none';
-                authenticatedUserBadge.style.display = 'flex';
-                authenticatedUsername.innerText = currentAuthUser || 'Autenticado';
-                updateCurrentUserUI(currentAuthUser || 'Usuário');
+        function showAuthGate(alertMsg = '', alertType = 'error') {
+            authGateContainer.style.display = 'flex';
+            appRoot.style.display = 'none';
+            if (alertMsg) {
+                showAuthGateAlert(alertMsg, alertType);
             } else {
-                authSection.style.display = 'flex';
-                authContent.style.display = 'block';
-                authenticatedUserBadge.style.display = 'none';
-                authStatusNotice.innerText = 'Token necessário para conectar';
-                authStatusNotice.style.color = '#94a3b8';
+                hideAuthGateAlert();
             }
         }
 
-        tabLogin.addEventListener('click', () => {
-            tabLogin.classList.add('active');
-            tabToken.classList.remove('active');
-            loginFormContainer.style.display = 'flex';
-            tokenFormContainer.style.display = 'none';
-            hideAuthAlert();
-        });
+        function enterApp(user) {
+            authGateContainer.style.display = 'none';
+            appRoot.style.display = 'flex';
+            currentUser = user;
+            updateCurrentUserUI(user);
 
-        tabToken.addEventListener('click', () => {
-            tabToken.classList.add('active');
-            tabLogin.classList.remove('active');
-            tokenFormContainer.style.display = 'flex';
-            loginFormContainer.style.display = 'none';
-            hideAuthAlert();
-        });
+            // Conectar o socket autenticado
+            socket.auth = { token: authToken, username: user.username };
+            if (!socket.connected) {
+                socket.connect();
+            }
 
-        function setAuthToken(token, username = '') {
-            authToken = token;
-            currentAuthUser = username;
-            localStorage.setItem('nexuscomm_jwt_token', token);
-            if (username) localStorage.setItem('nexuscomm_username', username);
-            socket.auth = { token: authToken, username: currentAuthUser };
-            if (socket.connected) socket.disconnect();
-            socket.connect();
-            updateCurrentUserUI(username || 'Usuário');
             fetchServersList();
         }
 
-        btnLogin.addEventListener('click', async () => {
-            const username = authUsername.value.trim();
-            const password = authPassword.value.trim();
+        function logoutApp(message = '') {
+            localStorage.removeItem('nexuscomm_jwt_token');
+            localStorage.removeItem('nexuscomm_username');
+            authToken = '';
+            currentUser = null;
+            if (activeChannelId) leaveRoom();
+            if (socket.connected) socket.disconnect();
+            showAuthGate(message);
+        }
+
+        // Alternância de Abas do Auth Gate
+        tabGateLogin.addEventListener('click', () => {
+            tabGateLogin.classList.add('active');
+            tabGateRegister.classList.remove('active');
+            tabGateToken.classList.remove('active');
+            formGateLogin.style.display = 'flex';
+            formGateRegister.style.display = 'none';
+            formGateToken.style.display = 'none';
+            hideAuthGateAlert();
+        });
+
+        tabGateRegister.addEventListener('click', () => {
+            tabGateRegister.classList.add('active');
+            tabGateLogin.classList.remove('active');
+            tabGateToken.classList.remove('active');
+            formGateRegister.style.display = 'flex';
+            formGateLogin.style.display = 'none';
+            formGateToken.style.display = 'none';
+            hideAuthGateAlert();
+        });
+
+        tabGateToken.addEventListener('click', () => {
+            tabGateToken.classList.add('active');
+            tabGateLogin.classList.remove('active');
+            tabGateRegister.classList.remove('active');
+            formGateToken.style.display = 'flex';
+            formGateLogin.style.display = 'none';
+            formGateRegister.style.display = 'none';
+            hideAuthGateAlert();
+        });
+
+        // Submissão do Login
+        formGateLogin.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = gateLoginUsername.value.trim();
+            const password = gateLoginPassword.value.trim();
             if (!username || !password) {
-                showAuthAlert('Preencha o usuário e a senha.', 'error');
+                showAuthGateAlert('Preencha o usuário e a senha.', 'error');
                 return;
             }
             try {
-                btnLogin.disabled = true;
-                btnLogin.innerText = 'Entrando...';
+                btnSubmitGateLogin.disabled = true;
+                btnSubmitGateLogin.innerText = 'Entrando...';
                 const res = await fetch('/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -3000,26 +3276,32 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Erro ao realizar login');
-                showAuthAlert('Login realizado com sucesso! Conectando...', 'success');
-                setAuthToken(data.token, data.user?.username || username);
+
+                authToken = data.token;
+                localStorage.setItem('nexuscomm_jwt_token', authToken);
+                localStorage.setItem('nexuscomm_username', data.user.username);
+
+                enterApp(data.user);
             } catch (err) {
-                showAuthAlert(err.message, 'error');
+                showAuthGateAlert(err.message, 'error');
             } finally {
-                btnLogin.disabled = false;
-                btnLogin.innerText = 'Entrar';
+                btnSubmitGateLogin.disabled = false;
+                btnSubmitGateLogin.innerText = 'Entrar no NexusComm';
             }
         });
 
-        btnRegister.addEventListener('click', async () => {
-            const username = authUsername.value.trim();
-            const password = authPassword.value.trim();
+        // Submissão do Cadastro
+        formGateRegister.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = gateRegisterUsername.value.trim();
+            const password = gateRegisterPassword.value.trim();
             if (!username || !password) {
-                showAuthAlert('Preencha o usuário e a senha para cadastrar.', 'error');
+                showAuthGateAlert('Preencha todos os campos para cadastrar.', 'error');
                 return;
             }
             try {
-                btnRegister.disabled = true;
-                btnRegister.innerText = 'Cadastrando...';
+                btnSubmitGateRegister.disabled = true;
+                btnSubmitGateRegister.innerText = 'Cadastrando...';
                 const res = await fetch('/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -3027,66 +3309,64 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Erro ao registrar usuário');
-                showAuthAlert('Cadastro realizado com sucesso! Efetuando login...', 'success');
-                btnLogin.click();
+
+                showAuthGateAlert('Cadastro realizado com sucesso! Conectando...', 'success');
+
+                // Realiza login imediato
+                const loginRes = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const loginData = await loginRes.json();
+                if (!loginRes.ok) throw new Error(loginData.error || 'Erro ao autenticar após registro');
+
+                authToken = loginData.token;
+                localStorage.setItem('nexuscomm_jwt_token', authToken);
+                localStorage.setItem('nexuscomm_username', loginData.user.username);
+
+                enterApp(loginData.user);
             } catch (err) {
-                showAuthAlert(err.message, 'error');
+                showAuthGateAlert(err.message, 'error');
             } finally {
-                btnRegister.disabled = false;
-                btnRegister.innerText = 'Cadastrar';
+                btnSubmitGateRegister.disabled = false;
+                btnSubmitGateRegister.innerText = 'Criar Conta & Entrar';
             }
         });
 
-        btnApplyToken.addEventListener('click', () => {
-            const token = directTokenInput.value.trim();
+        // Submissão de Token Direto
+        formGateToken.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = gateTokenInput.value.trim();
             if (!token) {
-                showAuthAlert('Informe um token JWT válido.', 'error');
+                showAuthGateAlert('Informe um token JWT válido.', 'error');
                 return;
             }
-            showAuthAlert('Aplicando token e conectando...', 'success');
-            setAuthToken(token, 'Token Manual');
+            try {
+                btnSubmitGateToken.disabled = true;
+                btnSubmitGateToken.innerText = 'Validando...';
+                const res = await fetch('/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Token inválido ou expirado.');
+
+                authToken = token;
+                localStorage.setItem('nexuscomm_jwt_token', token);
+                localStorage.setItem('nexuscomm_username', data.user.username);
+
+                enterApp(data.user);
+            } catch (err) {
+                showAuthGateAlert(err.message, 'error');
+            } finally {
+                btnSubmitGateToken.disabled = false;
+                btnSubmitGateToken.innerText = 'Validar & Conectar';
+            }
         });
 
         btnLogout.addEventListener('click', () => {
-            localStorage.removeItem('nexuscomm_jwt_token');
-            localStorage.removeItem('nexuscomm_username');
-            authToken = '';
-            currentAuthUser = '';
-            socket.auth = { token: '', username: '' };
-            socket.disconnect();
-            updateAuthUI(false);
-            showAuthAlert('Você saiu. Faça login ou informe um token para conectar.', 'error');
+            logoutApp('Você saiu com sucesso.');
         });
-
-        // ==========================================
-        // 4. Menu de Servidores
-        // ==========================================
-        function getServerInitials(name) {
-            if (!name || typeof name !== 'string') return 'NX';
-            const clean = name.replace(/<[^>]*>?/gm, '').trim();
-            if (!clean) return 'NX';
-            const words = clean.split(/\s+/).filter(w => w.length > 0);
-            if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
-                return (words[0][0] + words[1][0]).toUpperCase();
-            }
-            return clean.substring(0, 2).toUpperCase();
-        }
-
-        async function fetchServersList() {
-            try {
-                const res = await fetch('/servers');
-                const data = await res.json();
-                if (data.servers && Array.isArray(data.servers)) {
-                    loadedServers = data.servers;
-                    renderServersList(loadedServers);
-                    if (!activeServerId && loadedServers.length > 0) {
-                        selectServer(loadedServers[0]);
-                    }
-                }
-            } catch (err) {
-                console.warn('Aviso ao carregar servidores:', err);
-            }
-        }
 
         function renderServersList(servers) {
             if (!serversList) return;
@@ -4261,6 +4541,35 @@
         btnCamera.addEventListener('click', toggleCamera);
         btnScreen.addEventListener('click', toggleScreenShare);
         btnMute.addEventListener('click', toggleMute);
+
+        // ==========================================
+        // 8. Inicialização do Auth Gate
+        // ==========================================
+        async function verifyAuthAndInit() {
+            if (!authToken) {
+                showAuthGate();
+                return;
+            }
+
+            try {
+                const res = await fetch('/me', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (!res.ok) {
+                    throw new Error('Sessão expirada ou token inválido');
+                }
+
+                const data = await res.json();
+                enterApp(data.user);
+            } catch (err) {
+                console.warn('Falha na validação do token:', err);
+                logoutApp('Sua sessão expirou. Faça login novamente.');
+            }
+        }
+
+        // Execução inicial
+        verifyAuthAndInit();
     </script>
 </body>
 </html>

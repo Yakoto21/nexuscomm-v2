@@ -31,19 +31,24 @@ if (supabaseUrl && supabaseKey) {
 }
 
 const BUCKET_NAME = 'server_media';
+const USER_AVATARS_BUCKET = 'user_avatars';
 
-// Garante pasta local para fallback seguro se o bucket não estiver acessível
+// Garante pastas locais para fallback seguro se os buckets não estiverem acessíveis
 const localUploadsDir = path.join(__dirname, '../public/uploads/server_media');
-if (!fs.existsSync(localUploadsDir)) {
-    try {
-        fs.mkdirSync(localUploadsDir, { recursive: true });
-    } catch (e) {
-        // Silêncio
+const localUserAvatarsDir = path.join(__dirname, '../public/uploads/user_avatars');
+
+[localUploadsDir, localUserAvatarsDir].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+        try {
+            fs.mkdirSync(dir, { recursive: true });
+        } catch (e) {
+            // Silêncio
+        }
     }
-}
+});
 
 /**
- * Inicializa e garante que o bucket público 'server_media' exista no Supabase Storage
+ * Inicializa e garante que os buckets públicos 'server_media' e 'user_avatars' existam no Supabase Storage
  */
 export async function initSupabaseBucket() {
     if (!supabase) {
@@ -58,23 +63,27 @@ export async function initSupabaseBucket() {
             return;
         }
 
-        const bucketExists = buckets?.some(b => b.name === BUCKET_NAME);
-        if (!bucketExists) {
-            const { error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
-                public: true,
-                fileSizeLimit: 10485760 // 10MB
-            });
+        const requiredBuckets = [BUCKET_NAME, USER_AVATARS_BUCKET];
 
-            if (createError) {
-                console.warn('⚠️ Não foi possível criar bucket automaticamente no Supabase:', createError.message);
+        for (const bName of requiredBuckets) {
+            const bucketExists = buckets?.some(b => b.name === bName);
+            if (!bucketExists) {
+                const { error: createError } = await supabase.storage.createBucket(bName, {
+                    public: true,
+                    fileSizeLimit: 10485760 // 10MB
+                });
+
+                if (createError) {
+                    console.warn(`⚠️ Não foi possível criar bucket [${bName}] automaticamente no Supabase:`, createError.message);
+                } else {
+                    console.log(`🎉 Bucket público [${bName}] criado com sucesso no Supabase Storage!`);
+                }
             } else {
-                console.log(`🎉 Bucket público [${BUCKET_NAME}] criado com sucesso no Supabase Storage!`);
+                console.log(`✅ Bucket público [${bName}] verificado no Supabase Storage.`);
             }
-        } else {
-            console.log(`✅ Bucket público [${BUCKET_NAME}] verificado no Supabase Storage.`);
         }
     } catch (err) {
-        console.warn('⚠️ Erro ao verificar bucket server_media:', err);
+        console.warn('⚠️ Erro ao verificar buckets no Supabase:', err);
     }
 }
 
@@ -146,6 +155,75 @@ export async function uploadServerMediaFile(
         return localPublicUrl;
     } catch (localErr) {
         console.warn('⚠️ Erro no armazenamento local, retornando Data URI como fallback:', localErr);
+        return base64DataOrUrl;
+    }
+}
+
+/**
+ * Faz upload de avatar pessoal de usuário para o bucket 'user_avatars' no Supabase Storage
+ */
+export async function uploadUserAvatar(
+    userId: number | string,
+    base64DataOrUrl: string
+): Promise<string> {
+    if (!base64DataOrUrl) return '';
+
+    // Se já for uma URL HTTP válida (não base64), retorna direto
+    if (base64DataOrUrl.startsWith('http://') || base64DataOrUrl.startsWith('https://')) {
+        return base64DataOrUrl;
+    }
+
+    // Processa Base64
+    const matches = base64DataOrUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    let mimeType = 'image/png';
+    let buffer: Buffer;
+
+    if (matches && matches.length === 3) {
+        mimeType = matches[1];
+        buffer = Buffer.from(matches[2], 'base64');
+    } else {
+        buffer = Buffer.from(base64DataOrUrl, 'base64');
+    }
+
+    const ext = mimeType.split('/')[1] || 'png';
+    const fileName = `avatar_${userId}_${Date.now()}.${ext}`;
+
+    // 1. Tenta upload direto para o bucket user_avatars do Supabase Storage
+    if (supabase) {
+        try {
+            const { data, error } = await supabase.storage
+                .from(USER_AVATARS_BUCKET)
+                .upload(fileName, buffer, {
+                    contentType: mimeType,
+                    upsert: true
+                });
+
+            if (!error && data) {
+                const { data: publicUrlData } = supabase.storage
+                    .from(USER_AVATARS_BUCKET)
+                    .getPublicUrl(fileName);
+
+                if (publicUrlData && publicUrlData.publicUrl) {
+                    console.log(`☁️ [Supabase user_avatars] Upload concluído para ${fileName}: ${publicUrlData.publicUrl}`);
+                    return publicUrlData.publicUrl;
+                }
+            } else if (error) {
+                console.warn(`⚠️ Erro no upload user_avatars no Supabase (${error.message}). Utilizando fallback...`);
+            }
+        } catch (err) {
+            console.warn('⚠️ Falha ao tentar upload de avatar no Supabase:', err);
+        }
+    }
+
+    // 2. Fallback: Salva na pasta pública estática local
+    try {
+        const localFilePath = path.join(localUserAvatarsDir, fileName);
+        fs.writeFileSync(localFilePath, buffer);
+        const localPublicUrl = `/uploads/user_avatars/${fileName}`;
+        console.log(`💾 [Local User Avatar Storage] Arquivo salvo em: ${localPublicUrl}`);
+        return localPublicUrl;
+    } catch (localErr) {
+        console.warn('⚠️ Erro no armazenamento local de avatar, retornando Data URI:', localErr);
         return base64DataOrUrl;
     }
 }
