@@ -158,6 +158,21 @@ io.on('connection', (socket) => {
         }
     });
 
+    // 5. Chat de Texto em Tempo Real por Sala
+    socket.on('chat-message', (data) => {
+        if (!data.text || !data.room) return;
+        const msgPayload = {
+            id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            text: data.text,
+            sender: username,
+            senderId: socket.id,
+            timestamp: data.timestamp || Date.now()
+        };
+        console.log(`💬 [${data.room}] ${username}: ${data.text}`);
+        // Envia a mensagem para todos os outros participantes da sala
+        socket.to(data.room).emit('chat-message', msgPayload);
+    });
+
     // Notifica quando o usuário estiver desconectando das salas
     socket.on('disconnecting', () => {
         for (const room of socket.rooms) {

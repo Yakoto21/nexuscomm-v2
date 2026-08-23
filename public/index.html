@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusComm V2 - Salas Privadas & WebRTC Multi-Peer</title>
+    <title>NexusComm V2 - Salas Privadas, WebRTC Multi-Peer & Chat</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -670,6 +670,223 @@
             transform: translateY(0) scale(0.98);
         }
 
+        /* Bolinha de Notificação de Mensagem Não Lida no Botão de Chat */
+        .chat-unread-dot {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 11px;
+            height: 11px;
+            background-color: var(--danger);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--danger);
+            display: none;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Painel Lateral de Chat (Glassmorphism Sidebar) */
+        .chat-sidebar {
+            position: fixed;
+            top: 0;
+            right: -420px;
+            width: 380px;
+            max-width: 90vw;
+            height: 100vh;
+            background: rgba(13, 19, 33, 0.92);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            z-index: 1001;
+            transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .chat-sidebar.open {
+            right: 0;
+        }
+
+        .chat-header {
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .chat-header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .chat-header-title svg {
+            color: var(--primary);
+        }
+
+        .chat-close-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chat-close-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            scroll-behavior: smooth;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
+        }
+
+        .chat-system-notice {
+            align-self: center;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-size: 0.76rem;
+            color: #a5b4fc;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        /* Balões de Mensagem */
+        .message-group {
+            display: flex;
+            flex-direction: column;
+            max-width: 84%;
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        .message-group.mine {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .message-group.other {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .message-meta {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            padding: 0 4px;
+        }
+
+        .message-meta strong {
+            color: #cbd5e1;
+        }
+
+        .message-bubble {
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            line-height: 1.45;
+            word-break: break-word;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .message-group.mine .message-bubble {
+            background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
+            color: #ffffff;
+            border-radius: 16px 16px 4px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .message-group.other .message-bubble {
+            background: rgba(30, 41, 59, 0.85);
+            color: #f1f5f9;
+            border-radius: 16px 16px 16px 4px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .chat-input-area {
+            padding: 16px 20px 24px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.7);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 12px 16px;
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 0.92rem;
+            outline: none;
+            transition: all 0.25s ease;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .chat-send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
+            border: none;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 14px var(--primary-glow);
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .chat-send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--primary-glow);
+        }
+
         /* Barra de Status */
         .status-bar {
             background: rgba(0, 0, 0, 0.35);
@@ -953,6 +1170,14 @@
             </svg>
         </button>
 
+        <!-- Botão de Chat em Tempo Real -->
+        <button id="btnToggleChat" class="dock-btn" title="Abrir Chat da Reunião" style="position: relative;">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span id="chatUnreadDot" class="chat-unread-dot"></span>
+        </button>
+
         <!-- Botão de Sair da Chamada -->
         <button id="btnLeaveRoom" class="dock-btn dock-btn-leave" title="Sair da Chamada">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -961,6 +1186,44 @@
             <span>Sair</span>
         </button>
     </div>
+
+    <!-- Painel Lateral de Chat (Glassmorphism Sidebar) -->
+    <aside id="chatSidebar" class="chat-sidebar">
+        <!-- Header do Chat -->
+        <div class="chat-header">
+            <div class="chat-header-title">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span>Chat da Reunião</span>
+            </div>
+            <button id="btnCloseChat" class="chat-close-btn" title="Fechar Chat">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Área Rolável de Mensagens -->
+        <div id="chatMessages" class="chat-messages">
+            <div class="chat-system-notice">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span>As mensagens são transmitidas em tempo real nesta sala.</span>
+            </div>
+        </div>
+
+        <!-- Formulário de Envio de Mensagem -->
+        <form id="chatForm" class="chat-input-area">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Envie uma mensagem..." autocomplete="off" />
+            <button type="submit" id="btnSendChat" class="chat-send-btn" title="Enviar Mensagem">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+            </button>
+        </form>
+    </aside>
 
     <!-- Toast de Notificação de Cópia -->
     <div id="toastCopied" class="toast-copied">
@@ -1024,6 +1287,15 @@
         const micIcon = document.getElementById('micIcon');
         const btnLeaveRoom = document.getElementById('btnLeaveRoom');
 
+        // Elementos do Chat
+        const chatSidebar = document.getElementById('chatSidebar');
+        const btnToggleChat = document.getElementById('btnToggleChat');
+        const btnCloseChat = document.getElementById('btnCloseChat');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatForm = document.getElementById('chatForm');
+        const chatInput = document.getElementById('chatInput');
+        const chatUnreadDot = document.getElementById('chatUnreadDot');
+
         const socketDot = document.getElementById('socketDot');
         const socketStatusText = document.getElementById('socketStatusText');
         const webrtcStatusText = document.getElementById('webrtcStatusText');
@@ -1043,6 +1315,8 @@
         let screenStream = null;
         let activeVideoType = 'none'; // 'none' | 'camera' | 'screen'
         let isMicMuted = false;
+        let isChatOpen = false;
+        let unreadCount = 0;
 
         // Objeto que mapeia socketId do peer para sua respectiva RTCPeerConnection
         const peerConnections = {}; 
@@ -1281,6 +1555,7 @@
                 emptyStateContainer.style.display = 'none';
                 videoGrid.classList.add('single-peer');
                 controlDock.style.display = 'none';
+                if (isChatOpen) toggleChat();
                 return;
             }
 
@@ -1296,6 +1571,101 @@
                 webrtcStatusText.innerText = `WebRTC: Conectado com ${peerCount} participante(s)`;
             }
         }
+
+        // ==========================================
+        // Chat de Texto em Tempo Real (UI & Socket.IO)
+        // ==========================================
+        function toggleChat() {
+            isChatOpen = !isChatOpen;
+            if (isChatOpen) {
+                chatSidebar.classList.add('open');
+                btnToggleChat.classList.add('btn-active-highlight');
+                chatUnreadDot.style.display = 'none';
+                unreadCount = 0;
+                setTimeout(() => chatInput.focus(), 150);
+            } else {
+                chatSidebar.classList.remove('open');
+                btnToggleChat.classList.remove('btn-active-highlight');
+            }
+        }
+
+        btnToggleChat.addEventListener('click', toggleChat);
+        btnCloseChat.addEventListener('click', toggleChat);
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function appendChatMessage({ text, sender, timestamp, isMine }) {
+            const group = document.createElement('div');
+            group.className = `message-group ${isMine ? 'mine' : 'other'}`;
+
+            group.innerHTML = `
+                <div class="message-meta">
+                    <strong>${isMine ? 'Você' : escapeHtml(sender)}</strong>
+                    <span>${formatTime(timestamp)}</span>
+                </div>
+                <div class="message-bubble">${escapeHtml(text)}</div>
+            `;
+
+            chatMessages.appendChild(group);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function sendChatMessage(text) {
+            const cleanText = text.trim();
+            if (!cleanText || !currentRoom) return;
+
+            const timestamp = Date.now();
+            const messageData = {
+                room: currentRoom,
+                text: cleanText,
+                sender: currentAuthUser || `User-${socket.id.substring(0, 5)}`,
+                timestamp: timestamp
+            };
+
+            // Emite o evento de mensagem para o servidor
+            socket.emit('chat-message', messageData);
+
+            // Exibe imediatamente a mensagem enviada pelo próprio usuário
+            appendChatMessage({
+                text: cleanText,
+                sender: 'Você',
+                timestamp: timestamp,
+                isMine: true
+            });
+
+            chatInput.value = '';
+        }
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendChatMessage(chatInput.value);
+        });
+
+        // Recebe mensagens do chat de outros participantes
+        socket.on('chat-message', (data) => {
+            console.log('💬 Mensagem recebida no chat:', data);
+            appendChatMessage({
+                text: data.text,
+                sender: data.sender || 'Participante',
+                timestamp: data.timestamp || Date.now(),
+                isMine: false
+            });
+
+            // Se o chat estiver fechado, exibe a bolinha vermelha de notificação
+            if (!isChatOpen) {
+                unreadCount++;
+                chatUnreadDot.style.display = 'block';
+            }
+        });
 
         // ==========================================
         // Gerenciador de Cards Remotos no Grid Dinâmico
@@ -1790,12 +2160,10 @@
         function leaveRoom() {
             if (!currentRoom) return;
 
-            // Para tracks de câmera
             if (cameraStream) {
                 cameraStream.getTracks().forEach(t => t.stop());
                 cameraStream = null;
             }
-            // Para tracks de tela
             if (screenStream) {
                 screenStream.getTracks().forEach(t => t.stop());
                 screenStream = null;
@@ -1805,16 +2173,13 @@
             localVideo.srcObject = null;
             localPlaceholder.style.opacity = '1';
 
-            // Encerra todas as conexões P2P
             for (const peerId of Object.keys(peerConnections)) {
                 closePeerConnection(peerId);
             }
 
-            // Notifica o servidor e reconecta para sair limpo das salas
             socket.emit('leave-room', currentRoom);
             currentRoom = null;
 
-            // Restaura UI
             roomFormContainer.style.display = 'flex';
             activeRoomBadge.style.display = 'none';
             updateGridLayout();
