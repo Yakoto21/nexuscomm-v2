@@ -1772,6 +1772,7 @@
             font-weight: 800;
             background: linear-gradient(135deg, #ffffff 30%, #cbd5e1 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             margin: 0;
             letter-spacing: -0.02em;
@@ -2663,11 +2664,6 @@
         const btnSaveUserSettings = document.getElementById('btnSaveUserSettings');
 
         let pendingUserAvatarBase64 = null;
-        const btnUploadServerBanner = document.getElementById('btnUploadServerBanner');
-        const btnRemoveServerBanner = document.getElementById('btnRemoveServerBanner');
-
-        let pendingServerIconBase64 = null;
-        let pendingServerBannerBase64 = null;
 
         // Controles de Vídeo / Mídia
         const videoGrid = document.getElementById('videoGrid');
