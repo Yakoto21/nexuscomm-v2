@@ -66,6 +66,22 @@ export async function initDb() {
             );
         `);
 
+        // 5. Migração automática: se a tabela messages foi criada previamente com channel_id INTEGER, converte para VARCHAR(255)
+        await pool.query(`
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'messages' 
+                      AND column_name = 'channel_id' 
+                      AND data_type NOT IN ('character varying', 'text', 'varchar')
+                ) THEN
+                    ALTER TABLE messages ALTER COLUMN channel_id TYPE VARCHAR(255) USING channel_id::varchar;
+                END IF;
+            END $$;
+        `);
+
         // Criação de índices para buscas rápidas de mensagens por canal e usuários
         await pool.query(`
             CREATE INDEX IF NOT EXISTS idx_messages_channel_id ON messages(channel_id);
@@ -87,8 +103,11 @@ export async function findUserByUsername(username: string) {
     return res.rows[0] || null;
 }
 
-export async function findUserById(id: number) {
-    const res = await pool.query('SELECT id, username, created_at FROM users WHERE id = $1 LIMIT 1', [id]);
+export async function findUserById(id: number | string) {
+    const numericId = typeof id === 'number' ? id : parseInt(String(id), 10);
+    if (isNaN(numericId)) return null;
+
+    const res = await pool.query('SELECT id, username, created_at FROM users WHERE id = $1 LIMIT 1', [numericId]);
     return res.rows[0] || null;
 }
 
@@ -100,24 +119,42 @@ export async function createUser(username: string, passwordHash: string) {
     return res.rows[0];
 }
 
-export async function saveMessage(channelId: string, userId: number | null, senderName: string, conteudo: string) {
+export async function saveMessage(channelId: string, userId: number | string | null | undefined, senderName: string, conteudo: string) {
+    // Garante que o channelId seja estritamente string (ex: 'sala-abc-xyz' ou '123')
+    const safeChannelId = String(channelId || 'geral');
+
+    // Valida o userId para evitar erro de NaN no PostgreSQL
+    let safeUserId: number | null = null;
+    if (userId !== null && userId !== undefined) {
+        const parsed = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
+        if (!isNaN(parsed) && isFinite(parsed)) {
+            safeUserId = parsed;
+        }
+    }
+
+    const safeSenderName = String(senderName || 'Anônimo');
+    const safeContent = String(conteudo || '');
+
     const res = await pool.query(
         `INSERT INTO messages (channel_id, user_id, sender_name, conteudo, data_envio)
          VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
          RETURNING id, channel_id, user_id, sender_name AS sender, conteudo AS text, data_envio AS timestamp`,
-        [channelId, userId, senderName, conteudo]
+        [safeChannelId, safeUserId, safeSenderName, safeContent]
     );
     return res.rows[0];
 }
 
 export async function getMessagesByChannel(channelId: string, limit = 50) {
+    const safeChannelId = String(channelId || 'geral');
+    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
+
     const res = await pool.query(
         `SELECT id, channel_id, user_id, sender_name AS sender, conteudo AS text, data_envio AS timestamp
          FROM messages
          WHERE channel_id = $1
          ORDER BY data_envio ASC
          LIMIT $2`,
-        [channelId, limit]
+        [safeChannelId, safeLimit]
     );
     return res.rows;
 }

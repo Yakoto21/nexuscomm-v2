@@ -82,16 +82,18 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
     const userPayload = socket.data.user as any;
     const username = userPayload?.username || `User-${socket.id.substring(0, 5)}`;
-    const userId = userPayload?.id ? Number(userPayload.id) : null;
-    console.log(`⚡ Usuário conectado: ${socket.id} (${username})`);
+    const rawUserId = userPayload?.id ?? userPayload?.sub;
+    const userId = (rawUserId !== undefined && rawUserId !== null && !isNaN(Number(rawUserId))) ? Number(rawUserId) : null;
+    console.log(`⚡ Usuário conectado: ${socket.id} (${username}) | UserID: ${userId}`);
 
     // Entrada na Sala (Room)
     socket.on('join-room', async (room) => {
-        socket.join(room);
-        console.log(`🚪 Usuário ${socket.id} (${username}) entrou na sala: "${room}"`);
+        const roomName = String(room || 'sala-publica').trim();
+        socket.join(roomName);
+        console.log(`🚪 Usuário ${socket.id} (${username}) entrou na sala: "${roomName}"`);
 
         // Obtém todos os outros sockets já presentes nesta sala
-        const roomSockets = io.sockets.adapter.rooms.get(room);
+        const roomSockets = io.sockets.adapter.rooms.get(roomName);
         const otherUsersInRoom: string[] = [];
         if (roomSockets) {
             for (const socketId of roomSockets) {
@@ -105,22 +107,22 @@ io.on('connection', (socket) => {
         socket.emit('room-users', {
             users: otherUsersInRoom,
             selfId: socket.id,
-            room: room
+            room: roomName
         });
 
         // 2. Carrega o histórico de mensagens salvas no PostgreSQL para o canal/sala
         try {
-            const history = await getMessagesByChannel(room, 50);
+            const history = await getMessagesByChannel(roomName, 50);
             socket.emit('room-history', {
-                room: room,
+                room: roomName,
                 messages: history
             });
         } catch (err) {
-            console.warn(`Erro ao carregar histórico da sala [${room}]:`, err);
+            console.warn(`Erro ao carregar histórico da sala [${roomName}]:`, err);
         }
 
         // 3. Notifica todos os participantes existentes sobre a chegada do novo usuário
-        socket.to(room).emit('user-joined', {
+        socket.to(roomName).emit('user-joined', {
             id: socket.id,
             username: username
         });
@@ -192,19 +194,23 @@ io.on('connection', (socket) => {
     socket.on('chat-message', async (data) => {
         if (!data.text || !data.room) return;
 
+        const roomName = String(data.room).trim();
+        const messageText = String(data.text).trim();
+        if (!roomName || !messageText) return;
+
         try {
             // Salva a mensagem no banco de dados PostgreSQL antes do broadcast
             const savedMsg = await saveMessage(
-                data.room,
+                roomName,
                 userId,
                 username,
-                data.text
+                messageText
             );
 
-            console.log(`💬 [${data.room}] ${username}: ${data.text} (ID: ${savedMsg.id})`);
+            console.log(`💬 [${roomName}] ${username}: ${messageText} (ID: ${savedMsg.id})`);
 
             // Envia a mensagem persistida para todos os outros participantes da sala
-            socket.to(data.room).emit('chat-message', {
+            socket.to(roomName).emit('chat-message', {
                 id: savedMsg.id,
                 text: savedMsg.text,
                 sender: savedMsg.sender,
@@ -214,9 +220,9 @@ io.on('connection', (socket) => {
         } catch (err) {
             console.error('Erro ao persistir mensagem no banco de dados:', err);
             // Em caso de falha transitória no banco, realiza o broadcast
-            socket.to(data.room).emit('chat-message', {
+            socket.to(roomName).emit('chat-message', {
                 id: `fallback-${Date.now()}`,
-                text: data.text,
+                text: messageText,
                 sender: username,
                 senderId: socket.id,
                 timestamp: data.timestamp || Date.now()
