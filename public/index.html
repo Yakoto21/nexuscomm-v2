@@ -98,6 +98,81 @@
             font-size: 1rem;
         }
 
+        /* Seção de Autenticação JWT */
+        .auth-section {
+            width: 100%;
+            max-width: 540px;
+            background: rgba(8, 12, 20, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 10px;
+        }
+
+        .auth-tab {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .auth-tab.active {
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .auth-form-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .auth-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .auth-alert {
+            display: none;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 500;
+        }
+
+        .auth-alert.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #fca5a5;
+        }
+
+        .auth-alert.success {
+            display: block;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            color: #6ee7b7;
+        }
+
         /* Seção de Entrada na Sala (Room) */
         .room-section {
             width: 100%;
@@ -433,6 +508,55 @@
             <p>Comunicação e vídeo chamadas em Salas Privadas</p>
         </header>
 
+        <!-- Seção de Autenticação JWT -->
+        <div id="authSection" class="auth-section">
+            <div class="room-section-header">
+                <span>🔐 Autenticação Segura JWT</span>
+                <span id="authStatusNotice" style="font-size: 0.78rem; color: #94a3b8;">Token necessário para conectar</span>
+            </div>
+
+            <!-- Alerta de feedback de autenticação -->
+            <div id="authAlert" class="auth-alert"></div>
+
+            <div id="authContent">
+                <div class="auth-tabs">
+                    <button type="button" id="tabLogin" class="auth-tab active">Entrar / Cadastrar</button>
+                    <button type="button" id="tabToken" class="auth-tab">Inserir Token Direto</button>
+                </div>
+
+                <!-- Formulário de Login / Registro -->
+                <div id="loginFormContainer" class="auth-form-grid" style="margin-top: 10px;">
+                    <div class="auth-row">
+                        <input type="text" id="authUsername" class="room-input" placeholder="Usuário (ex: dev_user)" />
+                        <input type="password" id="authPassword" class="room-input" placeholder="Senha" />
+                    </div>
+                    <div class="auth-row" style="justify-content: flex-end;">
+                        <button type="button" id="btnRegister" class="btn" style="background: rgba(255, 255, 255, 0.08); padding: 10px 18px; font-size: 0.85rem;">Cadastrar</button>
+                        <button type="button" id="btnLogin" class="btn btn-primary" style="padding: 10px 22px; font-size: 0.85rem;">Entrar</button>
+                    </div>
+                </div>
+
+                <!-- Formulário de Token Direto -->
+                <div id="tokenFormContainer" class="auth-form-grid" style="display: none; margin-top: 10px;">
+                    <input type="text" id="directTokenInput" class="room-input" placeholder="Cole aqui seu Token JWT gerado no /login..." />
+                    <div class="auth-row" style="justify-content: flex-end;">
+                        <button type="button" id="btnApplyToken" class="btn btn-primary" style="padding: 10px 22px; font-size: 0.85rem;">Conectar com Token</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Badge de Usuário Autenticado -->
+            <div id="authenticatedUserBadge" class="badge-room" style="justify-content: space-between; display: none;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <span>Autenticado como: <strong id="authenticatedUsername"></strong></span>
+                </div>
+                <button type="button" id="btnLogout" style="background: none; border: none; color: #fca5a5; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">Sair / Trocar</button>
+            </div>
+        </div>
+
         <!-- Seção de Conexão à Sala (Room) -->
         <div class="room-section">
             <div class="room-section-header">
@@ -538,8 +662,35 @@
     <!-- Client do Socket.IO -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // 1. Inicializa o cliente Socket.IO
-        const socket = io();
+        // 1. Gerenciamento do Token de Autenticação JWT
+        let authToken = localStorage.getItem('nexuscomm_jwt_token') || '';
+        let currentAuthUser = localStorage.getItem('nexuscomm_username') || '';
+
+        // Elementos do DOM de Autenticação
+        const authAlert = document.getElementById('authAlert');
+        const authContent = document.getElementById('authContent');
+        const tabLogin = document.getElementById('tabLogin');
+        const tabToken = document.getElementById('tabToken');
+        const loginFormContainer = document.getElementById('loginFormContainer');
+        const tokenFormContainer = document.getElementById('tokenFormContainer');
+        const authUsername = document.getElementById('authUsername');
+        const authPassword = document.getElementById('authPassword');
+        const btnRegister = document.getElementById('btnRegister');
+        const btnLogin = document.getElementById('btnLogin');
+        const directTokenInput = document.getElementById('directTokenInput');
+        const btnApplyToken = document.getElementById('btnApplyToken');
+        const authenticatedUserBadge = document.getElementById('authenticatedUserBadge');
+        const authenticatedUsername = document.getElementById('authenticatedUsername');
+        const btnLogout = document.getElementById('btnLogout');
+        const authStatusNotice = document.getElementById('authStatusNotice');
+
+        // Inicialização do cliente Socket.IO com o token JWT no objeto auth
+        const socket = io({
+            auth: {
+                token: authToken
+            },
+            autoConnect: true
+        });
 
         let currentRoom = null;
         let cameraStream = null;
@@ -579,25 +730,176 @@
         const localPlaceholder = document.getElementById('localPlaceholder');
         const remotePlaceholder = document.getElementById('remotePlaceholder');
 
-        // Stream remoto persistente para nunca perder áudio ou vídeo ao receber tracks
-        const remoteStream = new MediaStream();
-        remoteVideo.srcObject = remoteStream;
+        // Funções de UI para Autenticação
+        function showAuthAlert(msg, type = 'error') {
+            authAlert.className = `auth-alert ${type}`;
+            authAlert.innerText = msg;
+            authAlert.style.display = 'block';
+        }
 
-        // Stream local agrupado
-        const localStream = new MediaStream();
+        function hideAuthAlert() {
+            authAlert.style.display = 'none';
+        }
 
-        // Feedback da conexão Socket.IO
-        socket.on('connect', () => {
-            console.log('🟢 Conectado ao servidor Socket.IO | ID:', socket.id);
-            socketDot.classList.add('connected');
-            socketStatusText.innerText = `Socket: Conectado (${socket.id.substring(0, 6)}...)`;
+        function updateAuthUI(isAuthenticated) {
+            if (isAuthenticated && authToken) {
+                authContent.style.display = 'none';
+                authenticatedUserBadge.style.display = 'flex';
+                authenticatedUsername.innerText = currentAuthUser || 'Autenticado';
+                authStatusNotice.innerText = 'Autenticado';
+                authStatusNotice.style.color = '#10b981';
+            } else {
+                authContent.style.display = 'block';
+                authenticatedUserBadge.style.display = 'none';
+                authStatusNotice.innerText = 'Token necessário para conectar';
+                authStatusNotice.style.color = '#94a3b8';
+            }
+        }
+
+        // Alternância de abas de autenticação
+        tabLogin.addEventListener('click', () => {
+            tabLogin.classList.add('active');
+            tabToken.classList.remove('active');
+            loginFormContainer.style.display = 'flex';
+            tokenFormContainer.style.display = 'none';
+            hideAuthAlert();
         });
 
-        socket.on('disconnect', () => {
-            console.log('🔴 Desconectado do servidor Socket.IO');
+        tabToken.addEventListener('click', () => {
+            tabToken.classList.add('active');
+            tabLogin.classList.remove('active');
+            tokenFormContainer.style.display = 'flex';
+            loginFormContainer.style.display = 'none';
+            hideAuthAlert();
+        });
+
+        // Configura e salva o token JWT e reconecta o Socket.IO
+        function setAuthToken(token, username = '') {
+            authToken = token;
+            currentAuthUser = username;
+            localStorage.setItem('nexuscomm_jwt_token', token);
+            if (username) {
+                localStorage.setItem('nexuscomm_username', username);
+            }
+            // Injeta o novo token na configuração de autenticação do socket
+            socket.auth = { token: authToken };
+            console.log('🔑 Token configurado no socket. Reconectando...');
+            if (socket.connected) {
+                socket.disconnect();
+            }
+            socket.connect();
+        }
+
+        // Login via API (POST /login)
+        btnLogin.addEventListener('click', async () => {
+            const username = authUsername.value.trim();
+            const password = authPassword.value.trim();
+            if (!username || !password) {
+                showAuthAlert('Preencha o usuário e a senha.', 'error');
+                return;
+            }
+            try {
+                btnLogin.disabled = true;
+                btnLogin.innerText = 'Entrando...';
+                const res = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'Erro ao realizar login');
+                }
+                showAuthAlert('Login realizado com sucesso! Conectando...', 'success');
+                setAuthToken(data.token, data.user?.username || username);
+            } catch (err) {
+                showAuthAlert(err.message, 'error');
+            } finally {
+                btnLogin.disabled = false;
+                btnLogin.innerText = 'Entrar';
+            }
+        });
+
+        // Cadastro via API (POST /register)
+        btnRegister.addEventListener('click', async () => {
+            const username = authUsername.value.trim();
+            const password = authPassword.value.trim();
+            if (!username || !password) {
+                showAuthAlert('Preencha o usuário e a senha para cadastrar.', 'error');
+                return;
+            }
+            try {
+                btnRegister.disabled = true;
+                btnRegister.innerText = 'Cadastrando...';
+                const res = await fetch('/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'Erro ao registrar usuário');
+                }
+                showAuthAlert('Cadastro realizado com sucesso! Efetuando login...', 'success');
+                btnLogin.click();
+            } catch (err) {
+                showAuthAlert(err.message, 'error');
+            } finally {
+                btnRegister.disabled = false;
+                btnRegister.innerText = 'Cadastrar';
+            }
+        });
+
+        // Conectar com Token inserido diretamente
+        btnApplyToken.addEventListener('click', () => {
+            const token = directTokenInput.value.trim();
+            if (!token) {
+                showAuthAlert('Informe um token JWT válido.', 'error');
+                return;
+            }
+            showAuthAlert('Aplicando token e conectando...', 'success');
+            setAuthToken(token, 'Token Manual');
+        });
+
+        // Logout
+        btnLogout.addEventListener('click', () => {
+            localStorage.removeItem('nexuscomm_jwt_token');
+            localStorage.removeItem('nexuscomm_username');
+            authToken = '';
+            currentAuthUser = '';
+            socket.auth = { token: '' };
+            socket.disconnect();
+            updateAuthUI(false);
+            showAuthAlert('Você saiu. Faça login ou informe um token para conectar.', 'error');
+        });
+
+        // Feedback da conexão Socket.IO e interceptação de erros de autenticação
+        socket.on('connect_error', (err) => {
+            console.warn('🔒 Conexão rejeitada pelo servidor:', err.message);
+            socketDot.classList.remove('connected');
+            socketStatusText.innerText = 'Socket: Acesso Negado (401)';
+            webrtcStatusText.innerText = 'Autenticação necessária: ' + err.message;
+            showAuthAlert(`Erro de Autenticação: ${err.message}`, 'error');
+            updateAuthUI(false);
+        });
+
+        socket.on('connect', () => {
+            console.log('🟢 Conectado e autenticado no Socket.IO | ID:', socket.id);
+            socketDot.classList.add('connected');
+            socketStatusText.innerText = `Socket: Conectado (${socket.id.substring(0, 6)}...)`;
+            hideAuthAlert();
+            updateAuthUI(true);
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.log('🔴 Desconectado do servidor Socket.IO. Motivo:', reason);
             socketDot.classList.remove('connected');
             socketStatusText.innerText = 'Socket: Desconectado';
         });
+
+        if (authToken) {
+            updateAuthUI(true);
+        }
 
         // 2. Configuração de Servidores STUN públicos confiáveis
         const rtcConfiguration = {
@@ -867,6 +1169,12 @@
 
         // 6. Ação de Entrar na Sala (join-room)
         btnJoinRoom.addEventListener('click', async () => {
+            if (!authToken || !socket.connected) {
+                showAuthAlert('Você precisa estar autenticado com um token JWT válido para acessar as salas.', 'error');
+                alert('Acesso negado: faça login ou insira um token JWT válido antes de entrar na sala.');
+                return;
+            }
+
             const roomName = roomInput.value.trim();
             if (!roomName) {
                 alert('Por favor, digite o nome da sala.');

@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { routes } from './routes';
 
@@ -20,6 +21,42 @@ const io = new Server(httpServer, {
     cors: {
         origin: '*',
         methods: ['GET', 'POST']
+    }
+});
+
+// Middleware de Autenticação do Socket.IO (io.use) para interceptar conexões iniciais
+io.use((socket, next) => {
+    // 1. Extrai o token enviado pelo cliente via socket.handshake.auth.token ou headers
+    const rawToken = socket.handshake.auth?.token || 
+                     socket.handshake.headers?.authorization;
+
+    if (!rawToken) {
+        console.warn(`🔒 Conexão bloqueada no Socket [${socket.id}]: Token não fornecido.`);
+        return next(new Error('Authentication error: Token não fornecido.'));
+    }
+
+    // Suporta tokens prefixados com "Bearer " ou enviados diretamente
+    const token = typeof rawToken === 'string' && rawToken.startsWith('Bearer ') 
+        ? rawToken.slice(7).trim() 
+        : rawToken;
+
+    if (!token) {
+        console.warn(`🔒 Conexão bloqueada no Socket [${socket.id}]: Token mal formatado.`);
+        return next(new Error('Authentication error: Token mal formatado.'));
+    }
+
+    try {
+        // 2. Valida o token JWT usando a chave secreta
+        const jwtSecret = process.env.JWT_SECRET || 'nexuscomm_super_secret_jwt_key_2026';
+        const decoded = jwt.verify(token, jwtSecret);
+
+        // 3. Anexa os dados do usuário autenticado no socket
+        socket.data.user = decoded;
+        console.log(`🔑 Socket [${socket.id}] autenticado com sucesso para o usuário:`, (decoded as any).id || (decoded as any).username || 'ID autenticado');
+        return next();
+    } catch (err: any) {
+        console.warn(`🔒 Conexão bloqueada no Socket [${socket.id}]: Token inválido ou expirado. Detalhes:`, err.message);
+        return next(new Error('Authentication error: Token inválido ou expirado.'));
     }
 });
 

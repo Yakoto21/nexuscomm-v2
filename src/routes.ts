@@ -7,6 +7,9 @@ import { ensureAuthenticated } from './middlewares/ensureAuthenticated';
 const routes = Router();
 const prisma = new PrismaClient();
 
+// Configuração de segurança: garantindo pelo menos 10 salt rounds no bcrypt
+const BCRYPT_SALT_ROUNDS = 10;
+
 // Rota de Cadastro de Usuário (POST /register)
 routes.post('/register', async (req: Request, res: Response) => {
     try {
@@ -26,8 +29,8 @@ routes.post('/register', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Este nome de usuário já está em uso.' });
         }
 
-        // Criptografa a senha antes de salvar
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Criptografa a senha antes de salvar usando pelo menos 10 salt rounds
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
         // Salva o usuário no banco de dados SQLite através do Prisma
         const newUser = await prisma.user.create({
