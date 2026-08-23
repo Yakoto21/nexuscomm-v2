@@ -2842,17 +2842,19 @@
         }
 
         function closeServerSettings() {
-            serverSettingsOverlay.classList.remove('open');
-            document.body.style.overflow = 'auto';
+            if (serverSettingsOverlay) {
+                serverSettingsOverlay.classList.remove('open');
+                document.body.style.overflow = 'auto';
+            }
         }
 
-        btnOpenServerSettings.addEventListener('click', openServerSettings);
-        btnCloseServerSettings.addEventListener('click', closeServerSettings);
+        if (btnOpenServerSettings) btnOpenServerSettings.addEventListener('click', openServerSettings);
+        if (btnCloseServerSettings) btnCloseServerSettings.addEventListener('click', closeServerSettings);
 
         // Tecla ESC para fechar as configurações
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                if (serverSettingsOverlay.classList.contains('open')) {
+                if (serverSettingsOverlay && serverSettingsOverlay.classList.contains('open')) {
                     closeServerSettings();
                 }
                 if (userSettingsOverlay && userSettingsOverlay.classList.contains('open')) {
@@ -2863,142 +2865,277 @@
 
         // Alternância de Abas nas Configurações
         function switchSettingsTab(tabName) {
-            tabSettingsOverview.classList.remove('active');
-            tabSettingsRoles.classList.remove('active');
-            tabSettingsMembers.classList.remove('active');
+            if (tabSettingsOverview) tabSettingsOverview.classList.remove('active');
+            if (tabSettingsRoles) tabSettingsRoles.classList.remove('active');
+            if (tabSettingsMembers) tabSettingsMembers.classList.remove('active');
 
-            panelSettingsOverview.classList.remove('active');
-            panelSettingsRoles.classList.remove('active');
-            panelSettingsMembers.classList.remove('active');
+            if (panelSettingsOverview) panelSettingsOverview.classList.remove('active');
+            if (panelSettingsRoles) panelSettingsRoles.classList.remove('active');
+            if (panelSettingsMembers) panelSettingsMembers.classList.remove('active');
 
             if (tabName === 'overview') {
-                tabSettingsOverview.classList.add('active');
-                panelSettingsOverview.classList.add('active');
+                if (tabSettingsOverview) tabSettingsOverview.classList.add('active');
+                if (panelSettingsOverview) panelSettingsOverview.classList.add('active');
             } else if (tabName === 'roles') {
-                tabSettingsRoles.classList.add('active');
-                panelSettingsRoles.classList.add('active');
+                if (tabSettingsRoles) tabSettingsRoles.classList.add('active');
+                if (panelSettingsRoles) panelSettingsRoles.classList.add('active');
                 loadServerRolesInSettings();
             } else if (tabName === 'members') {
-                tabSettingsMembers.classList.add('active');
-                panelSettingsMembers.classList.add('active');
+                if (tabSettingsMembers) tabSettingsMembers.classList.add('active');
+                if (panelSettingsMembers) panelSettingsMembers.classList.add('active');
                 loadServerMembersInSettings();
             }
         }
 
-        tabSettingsOverview.addEventListener('click', () => switchSettingsTab('overview'));
-        tabSettingsRoles.addEventListener('click', () => switchSettingsTab('roles'));
-        tabSettingsMembers.addEventListener('click', () => switchSettingsTab('members'));
+        if (tabSettingsOverview) tabSettingsOverview.addEventListener('click', () => switchSettingsTab('overview'));
+        if (tabSettingsRoles) tabSettingsRoles.addEventListener('click', () => switchSettingsTab('roles'));
+        if (tabSettingsMembers) tabSettingsMembers.addEventListener('click', () => switchSettingsTab('members'));
 
         // Upload e Preview Local de Ícone
-        btnUploadServerIcon.addEventListener('click', () => inputServerIconFile.click());
-        inputServerIconFile.addEventListener('change', (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
+        if (btnUploadServerIcon) btnUploadServerIcon.addEventListener('click', () => inputServerIconFile?.click());
+        if (inputServerIconFile) {
+            inputServerIconFile.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
 
-            if (file.size > 10 * 1024 * 1024) {
-                alert('O arquivo selecionado é muito grande. Escolha uma imagem de até 10MB.');
-                return;
-            }
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('O arquivo selecionado é muito grande. Escolha uma imagem de até 10MB.');
+                    return;
+                }
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const dataUrl = event.target.result;
-                pendingServerIconBase64 = dataUrl;
-                renderSettingsAvatarPreview(dataUrl, inputEditServerName.value || 'NX');
-            };
-            reader.readAsDataURL(file);
-        });
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const dataUrl = event.target.result;
+                    pendingServerIconBase64 = dataUrl;
+                    renderSettingsAvatarPreview(dataUrl, inputEditServerName?.value || 'NX');
+                };
+                reader.readAsDataURL(file);
+            });
+        }
 
-        btnRemoveServerIcon.addEventListener('click', () => {
-            pendingServerIconBase64 = ''; // String vazia sinaliza remoção
-            inputServerIconFile.value = '';
-            renderSettingsAvatarPreview('', inputEditServerName.value || 'NX');
-        });
+        if (btnRemoveServerIcon) {
+            btnRemoveServerIcon.addEventListener('click', () => {
+                pendingServerIconBase64 = ''; // String vazia sinaliza remoção
+                if (inputServerIconFile) inputServerIconFile.value = '';
+                renderSettingsAvatarPreview('', inputEditServerName?.value || 'NX');
+            });
+        }
 
         // Upload e Preview Local de Banner
-        btnUploadServerBanner.addEventListener('click', () => inputServerBannerFile.click());
-        inputServerBannerFile.addEventListener('change', (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
+        if (btnUploadServerBanner) btnUploadServerBanner.addEventListener('click', () => inputServerBannerFile?.click());
+        if (inputServerBannerFile) {
+            inputServerBannerFile.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
 
-            if (file.size > 10 * 1024 * 1024) {
-                alert('O arquivo selecionado é muito grande. Escolha uma imagem de até 10MB.');
-                return;
-            }
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('O arquivo selecionado é muito grande. Escolha uma imagem de até 10MB.');
+                    return;
+                }
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const dataUrl = event.target.result;
-                pendingServerBannerBase64 = dataUrl;
-                renderSettingsBannerPreview(dataUrl);
-            };
-            reader.readAsDataURL(file);
-        });
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const dataUrl = event.target.result;
+                    pendingServerBannerBase64 = dataUrl;
+                    renderSettingsBannerPreview(dataUrl);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
 
-        btnRemoveServerBanner.addEventListener('click', () => {
-            pendingServerBannerBase64 = ''; // String vazia sinaliza remoção
-            inputServerBannerFile.value = '';
-            renderSettingsBannerPreview('');
-        });
+        if (btnRemoveServerBanner) {
+            btnRemoveServerBanner.addEventListener('click', () => {
+                pendingServerBannerBase64 = ''; // String vazia sinaliza remoção
+                if (inputServerBannerFile) inputServerBannerFile.value = '';
+                renderSettingsBannerPreview('');
+            });
+        }
 
         // Salvar Alterações na Visão Geral (Nome, Ícone e Banner via Supabase Storage)
-        formServerOverview.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const newName = inputEditServerName.value.trim();
-            if (!newName || !activeServerId) return;
+        if (formServerOverview) {
+            formServerOverview.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newName = inputEditServerName?.value.trim();
+                if (!newName || !activeServerId) return;
 
-            try {
-                btnSaveServerOverview.disabled = true;
-                btnSaveServerOverview.innerText = 'Processando Upload & Salvando...';
+                try {
+                    if (btnSaveServerOverview) {
+                        btnSaveServerOverview.disabled = true;
+                        btnSaveServerOverview.innerText = 'Processando Upload & Salvando...';
+                    }
 
-                const payload = {
-                    nome: newName
-                };
+                    const payload = {
+                        nome: newName
+                    };
 
-                if (pendingServerIconBase64 !== null) {
-                    payload.icon = pendingServerIconBase64;
+                    if (pendingServerIconBase64 !== null) {
+                        payload.icon = pendingServerIconBase64;
+                    }
+
+                    if (pendingServerBannerBase64 !== null) {
+                        payload.banner = pendingServerBannerBase64;
+                    }
+
+                    const res = await fetch(`/servers/${activeServerId}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao atualizar servidor');
+
+                    if (settingsOverviewAlert) {
+                        settingsOverviewAlert.className = 'auth-alert success';
+                        settingsOverviewAlert.innerText = 'Servidor e mídias salvos com sucesso no Supabase Storage!';
+                        settingsOverviewAlert.style.display = 'block';
+                    }
+
+                    const updatedServer = data.server || { ...activeServerObj, nome: newName };
+                    activeServerObj = updatedServer;
+
+                    // Atualiza elementos visuais
+                    if (selectedServerTitle) selectedServerTitle.innerText = updatedServer.nome;
+                    if (settingsServerNameNav) settingsServerNameNav.innerText = updatedServer.nome;
+                    if (mainServerHeading) mainServerHeading.innerText = updatedServer.nome;
+                    if (welcomeServerTitle) welcomeServerTitle.innerText = `Bem-vindo ao ${updatedServer.nome}!`;
+
+                    applyServerMediaVisuals(updatedServer);
+                    await fetchServersList();
+                } catch (err) {
+                    if (settingsOverviewAlert) {
+                        settingsOverviewAlert.className = 'auth-alert error';
+                        settingsOverviewAlert.innerText = err.message;
+                        settingsOverviewAlert.style.display = 'block';
+                    }
+                } finally {
+                    if (btnSaveServerOverview) {
+                        btnSaveServerOverview.disabled = false;
+                        btnSaveServerOverview.innerText = 'Salvar Alterações';
+                    }
                 }
+            });
+        }
 
-                if (pendingServerBannerBase64 !== null) {
-                    payload.banner = pendingServerBannerBase64;
-                }
-
-                const res = await fetch(`/servers/${activeServerId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Erro ao atualizar servidor');
-
-                settingsOverviewAlert.className = 'auth-alert success';
-                settingsOverviewAlert.innerText = 'Servidor e mídias salvos com sucesso no Supabase Storage!';
-                settingsOverviewAlert.style.display = 'block';
-
-                const updatedServer = data.server || { ...activeServerObj, nome: newName };
-                activeServerObj = updatedServer;
-
-                // Atualiza elementos visuais
-                selectedServerTitle.innerText = updatedServer.nome;
-                settingsServerNameNav.innerText = updatedServer.nome;
-                mainServerHeading.innerText = updatedServer.nome;
-                welcomeServerTitle.innerText = `Bem-vindo ao ${updatedServer.nome}!`;
-
-                applyServerMediaVisuals(updatedServer);
-                await fetchServersList();
-            } catch (err) {
-                settingsOverviewAlert.className = 'auth-alert error';
-                settingsOverviewAlert.innerText = err.message;
-                settingsOverviewAlert.style.display = 'block';
-            } finally {
-                btnSaveServerOverview.disabled = false;
-                btnSaveServerOverview.innerText = 'Salvar Alterações';
+        // ==========================================
+        // 2.1 Configurações de Perfil do Usuário (User Profile Modal)
+        // ==========================================
+        function openUserSettings() {
+            if (!currentUser) return;
+            if (userSettingsOverlay) {
+                if (inputUserDisplayName) inputUserDisplayName.value = currentUser.display_name || currentUser.username || '';
+                if (inputUserUsernameDisplay) inputUserUsernameDisplay.value = `@${currentUser.username || ''}`;
+                if (userSettingsAlert) userSettingsAlert.style.display = 'none';
+                renderUserSettingsAvatarPreview(currentUser.avatar_url, currentUser.display_name || currentUser.username);
+                userSettingsOverlay.classList.add('open');
+                document.body.style.overflow = 'hidden';
             }
-        });
+        }
+
+        function closeUserSettings() {
+            if (userSettingsOverlay) {
+                userSettingsOverlay.classList.remove('open');
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        function renderUserSettingsAvatarPreview(avatarUrl, name) {
+            if (!userSettingsAvatarPreview) return;
+            userSettingsAvatarPreview.textContent = '';
+            if (avatarUrl) {
+                const img = document.createElement('img');
+                img.src = avatarUrl;
+                img.className = 'user-avatar-img';
+                img.alt = name || 'Avatar';
+                userSettingsAvatarPreview.appendChild(img);
+            } else {
+                userSettingsAvatarPreview.textContent = getServerInitials(name || 'NX');
+            }
+        }
+
+        if (btnOpenUserSettings) btnOpenUserSettings.addEventListener('click', openUserSettings);
+        if (btnCloseUserSettings) btnCloseUserSettings.addEventListener('click', closeUserSettings);
+        if (btnCancelUserSettings) btnCancelUserSettings.addEventListener('click', closeUserSettings);
+
+        if (btnUploadUserAvatar) btnUploadUserAvatar.addEventListener('click', () => inputUserAvatarFile?.click());
+        if (inputUserAvatarFile) {
+            inputUserAvatarFile.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('O arquivo de avatar é muito grande. Escolha uma imagem de até 10MB.');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const dataUrl = event.target.result;
+                    pendingUserAvatarBase64 = dataUrl;
+                    renderUserSettingsAvatarPreview(dataUrl, inputUserDisplayName?.value || currentUser?.username);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        if (btnRemoveUserAvatar) {
+            btnRemoveUserAvatar.addEventListener('click', () => {
+                pendingUserAvatarBase64 = '';
+                if (inputUserAvatarFile) inputUserAvatarFile.value = '';
+                renderUserSettingsAvatarPreview('', inputUserDisplayName?.value || currentUser?.username);
+            });
+        }
+
+        if (formUserSettings) {
+            formUserSettings.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const displayName = inputUserDisplayName?.value.trim() || '';
+                try {
+                    if (btnSaveUserSettings) {
+                        btnSaveUserSettings.disabled = true;
+                        btnSaveUserSettings.innerText = 'Salvando...';
+                    }
+
+                    const payload = { display_name: displayName };
+                    if (pendingUserAvatarBase64 !== null) {
+                        payload.avatar = pendingUserAvatarBase64;
+                    }
+
+                    const res = await fetch('/me', {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao atualizar perfil.');
+
+                    currentUser = data.user || currentUser;
+                    updateCurrentUserUI(currentUser);
+
+                    if (userSettingsAlert) {
+                        userSettingsAlert.className = 'auth-alert success';
+                        userSettingsAlert.innerText = 'Perfil atualizado com sucesso!';
+                        userSettingsAlert.style.display = 'block';
+                    }
+                } catch (err) {
+                    if (userSettingsAlert) {
+                        userSettingsAlert.className = 'auth-alert error';
+                        userSettingsAlert.innerText = err.message;
+                        userSettingsAlert.style.display = 'block';
+                    }
+                } finally {
+                    if (btnSaveUserSettings) {
+                        btnSaveUserSettings.disabled = false;
+                        btnSaveUserSettings.innerText = 'Salvar Alterações';
+                    }
+                }
+            });
+        }
 
         function applyServerMediaVisuals(server) {
             // 1. Aplica Banner no Cabeçalho do Channels Sidebar
@@ -3245,146 +3382,172 @@
         }
 
         // Alternância de Abas do Auth Gate
-        tabGateLogin.addEventListener('click', () => {
-            tabGateLogin.classList.add('active');
-            tabGateRegister.classList.remove('active');
-            tabGateToken.classList.remove('active');
-            formGateLogin.style.display = 'flex';
-            formGateRegister.style.display = 'none';
-            formGateToken.style.display = 'none';
-            hideAuthGateAlert();
-        });
+        if (tabGateLogin) {
+            tabGateLogin.addEventListener('click', () => {
+                tabGateLogin.classList.add('active');
+                if (tabGateRegister) tabGateRegister.classList.remove('active');
+                if (tabGateToken) tabGateToken.classList.remove('active');
+                if (formGateLogin) formGateLogin.style.display = 'flex';
+                if (formGateRegister) formGateRegister.style.display = 'none';
+                if (formGateToken) formGateToken.style.display = 'none';
+                hideAuthGateAlert();
+            });
+        }
 
-        tabGateRegister.addEventListener('click', () => {
-            tabGateRegister.classList.add('active');
-            tabGateLogin.classList.remove('active');
-            tabGateToken.classList.remove('active');
-            formGateRegister.style.display = 'flex';
-            formGateLogin.style.display = 'none';
-            formGateToken.style.display = 'none';
-            hideAuthGateAlert();
-        });
+        if (tabGateRegister) {
+            tabGateRegister.addEventListener('click', () => {
+                tabGateRegister.classList.add('active');
+                if (tabGateLogin) tabGateLogin.classList.remove('active');
+                if (tabGateToken) tabGateToken.classList.remove('active');
+                if (formGateRegister) formGateRegister.style.display = 'flex';
+                if (formGateLogin) formGateLogin.style.display = 'none';
+                if (formGateToken) formGateToken.style.display = 'none';
+                hideAuthGateAlert();
+            });
+        }
 
-        tabGateToken.addEventListener('click', () => {
-            tabGateToken.classList.add('active');
-            tabGateLogin.classList.remove('active');
-            tabGateRegister.classList.remove('active');
-            formGateToken.style.display = 'flex';
-            formGateLogin.style.display = 'none';
-            formGateRegister.style.display = 'none';
-            hideAuthGateAlert();
-        });
+        if (tabGateToken) {
+            tabGateToken.addEventListener('click', () => {
+                tabGateToken.classList.add('active');
+                if (tabGateLogin) tabGateLogin.classList.remove('active');
+                if (tabGateRegister) tabGateRegister.classList.remove('active');
+                if (formGateToken) formGateToken.style.display = 'flex';
+                if (formGateLogin) formGateLogin.style.display = 'none';
+                if (formGateRegister) formGateRegister.style.display = 'none';
+                hideAuthGateAlert();
+            });
+        }
 
         // Submissão do Login
-        formGateLogin.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = gateLoginUsername.value.trim();
-            const password = gateLoginPassword.value.trim();
-            if (!username || !password) {
-                showAuthGateAlert('Preencha o usuário e a senha.', 'error');
-                return;
-            }
-            try {
-                btnSubmitGateLogin.disabled = true;
-                btnSubmitGateLogin.innerText = 'Entrando...';
-                const res = await fetch('/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Erro ao realizar login');
+        if (formGateLogin) {
+            formGateLogin.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = gateLoginUsername?.value.trim();
+                const password = gateLoginPassword?.value.trim();
+                if (!username || !password) {
+                    showAuthGateAlert('Preencha o usuário e a senha.', 'error');
+                    return;
+                }
+                try {
+                    if (btnSubmitGateLogin) {
+                        btnSubmitGateLogin.disabled = true;
+                        btnSubmitGateLogin.innerText = 'Entrando...';
+                    }
+                    const res = await fetch('/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao realizar login');
 
-                authToken = data.token;
-                localStorage.setItem('nexuscomm_jwt_token', authToken);
-                localStorage.setItem('nexuscomm_username', data.user.username);
+                    authToken = data.token;
+                    localStorage.setItem('nexuscomm_jwt_token', authToken);
+                    localStorage.setItem('nexuscomm_username', data.user.username);
 
-                enterApp(data.user);
-            } catch (err) {
-                showAuthGateAlert(err.message, 'error');
-            } finally {
-                btnSubmitGateLogin.disabled = false;
-                btnSubmitGateLogin.innerText = 'Entrar no NexusComm';
-            }
-        });
+                    enterApp(data.user);
+                } catch (err) {
+                    showAuthGateAlert(err.message, 'error');
+                } finally {
+                    if (btnSubmitGateLogin) {
+                        btnSubmitGateLogin.disabled = false;
+                        btnSubmitGateLogin.innerText = 'Entrar no NexusComm';
+                    }
+                }
+            });
+        }
 
         // Submissão do Cadastro
-        formGateRegister.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = gateRegisterUsername.value.trim();
-            const password = gateRegisterPassword.value.trim();
-            if (!username || !password) {
-                showAuthGateAlert('Preencha todos os campos para cadastrar.', 'error');
-                return;
-            }
-            try {
-                btnSubmitGateRegister.disabled = true;
-                btnSubmitGateRegister.innerText = 'Cadastrando...';
-                const res = await fetch('/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Erro ao registrar usuário');
+        if (formGateRegister) {
+            formGateRegister.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = gateRegisterUsername?.value.trim();
+                const password = gateRegisterPassword?.value.trim();
+                if (!username || !password) {
+                    showAuthGateAlert('Preencha todos os campos para cadastrar.', 'error');
+                    return;
+                }
+                try {
+                    if (btnSubmitGateRegister) {
+                        btnSubmitGateRegister.disabled = true;
+                        btnSubmitGateRegister.innerText = 'Cadastrando...';
+                    }
+                    const res = await fetch('/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao registrar usuário');
 
-                showAuthGateAlert('Cadastro realizado com sucesso! Conectando...', 'success');
+                    showAuthGateAlert('Cadastro realizado com sucesso! Conectando...', 'success');
 
-                // Realiza login imediato
-                const loginRes = await fetch('/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                const loginData = await loginRes.json();
-                if (!loginRes.ok) throw new Error(loginData.error || 'Erro ao autenticar após registro');
+                    // Realiza login imediato
+                    const loginRes = await fetch('/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const loginData = await loginRes.json();
+                    if (!loginRes.ok) throw new Error(loginData.error || 'Erro ao autenticar após registro');
 
-                authToken = loginData.token;
-                localStorage.setItem('nexuscomm_jwt_token', authToken);
-                localStorage.setItem('nexuscomm_username', loginData.user.username);
+                    authToken = loginData.token;
+                    localStorage.setItem('nexuscomm_jwt_token', authToken);
+                    localStorage.setItem('nexuscomm_username', loginData.user.username);
 
-                enterApp(loginData.user);
-            } catch (err) {
-                showAuthGateAlert(err.message, 'error');
-            } finally {
-                btnSubmitGateRegister.disabled = false;
-                btnSubmitGateRegister.innerText = 'Criar Conta & Entrar';
-            }
-        });
+                    enterApp(loginData.user);
+                } catch (err) {
+                    showAuthGateAlert(err.message, 'error');
+                } finally {
+                    if (btnSubmitGateRegister) {
+                        btnSubmitGateRegister.disabled = false;
+                        btnSubmitGateRegister.innerText = 'Criar Conta & Entrar';
+                    }
+                }
+            });
+        }
 
         // Submissão de Token Direto
-        formGateToken.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const token = gateTokenInput.value.trim();
-            if (!token) {
-                showAuthGateAlert('Informe um token JWT válido.', 'error');
-                return;
-            }
-            try {
-                btnSubmitGateToken.disabled = true;
-                btnSubmitGateToken.innerText = 'Validando...';
-                const res = await fetch('/me', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Token inválido ou expirado.');
+        if (formGateToken) {
+            formGateToken.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const token = gateTokenInput?.value.trim();
+                if (!token) {
+                    showAuthGateAlert('Informe um token JWT válido.', 'error');
+                    return;
+                }
+                try {
+                    if (btnSubmitGateToken) {
+                        btnSubmitGateToken.disabled = true;
+                        btnSubmitGateToken.innerText = 'Validando...';
+                    }
+                    const res = await fetch('/me', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Token inválido ou expirado.');
 
-                authToken = token;
-                localStorage.setItem('nexuscomm_jwt_token', token);
-                localStorage.setItem('nexuscomm_username', data.user.username);
+                    authToken = token;
+                    localStorage.setItem('nexuscomm_jwt_token', token);
+                    localStorage.setItem('nexuscomm_username', data.user.username);
 
-                enterApp(data.user);
-            } catch (err) {
-                showAuthGateAlert(err.message, 'error');
-            } finally {
-                btnSubmitGateToken.disabled = false;
-                btnSubmitGateToken.innerText = 'Validar & Conectar';
-            }
-        });
+                    enterApp(data.user);
+                } catch (err) {
+                    showAuthGateAlert(err.message, 'error');
+                } finally {
+                    if (btnSubmitGateToken) {
+                        btnSubmitGateToken.disabled = false;
+                        btnSubmitGateToken.innerText = 'Validar & Conectar';
+                    }
+                }
+            });
+        }
 
-        btnLogout.addEventListener('click', () => {
-            logoutApp('Você saiu com sucesso.');
-        });
+        if (btnLogout) {
+            btnLogout.addEventListener('click', () => {
+                logoutApp('Você saiu com sucesso.');
+            });
+        }
 
         // ==========================================
         // 4. Menu de Servidores e Isolamento de Visão
@@ -3496,21 +3659,23 @@
             await fetchServerChannels(server.id);
         }
 
-        btnServerHome.addEventListener('click', () => {
-            activeServerId = null;
-            activeServerObj = null;
-            document.body.classList.add('home-view');
-            channelsSidebar.classList.add('hidden');
+        if (btnServerHome) {
+            btnServerHome.addEventListener('click', () => {
+                activeServerId = null;
+                activeServerObj = null;
+                document.body.classList.add('home-view');
+                if (channelsSidebar) channelsSidebar.classList.add('hidden');
 
-            document.querySelectorAll('.server-icon-wrapper').forEach(el => el.classList.remove('active'));
-            btnServerHome.classList.add('active');
-            if (mainServerHeading) mainServerHeading.innerText = 'NexusComm Salas Rápidas';
-            if (mainHeaderSub) mainHeaderSub.innerText = 'Videoconferência & Colaboração WebRTC';
-            
-            const defaultRoom = 'sala-publica';
-            connectToRoom(defaultRoom);
-            setViewMode('voice');
-        });
+                document.querySelectorAll('.server-icon-wrapper').forEach(el => el.classList.remove('active'));
+                btnServerHome.classList.add('active');
+                if (mainServerHeading) mainServerHeading.innerText = 'NexusComm Salas Rápidas';
+                if (mainHeaderSub) mainHeaderSub.innerText = 'Videoconferência & Colaboração WebRTC';
+                
+                const defaultRoom = 'sala-publica';
+                connectToRoom(defaultRoom);
+                setViewMode('voice');
+            });
+        }
 
         if (btnOpenServerHome) {
             btnOpenServerHome.addEventListener('click', () => {
@@ -3528,12 +3693,14 @@
                 return;
             }
             try {
-                textChannelsList.textContent = '';
-                const loadingDiv = document.createElement('div');
-                loadingDiv.style.cssText = 'font-size: 0.8rem; color: #64748b; padding: 6px;';
-                loadingDiv.textContent = 'Carregando canais...';
-                textChannelsList.appendChild(loadingDiv);
-                voiceChannelsList.textContent = '';
+                if (textChannelsList) {
+                    textChannelsList.textContent = '';
+                    const loadingDiv = document.createElement('div');
+                    loadingDiv.style.cssText = 'font-size: 0.8rem; color: #64748b; padding: 6px;';
+                    loadingDiv.textContent = 'Carregando canais...';
+                    textChannelsList.appendChild(loadingDiv);
+                }
+                if (voiceChannelsList) voiceChannelsList.textContent = '';
 
                 const res = await fetch(`/servers/${serverId}/channels`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
@@ -3555,17 +3722,19 @@
         }
 
         function renderChannels(channels) {
-            textChannelsList.textContent = '';
-            voiceChannelsList.textContent = '';
+            if (textChannelsList) textChannelsList.textContent = '';
+            if (voiceChannelsList) voiceChannelsList.textContent = '';
 
             const textChannels = channels.filter(c => c.tipo === 'texto');
             const voiceChannels = channels.filter(c => c.tipo === 'voz');
 
             if (textChannels.length === 0) {
-                const emptyDiv = document.createElement('div');
-                emptyDiv.style.cssText = 'font-size: 0.78rem; color: #64748b; padding: 4px 8px;';
-                emptyDiv.textContent = 'Nenhum canal de texto';
-                textChannelsList.appendChild(emptyDiv);
+                if (textChannelsList) {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.style.cssText = 'font-size: 0.78rem; color: #64748b; padding: 4px 8px;';
+                    emptyDiv.textContent = 'Nenhum canal de texto';
+                    textChannelsList.appendChild(emptyDiv);
+                }
             } else {
                 textChannels.forEach(c => {
                     const item = document.createElement('div');
@@ -3583,15 +3752,17 @@
                     item.appendChild(iconSpan);
                     item.appendChild(nameSpan);
                     item.addEventListener('click', () => selectTextChannel(c));
-                    textChannelsList.appendChild(item);
+                    if (textChannelsList) textChannelsList.appendChild(item);
                 });
             }
 
             if (voiceChannels.length === 0) {
-                const emptyDiv = document.createElement('div');
-                emptyDiv.style.cssText = 'font-size: 0.78rem; color: #64748b; padding: 4px 8px;';
-                emptyDiv.textContent = 'Nenhum canal de voz';
-                voiceChannelsList.appendChild(emptyDiv);
+                if (voiceChannelsList) {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.style.cssText = 'font-size: 0.78rem; color: #64748b; padding: 4px 8px;';
+                    emptyDiv.textContent = 'Nenhum canal de voz';
+                    voiceChannelsList.appendChild(emptyDiv);
+                }
             } else {
                 voiceChannels.forEach(c => {
                     const item = document.createElement('div');
@@ -3613,7 +3784,7 @@
                     item.appendChild(iconSpan);
                     item.appendChild(nameSpan);
                     item.addEventListener('click', () => selectVoiceChannel(c));
-                    voiceChannelsList.appendChild(item);
+                    if (voiceChannelsList) voiceChannelsList.appendChild(item);
                 });
             }
         }
@@ -3625,11 +3796,11 @@
 
             const textRoomName = `comunidade-${activeServerId}-txt-${channel.nome}`;
 
-            mainChatChannelName.innerText = channel.nome;
-            mainChatChannelTopic.innerText = `Canal de texto da comunidade • #${channel.nome}`;
-            channelWelcomeHeading.innerText = `Bem-vindo ao #${channel.nome}!`;
-            channelWelcomeDesc.innerText = `Este é o início do canal #${channel.nome}. As mensagens são persistidas no PostgreSQL.`;
-            mainChatExpandedInput.placeholder = `Conversar em #${channel.nome}...`;
+            if (mainChatChannelName) mainChatChannelName.innerText = channel.nome;
+            if (mainChatChannelTopic) mainChatChannelTopic.innerText = `Canal de texto da comunidade • #${channel.nome}`;
+            if (channelWelcomeHeading) channelWelcomeHeading.innerText = `Bem-vindo ao #${channel.nome}!`;
+            if (channelWelcomeDesc) channelWelcomeDesc.innerText = `Este é o início do canal #${channel.nome}. As mensagens são persistidas no PostgreSQL.`;
+            if (mainChatExpandedInput) mainChatExpandedInput.placeholder = `Conversar em #${channel.nome}...`;
 
             setViewMode('text');
 
@@ -3644,8 +3815,8 @@
             highlightActiveChannel(channel.id);
 
             const voiceRoomName = `comunidade-${activeServerId}-voz-${channel.nome}`;
-            voiceChannelHeading.innerText = `🔊 Canal de Voz: ${channel.nome}`;
-            chatPanelTitle.innerText = `Chat de Apoio • ${channel.nome}`;
+            if (voiceChannelHeading) voiceChannelHeading.innerText = `🔊 Canal de Voz: ${channel.nome}`;
+            if (chatPanelTitle) chatPanelTitle.innerText = `Chat de Apoio • ${channel.nome}`;
 
             setViewMode('voice');
             connectToRoom(voiceRoomName, true);
@@ -3657,144 +3828,176 @@
             if (activeEl) activeEl.classList.add('active');
         }
 
-        btnQuickEnterGeneralText.addEventListener('click', () => {
-            const firstText = loadedChannels.find(c => c.tipo === 'texto');
-            if (firstText) selectTextChannel(firstText);
-            else if (loadedChannels.length > 0) selectTextChannel(loadedChannels[0]);
-        });
+        if (btnQuickEnterGeneralText) {
+            btnQuickEnterGeneralText.addEventListener('click', () => {
+                const firstText = loadedChannels.find(c => c.tipo === 'texto');
+                if (firstText) selectTextChannel(firstText);
+                else if (loadedChannels.length > 0) selectTextChannel(loadedChannels[0]);
+            });
+        }
 
-        btnQuickEnterGeneralVoice.addEventListener('click', () => {
-            const firstVoice = loadedChannels.find(c => c.tipo === 'voz');
-            if (firstVoice) selectVoiceChannel(firstVoice);
-            else if (loadedChannels.length > 0) selectVoiceChannel(loadedChannels[0]);
-        });
+        if (btnQuickEnterGeneralVoice) {
+            btnQuickEnterGeneralVoice.addEventListener('click', () => {
+                const firstVoice = loadedChannels.find(c => c.tipo === 'voz');
+                if (firstVoice) selectVoiceChannel(firstVoice);
+                else if (loadedChannels.length > 0) selectVoiceChannel(loadedChannels[0]);
+            });
+        }
 
         // Modais de Criação de Servidor e Canal
-        btnOpenAddServerModal.addEventListener('click', () => {
-            if (!authToken) {
-                logoutApp('Faça login primeiro para criar comunidades.');
-                return;
-            }
-            modalAddServer.style.display = 'flex';
-            serverModalAlert.style.display = 'none';
-            inputServerName.value = '';
-            inputServerName.focus();
-        });
-
-        function closeAddServerModal() { modalAddServer.style.display = 'none'; }
-        btnCloseServerModal.addEventListener('click', closeAddServerModal);
-        btnCancelServerModal.addEventListener('click', closeAddServerModal);
-
-        formAddServer.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const serverName = inputServerName.value.trim();
-            if (!serverName) return;
-
-            try {
-                btnSubmitServerModal.disabled = true;
-                btnSubmitServerModal.innerText = 'Criando...';
-
-                const res = await fetch('/servers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({ nome: serverName })
-                });
-
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Erro ao criar servidor');
-
-                closeAddServerModal();
-                await fetchServersList();
-                if (data.server) selectServer(data.server);
-            } catch (err) {
-                serverModalAlert.className = 'auth-alert error';
-                serverModalAlert.innerText = err.message;
-                serverModalAlert.style.display = 'block';
-            } finally {
-                btnSubmitServerModal.disabled = false;
-                btnSubmitServerModal.innerText = 'Criar Comunidade';
-            }
-        });
-
-        btnOpenAddChannelModal.addEventListener('click', () => {
-            if (!activeServerId) {
-                alert('Selecione um servidor antes de criar um canal.');
-                return;
-            }
-            if (!authToken) {
-                alert('Você precisa estar autenticado para criar canais.');
-                return;
-            }
-            modalAddChannel.style.display = 'flex';
-            channelModalAlert.style.display = 'none';
-            inputChannelName.value = '';
-            selectedChannelTypeForModal = 'texto';
-            optTypeText.classList.add('selected');
-            optTypeVoice.classList.remove('selected');
-            inputChannelName.focus();
-        });
-
-        optTypeText.addEventListener('click', () => {
-            selectedChannelTypeForModal = 'texto';
-            optTypeText.classList.add('selected');
-            optTypeVoice.classList.remove('selected');
-        });
-
-        optTypeVoice.addEventListener('click', () => {
-            selectedChannelTypeForModal = 'voz';
-            optTypeVoice.classList.add('selected');
-            optTypeText.classList.remove('selected');
-        });
-
-        function closeAddChannelModal() { modalAddChannel.style.display = 'none'; }
-        btnCloseChannelModal.addEventListener('click', closeAddChannelModal);
-        btnCancelChannelModal.addEventListener('click', closeAddChannelModal);
-
-        formAddChannel.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const channelName = inputChannelName.value.trim();
-            if (!channelName || !activeServerId) return;
-
-            try {
-                btnSubmitChannelModal.disabled = true;
-                btnSubmitChannelModal.innerText = 'Criando...';
-
-                const res = await fetch(`/servers/${activeServerId}/channels`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({
-                        nome: channelName,
-                        tipo: selectedChannelTypeForModal
-                    })
-                });
-
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Erro ao criar canal');
-
-                closeAddChannelModal();
-                await fetchServerChannels(activeServerId);
-
-                if (data.channel) {
-                    if (data.channel.tipo === 'texto') selectTextChannel(data.channel);
-                    else selectVoiceChannel(data.channel);
+        if (btnOpenAddServerModal) {
+            btnOpenAddServerModal.addEventListener('click', () => {
+                if (!authToken) {
+                    logoutApp('Faça login primeiro para criar comunidades.');
+                    return;
                 }
-            } catch (err) {
-                channelModalAlert.className = 'auth-alert error';
-                channelModalAlert.innerText = err.message;
-                channelModalAlert.style.display = 'block';
-            } finally {
-                btnSubmitChannelModal.disabled = false;
-                btnSubmitChannelModal.innerText = 'Criar Canal';
-            }
-        });
+                if (modalAddServer) modalAddServer.style.display = 'flex';
+                if (serverModalAlert) serverModalAlert.style.display = 'none';
+                if (inputServerName) {
+                    inputServerName.value = '';
+                    inputServerName.focus();
+                }
+            });
+        }
 
-        userBarMuteBtn.addEventListener('click', () => toggleMute());
+        function closeAddServerModal() { if (modalAddServer) modalAddServer.style.display = 'none'; }
+        if (btnCloseServerModal) btnCloseServerModal.addEventListener('click', closeAddServerModal);
+        if (btnCancelServerModal) btnCancelServerModal.addEventListener('click', closeAddServerModal);
+
+        if (formAddServer) {
+            formAddServer.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const serverName = inputServerName?.value.trim();
+                if (!serverName) return;
+
+                try {
+                    if (btnSubmitServerModal) {
+                        btnSubmitServerModal.disabled = true;
+                        btnSubmitServerModal.innerText = 'Criando...';
+                    }
+
+                    const res = await fetch('/servers', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({ nome: serverName })
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao criar servidor');
+
+                    closeAddServerModal();
+                    await fetchServersList();
+                    if (data.server) selectServer(data.server);
+                } catch (err) {
+                    if (serverModalAlert) {
+                        serverModalAlert.className = 'auth-alert error';
+                        serverModalAlert.innerText = err.message;
+                        serverModalAlert.style.display = 'block';
+                    }
+                } finally {
+                    if (btnSubmitServerModal) {
+                        btnSubmitServerModal.disabled = false;
+                        btnSubmitServerModal.innerText = 'Criar Comunidade';
+                    }
+                }
+            });
+        }
+
+        if (btnOpenAddChannelModal) {
+            btnOpenAddChannelModal.addEventListener('click', () => {
+                if (!activeServerId) {
+                    alert('Selecione um servidor antes de criar um canal.');
+                    return;
+                }
+                if (!authToken) {
+                    alert('Você precisa estar autenticado para criar canais.');
+                    return;
+                }
+                if (modalAddChannel) modalAddChannel.style.display = 'flex';
+                if (channelModalAlert) channelModalAlert.style.display = 'none';
+                if (inputChannelName) {
+                    inputChannelName.value = '';
+                    inputChannelName.focus();
+                }
+                selectedChannelTypeForModal = 'texto';
+                if (optTypeText) optTypeText.classList.add('selected');
+                if (optTypeVoice) optTypeVoice.classList.remove('selected');
+            });
+        }
+
+        if (optTypeText) {
+            optTypeText.addEventListener('click', () => {
+                selectedChannelTypeForModal = 'texto';
+                optTypeText.classList.add('selected');
+                if (optTypeVoice) optTypeVoice.classList.remove('selected');
+            });
+        }
+
+        if (optTypeVoice) {
+            optTypeVoice.addEventListener('click', () => {
+                selectedChannelTypeForModal = 'voz';
+                optTypeVoice.classList.add('selected');
+                if (optTypeText) optTypeText.classList.remove('selected');
+            });
+        }
+
+        function closeAddChannelModal() { if (modalAddChannel) modalAddChannel.style.display = 'none'; }
+        if (btnCloseChannelModal) btnCloseChannelModal.addEventListener('click', closeAddChannelModal);
+        if (btnCancelChannelModal) btnCancelChannelModal.addEventListener('click', closeAddChannelModal);
+
+        if (formAddChannel) {
+            formAddChannel.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const channelName = inputChannelName?.value.trim();
+                if (!channelName || !activeServerId) return;
+
+                try {
+                    if (btnSubmitChannelModal) {
+                        btnSubmitChannelModal.disabled = true;
+                        btnSubmitChannelModal.innerText = 'Criando...';
+                    }
+
+                    const res = await fetch(`/servers/${activeServerId}/channels`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({
+                            nome: channelName,
+                            tipo: selectedChannelTypeForModal
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao criar canal');
+
+                    closeAddChannelModal();
+                    await fetchServerChannels(activeServerId);
+
+                    if (data.channel) {
+                        if (data.channel.tipo === 'texto') selectTextChannel(data.channel);
+                        else selectVoiceChannel(data.channel);
+                    }
+                } catch (err) {
+                    if (channelModalAlert) {
+                        channelModalAlert.className = 'auth-alert error';
+                        channelModalAlert.innerText = err.message;
+                        channelModalAlert.style.display = 'block';
+                    }
+                } finally {
+                    if (btnSubmitChannelModal) {
+                        btnSubmitChannelModal.disabled = false;
+                        btnSubmitChannelModal.innerText = 'Criar Canal';
+                    }
+                }
+            });
+        }
+
+        if (userBarMuteBtn) userBarMuteBtn.addEventListener('click', () => toggleMute());
 
         // ==========================================
         // 6. Eventos do Socket.IO & Fila de Mensagens
@@ -3858,28 +4061,30 @@
             const fullUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoom)}`;
             try {
                 await navigator.clipboard.writeText(fullUrl);
-                toastCopied.style.display = 'flex';
-                setTimeout(() => { toastCopied.style.display = 'none'; }, 3000);
+                if (toastCopied) {
+                    toastCopied.style.display = 'flex';
+                    setTimeout(() => { toastCopied.style.display = 'none'; }, 3000);
+                }
             } catch (err) {
                 prompt('Copie o link do canal:', fullUrl);
             }
         }
 
         if (btnCopyChannelLink) btnCopyChannelLink.addEventListener('click', copyRoomLinkAction);
-        btnEmptyStateCopy.addEventListener('click', copyRoomLinkAction);
+        if (btnEmptyStateCopy) btnEmptyStateCopy.addEventListener('click', copyRoomLinkAction);
 
         function updateGridLayout() {
             const peerCount = Object.keys(peerConnections).length;
             if (peerCount === 0) {
-                videoGrid.classList.add('single-peer');
-                emptyStateContainer.style.display = 'flex';
+                if (videoGrid) videoGrid.classList.add('single-peer');
+                if (emptyStateContainer) emptyStateContainer.style.display = 'flex';
                 if (voiceParticipantsCount) voiceParticipantsCount.innerText = '1 Participante (Você)';
-                webrtcStatusText.innerText = `Voz: Aguardando membros no canal...`;
+                if (webrtcStatusText) webrtcStatusText.innerText = `Voz: Aguardando membros no canal...`;
             } else {
-                videoGrid.classList.remove('single-peer');
-                emptyStateContainer.style.display = 'none';
+                if (videoGrid) videoGrid.classList.remove('single-peer');
+                if (emptyStateContainer) emptyStateContainer.style.display = 'none';
                 if (voiceParticipantsCount) voiceParticipantsCount.innerText = `${peerCount + 1} Participantes`;
-                webrtcStatusText.innerText = `Voz: Conectado com ${peerCount} membro(s)`;
+                if (webrtcStatusText) webrtcStatusText.innerText = `Voz: Conectado com ${peerCount} membro(s)`;
             }
         }
 
@@ -3889,19 +4094,19 @@
         function toggleChatSidebar(forceState = null) {
             isChatOpen = (forceState !== null) ? forceState : !isChatOpen;
             if (isChatOpen) {
-                chatSidebar.classList.add('open');
-                btnToggleChat.classList.add('btn-active-highlight');
-                chatUnreadDot.style.display = 'none';
+                if (chatSidebar) chatSidebar.classList.add('open');
+                if (btnToggleChat) btnToggleChat.classList.add('btn-active-highlight');
+                if (chatUnreadDot) chatUnreadDot.style.display = 'none';
                 unreadCount = 0;
-                setTimeout(() => chatInput.focus(), 150);
+                if (chatInput) setTimeout(() => chatInput.focus(), 150);
             } else {
-                chatSidebar.classList.remove('open');
-                btnToggleChat.classList.remove('btn-active-highlight');
+                if (chatSidebar) chatSidebar.classList.remove('open');
+                if (btnToggleChat) btnToggleChat.classList.remove('btn-active-highlight');
             }
         }
 
-        btnToggleChat.addEventListener('click', () => toggleChatSidebar());
-        btnCloseChat.addEventListener('click', () => toggleChatSidebar(false));
+        if (btnToggleChat) btnToggleChat.addEventListener('click', () => toggleChatSidebar());
+        if (btnCloseChat) btnCloseChat.addEventListener('click', () => toggleChatSidebar(false));
 
         function formatTime(timestamp) {
             const date = new Date(timestamp);
@@ -3992,15 +4197,19 @@
             }
         }
 
-        mainChatExpandedForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            sendChatMessage(mainChatExpandedInput.value);
-        });
+        if (mainChatExpandedForm) {
+            mainChatExpandedForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (mainChatExpandedInput) sendChatMessage(mainChatExpandedInput.value);
+            });
+        }
 
-        chatForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            sendChatMessage(chatInput.value);
-        });
+        if (chatForm) {
+            chatForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (chatInput) sendChatMessage(chatInput.value);
+            });
+        }
 
         socket.on('chat-message', (data) => {
             console.log('💬 Mensagem recebida no chat:', data);
@@ -4633,10 +4842,10 @@
             updateLocalStatus();
 
             setViewMode('empty');
-            webrtcStatusText.innerText = 'Desconectado do canal de voz.';
+            if (webrtcStatusText) webrtcStatusText.innerText = 'Desconectado do canal de voz.';
         }
 
-        btnLeaveRoom.addEventListener('click', leaveRoom);
+        if (btnLeaveRoom) btnLeaveRoom.addEventListener('click', leaveRoom);
 
         // ==========================================
         // Controles de Mídia
@@ -4649,8 +4858,8 @@
                 }
                 activeVideoType = 'none';
                 updateAllPeersVideoTrack(null);
-                localVideo.srcObject = null;
-                localPlaceholder.style.opacity = '1';
+                if (localVideo) localVideo.srcObject = null;
+                if (localPlaceholder) localPlaceholder.style.opacity = '1';
                 updateLocalStatus();
                 return;
             }
@@ -4664,9 +4873,11 @@
                 });
 
                 activeVideoType = 'camera';
-                localVideo.style.transform = 'scaleX(-1)';
-                localVideo.srcObject = cameraStream;
-                localPlaceholder.style.opacity = '0';
+                if (localVideo) {
+                    localVideo.style.transform = 'scaleX(-1)';
+                    localVideo.srcObject = cameraStream;
+                }
+                if (localPlaceholder) localPlaceholder.style.opacity = '0';
 
                 updateAllPeersVideoTrack(cameraStream.getVideoTracks()[0]);
                 updateLocalStatus();
@@ -4688,8 +4899,8 @@
                 stopScreenShareTracks();
                 activeVideoType = 'none';
                 updateAllPeersVideoTrack(null);
-                localVideo.srcObject = null;
-                localPlaceholder.style.opacity = '1';
+                if (localVideo) localVideo.srcObject = null;
+                if (localPlaceholder) localPlaceholder.style.opacity = '1';
                 updateLocalStatus();
                 return;
             }
@@ -4706,9 +4917,11 @@
                 screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
 
                 activeVideoType = 'screen';
-                localVideo.style.transform = 'none';
-                localVideo.srcObject = screenStream;
-                localPlaceholder.style.opacity = '0';
+                if (localVideo) {
+                    localVideo.style.transform = 'none';
+                    localVideo.srcObject = screenStream;
+                }
+                if (localPlaceholder) localPlaceholder.style.opacity = '0';
 
                 updateAllPeersVideoTrack(screenStream.getVideoTracks()[0]);
                 updateLocalStatus();
@@ -4735,16 +4948,16 @@
             micStream.getAudioTracks().forEach((t) => (t.enabled = !isMicMuted));
 
             if (isMicMuted) {
-                micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />`;
+                if (micIcon) micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />`;
             } else {
-                micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />`;
+                if (micIcon) micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />`;
             }
             updateLocalStatus();
         }
 
-        btnCamera.addEventListener('click', toggleCamera);
-        btnScreen.addEventListener('click', toggleScreenShare);
-        btnMute.addEventListener('click', toggleMute);
+        if (btnCamera) btnCamera.addEventListener('click', toggleCamera);
+        if (btnScreen) btnScreen.addEventListener('click', toggleScreenShare);
+        if (btnMute) btnMute.addEventListener('click', toggleMute);
 
         // ==========================================
         // 8. Inicialização do Auth Gate
