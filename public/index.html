@@ -6,25 +6,27 @@
     <title>NexusComm V2 - Salas Privadas & WebRTC Multi-Peer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #080b11;
-            --bg-card: rgba(15, 23, 42, 0.75);
+            --bg-primary: #090d16;
+            --bg-secondary: #0d1322;
+            --bg-card: rgba(13, 19, 33, 0.72);
+            --bg-glass-card: rgba(15, 23, 42, 0.65);
             --border-color: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(99, 102, 241, 0.35);
             --primary: #6366f1;
             --primary-hover: #4f46e5;
-            --primary-glow: rgba(99, 102, 241, 0.35);
+            --primary-glow: rgba(99, 102, 241, 0.4);
             --secondary: #0ea5e9;
             --secondary-hover: #0284c7;
-            --secondary-glow: rgba(14, 165, 233, 0.35);
-            --accent: #8b5cf6;
-            --accent-glow: rgba(139, 92, 246, 0.35);
+            --secondary-glow: rgba(14, 165, 233, 0.4);
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.4);
             --danger: #ef4444;
-            --danger-glow: rgba(239, 68, 68, 0.35);
+            --danger-glow: rgba(239, 68, 68, 0.4);
             --warning: #f59e0b;
         }
 
@@ -38,15 +40,16 @@
             font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg-primary);
             background-image: 
-                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 45%),
-                radial-gradient(circle at 85% 85%, rgba(14, 165, 233, 0.15) 0%, transparent 45%);
+                radial-gradient(at 10% 10%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+                radial-gradient(at 90% 90%, rgba(14, 165, 233, 0.12) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.8) 0px, transparent 100%);
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 24px;
+            justify-content: flex-start;
+            padding: 32px 24px 100px 24px;
             overflow-x: hidden;
         }
 
@@ -54,12 +57,12 @@
             width: 100%;
             max-width: 1280px;
             background: var(--bg-card);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             border: 1px solid var(--border-color);
             border-radius: 28px;
             padding: 32px;
-            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.65), 0 0 1px rgba(255, 255, 255, 0.1);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -70,11 +73,22 @@
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(16px);
             }
             to {
                 opacity: 1;
                 transform: translateY(0);
+            }
+        }
+
+        @keyframes videoFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.96) translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
             }
         }
 
@@ -95,21 +109,23 @@
 
         header p {
             color: var(--text-muted);
-            font-size: 1rem;
+            font-size: 0.98rem;
         }
 
         /* Seção de Autenticação JWT */
         .auth-section {
             width: 100%;
-            max-width: 600px;
-            background: rgba(8, 12, 20, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 18px;
+            max-width: 580px;
+            background: var(--bg-glass-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
             padding: 20px 24px;
             display: flex;
             flex-direction: column;
             gap: 14px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
             transition: all 0.3s ease;
         }
 
@@ -127,16 +143,16 @@
             font-family: inherit;
             font-size: 0.85rem;
             font-weight: 600;
-            padding: 6px 14px;
-            border-radius: 8px;
+            padding: 8px 14px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.25s ease;
         }
 
         .auth-tab.active {
-            background: rgba(99, 102, 241, 0.15);
+            background: rgba(99, 102, 241, 0.18);
             color: #a5b4fc;
-            border: 1px solid rgba(99, 102, 241, 0.3);
+            border: 1px solid rgba(99, 102, 241, 0.35);
         }
 
         .auth-form-grid {
@@ -177,15 +193,17 @@
         /* Seção de Entrada na Sala (Room) */
         .room-section {
             width: 100%;
-            max-width: 600px;
-            background: rgba(8, 12, 20, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 18px;
+            max-width: 580px;
+            background: var(--bg-glass-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
             padding: 20px 24px;
             display: flex;
             flex-direction: column;
             gap: 14px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
             transition: all 0.3s ease;
         }
 
@@ -216,7 +234,7 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            transition: all 0.2s ease;
+            transition: all 0.25s ease;
         }
 
         .btn-room-action:hover {
@@ -242,7 +260,7 @@
             font-family: inherit;
             font-size: 0.95rem;
             outline: none;
-            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+            transition: all 0.25s ease;
         }
 
         .room-input:focus {
@@ -271,13 +289,18 @@
             color: #ffffff;
         }
 
-        /* Grid Dinâmico de Vídeos (Flexível e Responsivo para Multi-Peer) */
+        /* Grid Dinâmico de Vídeos */
         .video-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 24px;
             width: 100%;
             transition: all 0.4s ease;
+        }
+
+        .video-grid.single-peer {
+            max-width: 760px;
+            margin: 0 auto;
         }
 
         @media (max-width: 768px) {
@@ -290,22 +313,24 @@
         }
 
         .video-card {
-            background: rgba(8, 12, 20, 0.85);
-            border-radius: 20px;
+            background: var(--bg-glass-card);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 24px;
             border: 1px solid rgba(255, 255, 255, 0.08);
             overflow: hidden;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
             display: flex;
             flex-direction: column;
             transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
             position: relative;
-            animation: fadeIn 0.4s ease-out;
+            animation: videoFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         .video-card:hover {
             border-color: rgba(99, 102, 241, 0.4);
             transform: translateY(-2px);
-            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
         }
 
         .video-card-header {
@@ -330,7 +355,7 @@
             position: relative;
             width: 100%;
             aspect-ratio: 16 / 9;
-            background: #04060a;
+            background: #03060c;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -341,7 +366,8 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            background: #04060a;
+            background: #03060c;
+            transition: opacity 0.3s ease;
         }
 
         #localVideo {
@@ -382,34 +408,34 @@
         }
 
         .floating-badge {
-            width: 32px;
-            height: 32px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.15);
             display: flex;
             align-items: center;
             justify-content: center;
             color: #ffffff;
-            transition: all 0.25s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
         }
 
         .floating-badge.active-green {
             background: rgba(16, 185, 129, 0.85);
             border-color: rgba(16, 185, 129, 0.5);
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
         }
 
         .floating-badge.active-danger {
-            background: rgba(239, 68, 68, 0.85);
-            border-color: rgba(239, 68, 68, 0.5);
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+            background: rgba(239, 68, 68, 0.88);
+            border-color: rgba(239, 68, 68, 0.55);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.45);
         }
 
-        /* Spinners de Feedback de Conexão */
+        /* Status & Spinners */
         .badge-status {
             padding: 4px 12px;
             border-radius: 9999px;
@@ -478,106 +504,173 @@
             50% { opacity: 0.4; transform: scale(1.3); }
         }
 
-        /* Botões e Controles de Mídia */
-        .controls {
+        /* Estado Vazio Elegante (Empty State) */
+        .empty-state-card {
             display: none;
-            gap: 16px;
-            flex-wrap: wrap;
-            justify-content: center;
             width: 100%;
+            max-width: 580px;
+            margin: 0 auto;
+            background: var(--bg-glass-card);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 20px;
+            padding: 20px 24px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
             animation: fadeIn 0.4s ease-out;
         }
 
-        .btn {
-            appearance: none;
+        .empty-state-content {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .empty-state-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a5b4fc;
+            flex-shrink: 0;
+        }
+
+        .empty-state-text h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 2px;
+        }
+
+        .empty-state-text p {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .btn-dock-invite {
+            background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
             border: none;
+            outline: none;
+            color: #ffffff;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            box-shadow: 0 4px 14px var(--primary-glow);
+            transition: all 0.25s ease;
+        }
+
+        .btn-dock-invite:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--primary-glow);
+        }
+
+        /* Doca Central de Controles Flutuante (Google Meet style) */
+        .control-dock {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999;
+            background: rgba(13, 19, 33, 0.88);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 9999px;
+            padding: 8px 18px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            animation: dockSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes dockSlideUp {
+            from {
+                opacity: 0;
+                transform: translate(-50%, 30px);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        .dock-btn {
+            appearance: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             outline: none;
             cursor: pointer;
             font-family: inherit;
-            font-size: 0.95rem;
-            font-weight: 600;
-            padding: 14px 26px;
-            border-radius: 14px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #f8fafc;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            position: relative;
+        }
+
+        .dock-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            background: rgba(255, 255, 255, 0.16);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .dock-btn.btn-active-danger {
+            background: rgba(239, 68, 68, 0.92) !important;
+            border-color: rgba(239, 68, 68, 0.6) !important;
+            box-shadow: 0 4px 16px var(--danger-glow) !important;
+            color: #ffffff !important;
+        }
+
+        .dock-btn.btn-active-highlight {
+            background: rgba(14, 165, 233, 0.92) !important;
+            border-color: rgba(14, 165, 233, 0.6) !important;
+            box-shadow: 0 4px 16px var(--secondary-glow) !important;
+            color: #ffffff !important;
+        }
+
+        .dock-btn-leave {
+            width: auto;
+            border-radius: 9999px;
+            padding: 0 20px;
+            background: #dc2626;
+            border-color: rgba(239, 68, 68, 0.4);
             color: #ffffff;
-            white-space: nowrap;
+            font-weight: 600;
+            font-size: 0.9rem;
+            gap: 8px;
+            box-shadow: 0 4px 16px rgba(220, 38, 38, 0.45);
         }
 
-        .btn-join {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
-            padding: 12px 24px;
+        .dock-btn-leave:hover {
+            background: #b91c1c;
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 6px 22px rgba(220, 38, 38, 0.6);
         }
 
-        .btn-join:hover {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+        .dock-btn:active {
+            transform: translateY(0) scale(0.98);
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
-            box-shadow: 0 4px 16px var(--primary-glow);
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, var(--primary-hover) 0%, #3730a3 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 22px var(--primary-glow);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, var(--secondary) 0%, #0369a1 100%);
-            box-shadow: 0 4px 16px var(--secondary-glow);
-        }
-
-        .btn-secondary:hover {
-            background: linear-gradient(135deg, var(--secondary-hover) 0%, #075985 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 22px var(--secondary-glow);
-        }
-
-        .btn-mute {
-            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn-mute:hover {
-            background: linear-gradient(135deg, #475569 0%, #334155 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-        }
-
-        .btn-muted {
-            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
-            box-shadow: 0 4px 16px var(--danger-glow) !important;
-            border-color: rgba(239, 68, 68, 0.4) !important;
-        }
-
-        .btn-muted:hover {
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%) !important;
-            box-shadow: 0 6px 22px var(--danger-glow) !important;
-        }
-
-        .btn-active-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
-            box-shadow: 0 4px 16px var(--danger-glow) !important;
-            border: 1px solid rgba(239, 68, 68, 0.4) !important;
-        }
-
-        .btn-active-danger:hover {
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%) !important;
-            box-shadow: 0 6px 22px var(--danger-glow) !important;
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
+        /* Barra de Status */
         .status-bar {
             background: rgba(0, 0, 0, 0.35);
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -614,15 +707,53 @@
             box-shadow: 0 0 8px var(--success);
         }
 
-        /* Toast de Cópia de Link */
+        .btn-join {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.25s ease;
+        }
+
+        .btn-join:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
+            box-shadow: 0 4px 16px var(--primary-glow);
+            border: none;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.25s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px var(--primary-glow);
+        }
+
+        /* Toast de Notificação de Cópia */
         .toast-copied {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: #10b981;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(16, 185, 129, 0.95);
+            backdrop-filter: blur(12px);
             color: #ffffff;
-            padding: 12px 22px;
-            border-radius: 12px;
+            padding: 12px 24px;
+            border-radius: 9999px;
             font-weight: 600;
             font-size: 0.9rem;
             box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
@@ -639,7 +770,7 @@
     <main class="container">
         <header>
             <h1>NexusComm WebRTC P2P</h1>
-            <p>Comunicação e videoconferência em Salas Privadas Multi-Participante</p>
+            <p>Videoconferência & Colaboração em Tempo Real</p>
         </header>
 
         <!-- Seção de Autenticação JWT -->
@@ -665,8 +796,8 @@
                         <input type="password" id="authPassword" class="room-input" placeholder="Senha" />
                     </div>
                     <div class="auth-row" style="justify-content: flex-end;">
-                        <button type="button" id="btnRegister" class="btn" style="background: rgba(255, 255, 255, 0.08); padding: 10px 18px; font-size: 0.85rem;">Cadastrar</button>
-                        <button type="button" id="btnLogin" class="btn btn-primary" style="padding: 10px 22px; font-size: 0.85rem;">Entrar</button>
+                        <button type="button" id="btnRegister" class="btn-room-action" style="padding: 10px 18px; font-size: 0.85rem;">Cadastrar</button>
+                        <button type="button" id="btnLogin" class="btn-primary" style="padding: 10px 22px; font-size: 0.85rem;">Entrar</button>
                     </div>
                 </div>
 
@@ -674,7 +805,7 @@
                 <div id="tokenFormContainer" class="auth-form-grid" style="display: none; margin-top: 10px;">
                     <input type="text" id="directTokenInput" class="room-input" placeholder="Cole aqui seu Token JWT..." />
                     <div class="auth-row" style="justify-content: flex-end;">
-                        <button type="button" id="btnApplyToken" class="btn btn-primary" style="padding: 10px 22px; font-size: 0.85rem;">Conectar com Token</button>
+                        <button type="button" id="btnApplyToken" class="btn-primary" style="padding: 10px 22px; font-size: 0.85rem;">Conectar com Token</button>
                     </div>
                 </div>
             </div>
@@ -706,7 +837,7 @@
             </div>
             <div id="roomFormContainer" class="room-form">
                 <input type="text" id="roomInput" class="room-input" placeholder="Digite ou gere o nome da sala (ex: sala-reuniao-dev)" />
-                <button id="btnJoinRoom" class="btn btn-join">
+                <button id="btnJoinRoom" class="btn-join">
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                     </svg>
@@ -718,7 +849,7 @@
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>Conectado na sala: <strong id="roomNameDisplay"></strong></span>
+                    <span>Sala: <strong id="roomNameDisplay"></strong></span>
                 </div>
                 <button type="button" id="btnCopyRoomLink" class="btn-room-action" style="background: rgba(99, 102, 241, 0.25); border-color: rgba(99, 102, 241, 0.4); color: #c7d2fe;">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -730,7 +861,7 @@
         </div>
 
         <!-- Grid Dinâmico de Vídeos: Suporta Múltiplos Participantes -->
-        <div class="video-grid" id="videoGrid">
+        <div class="video-grid single-peer" id="videoGrid">
             <!-- Vídeo Local -->
             <div class="video-card" id="localVideoCard">
                 <div class="video-card-header">
@@ -768,25 +899,24 @@
             <!-- Vídeos Remotos são gerados dinamicamente via JS -->
         </div>
 
-        <!-- Botões de Controle de Mídia (Inicialmente ocultos até entrar na sala) -->
-        <div id="mediaControls" class="controls">
-            <button id="btnCamera" class="btn btn-primary">
-                <svg id="cameraIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        <!-- Estado Vazio (Empty State: Quando só há o usuário local na sala) -->
+        <div id="emptyStateContainer" class="empty-state-card">
+            <div class="empty-state-content">
+                <div class="empty-state-icon">
+                    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+                <div class="empty-state-text">
+                    <h4>Você é o único na sala</h4>
+                    <p>Copie o link da reunião e convide sua equipe para entrar!</p>
+                </div>
+            </div>
+            <button type="button" id="btnEmptyStateCopy" class="btn-dock-invite">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                <span id="cameraBtnText">Ligar Câmera</span>
-            </button>
-            <button id="btnScreen" class="btn btn-secondary">
-                <svg id="screenIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <span id="screenBtnText">Compartilhar Tela</span>
-            </button>
-            <button id="btnMute" class="btn btn-mute">
-                <svg id="micIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-                <span id="muteBtnText">Mutar Microfone</span>
+                <span>Copiar Link</span>
             </button>
         </div>
 
@@ -800,12 +930,44 @@
         </div>
     </main>
 
+    <!-- Doca Central de Controles Flutuante (Google Meet style) -->
+    <div id="controlDock" class="control-dock">
+        <!-- Botão de Microfone -->
+        <button id="btnMute" class="dock-btn" title="Mutar / Desmutar Microfone">
+            <svg id="micIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+        </button>
+
+        <!-- Botão de Câmera -->
+        <button id="btnCamera" class="dock-btn" title="Ligar / Desligar Câmera">
+            <svg id="cameraIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+        </button>
+
+        <!-- Botão de Compartilhar Tela -->
+        <button id="btnScreen" class="dock-btn" title="Compartilhar Tela">
+            <svg id="screenIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+        </button>
+
+        <!-- Botão de Sair da Chamada -->
+        <button id="btnLeaveRoom" class="dock-btn dock-btn-leave" title="Sair da Chamada">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l4 4m0 0l-4 4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Sair</span>
+        </button>
+    </div>
+
     <!-- Toast de Notificação de Cópia -->
     <div id="toastCopied" class="toast-copied">
         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
         </svg>
-        <span>Link da sala copiado para a área de transferência!</span>
+        <span>Link da sala copiado com sucesso!</span>
     </div>
 
     <!-- Client do Socket.IO -->
@@ -843,24 +1005,25 @@
         const roomFormContainer = document.getElementById('roomFormContainer');
         const activeRoomBadge = document.getElementById('activeRoomBadge');
         const roomNameDisplay = document.getElementById('roomNameDisplay');
+        const emptyStateContainer = document.getElementById('emptyStateContainer');
+        const btnEmptyStateCopy = document.getElementById('btnEmptyStateCopy');
 
-        // Elementos de Vídeo e Controles
+        // Elementos de Vídeo e Doca Flutuante de Controles
         const videoGrid = document.getElementById('videoGrid');
         const localVideo = document.getElementById('localVideo');
         const localStatusBadge = document.getElementById('localStatusBadge');
         const localPlaceholder = document.getElementById('localPlaceholder');
         const localFloatMic = document.getElementById('localFloatMic');
         const localFloatCam = document.getElementById('localFloatCam');
-        const mediaControls = document.getElementById('mediaControls');
+        const controlDock = document.getElementById('controlDock');
         const btnCamera = document.getElementById('btnCamera');
-        const cameraBtnText = document.getElementById('cameraBtnText');
         const cameraIcon = document.getElementById('cameraIcon');
         const btnScreen = document.getElementById('btnScreen');
-        const screenBtnText = document.getElementById('screenBtnText');
         const screenIcon = document.getElementById('screenIcon');
         const btnMute = document.getElementById('btnMute');
-        const muteBtnText = document.getElementById('muteBtnText');
         const micIcon = document.getElementById('micIcon');
+        const btnLeaveRoom = document.getElementById('btnLeaveRoom');
+
         const socketDot = document.getElementById('socketDot');
         const socketStatusText = document.getElementById('socketStatusText');
         const webrtcStatusText = document.getElementById('webrtcStatusText');
@@ -1091,22 +1254,48 @@
             roomInput.focus();
         });
 
-        btnCopyRoomLink.addEventListener('click', async () => {
+        async function copyRoomLinkAction() {
             if (!currentRoom) return;
             const fullUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoom)}`;
             try {
                 await navigator.clipboard.writeText(fullUrl);
-                copyBtnText.innerText = 'Copiado!';
+                if (copyBtnText) copyBtnText.innerText = 'Copiado!';
                 toastCopied.style.display = 'flex';
                 setTimeout(() => {
-                    copyBtnText.innerText = 'Copiar Link';
+                    if (copyBtnText) copyBtnText.innerText = 'Copiar Link';
                     toastCopied.style.display = 'none';
                 }, 3000);
             } catch (err) {
                 console.error('Erro ao copiar link:', err);
                 prompt('Copie o link da sala:', fullUrl);
             }
-        });
+        }
+
+        btnCopyRoomLink.addEventListener('click', copyRoomLinkAction);
+        btnEmptyStateCopy.addEventListener('click', copyRoomLinkAction);
+
+        // Atualiza a visualização do Grid e Estado Vazio
+        function updateGridLayout() {
+            const peerCount = Object.keys(peerConnections).length;
+            if (!currentRoom) {
+                emptyStateContainer.style.display = 'none';
+                videoGrid.classList.add('single-peer');
+                controlDock.style.display = 'none';
+                return;
+            }
+
+            controlDock.style.display = 'flex';
+
+            if (peerCount === 0) {
+                videoGrid.classList.add('single-peer');
+                emptyStateContainer.style.display = 'flex';
+                webrtcStatusText.innerText = `WebRTC: Na sala [${currentRoom}]. Aguardando participantes...`;
+            } else {
+                videoGrid.classList.remove('single-peer');
+                emptyStateContainer.style.display = 'none';
+                webrtcStatusText.innerText = `WebRTC: Conectado com ${peerCount} participante(s)`;
+            }
+        }
 
         // ==========================================
         // Gerenciador de Cards Remotos no Grid Dinâmico
@@ -1166,6 +1355,7 @@
             }
             videoEl.srcObject = remoteStreams[socketId];
 
+            updateGridLayout();
             return card;
         }
 
@@ -1182,16 +1372,13 @@
             peerConnections[targetSocketId] = pc;
             iceCandidateQueues[targetSocketId] = [];
 
-            // Garante que o card do participante existe no grid
             getOrCreateRemoteCard(targetSocketId, targetUsername);
 
-            // Adiciona todas as tracks do stream local para o novo peer
             localStream.getTracks().forEach((track) => {
                 pc.addTrack(track, localStream);
                 console.log(`➕ Track local adicionada ao peer [${targetSocketId}]:`, track.kind);
             });
 
-            // Envia ICE Candidates encontrados localmente para o peer alvo
             pc.onicecandidate = (event) => {
                 if (event.candidate && currentRoom) {
                     socket.emit('ice-candidate', {
@@ -1202,7 +1389,6 @@
                 }
             };
 
-            // Recebe tracks de áudio e vídeo do peer remoto
             pc.ontrack = (event) => {
                 console.log(`🎥 Recebida track remota de [${targetSocketId}]:`, event.track.kind, event.track.id);
                 if (!remoteStreams[targetSocketId]) {
@@ -1210,7 +1396,6 @@
                 }
                 const stream = remoteStreams[targetSocketId];
 
-                // Remove track anterior do mesmo tipo
                 stream.getTracks().forEach((t) => {
                     if (t.kind === event.track.kind && t.id !== event.track.id) {
                         stream.removeTrack(t);
@@ -1239,7 +1424,6 @@
                 }
             };
 
-            // Monitor de status da conexão ICE (Feedback com Spinner)
             pc.oniceconnectionstatechange = () => {
                 const state = pc.iceConnectionState;
                 console.log(`🔄 ICE state do peer [${targetSocketId}]:`, state);
@@ -1254,7 +1438,7 @@
                     }
                     if (spinner) spinner.style.display = 'none';
                     if (placeholderText) placeholderText.innerText = 'Câmera desligada';
-                    webrtcStatusText.innerText = `WebRTC: Conectado com ${Object.keys(peerConnections).length} participante(s)`;
+                    updateGridLayout();
                 } else if (state === 'checking') {
                     if (statusBadge) {
                         statusBadge.className = 'badge-status badge-connecting';
@@ -1270,7 +1454,6 @@
                 }
             };
 
-            // Se for o iniciador da conexão, gera e envia a Offer para o peer alvo
             if (isInitiator) {
                 pc.createOffer({
                     offerToReceiveAudio: true,
@@ -1288,10 +1471,10 @@
                 .catch(err => console.error('Erro ao criar offer para peer:', err));
             }
 
+            updateGridLayout();
             return pc;
         }
 
-        // Função para drenar fila de ICE Candidates pendentes de um peer
         async function processIceCandidateQueueForPeer(socketId) {
             const queue = iceCandidateQueues[socketId];
             const pc = peerConnections[socketId];
@@ -1308,7 +1491,6 @@
             }
         }
 
-        // Fecha e remove conexão e card de um participante desconectado
         function closePeerConnection(targetSocketId) {
             console.log(`🚪 Encerrando conexão P2P com [${targetSocketId}]`);
             if (peerConnections[targetSocketId]) {
@@ -1327,15 +1509,9 @@
                 card.remove();
             }
 
-            const activePeers = Object.keys(peerConnections).length;
-            if (activePeers === 0) {
-                webrtcStatusText.innerText = `WebRTC: Na sala [${currentRoom}]. Aguardando participantes...`;
-            } else {
-                webrtcStatusText.innerText = `WebRTC: Conectado com ${activePeers} participante(s)`;
-            }
+            updateGridLayout();
         }
 
-        // Atualiza a trilha de áudio em todos os PeerConnections ativos
         function updateAllPeersAudioTrack(track) {
             if (!track) return;
             localStream.getAudioTracks().forEach(t => localStream.removeTrack(t));
@@ -1352,7 +1528,6 @@
             }
         }
 
-        // Atualiza a trilha de vídeo em todos os PeerConnections ativos
         function updateAllPeersVideoTrack(track) {
             localStream.getVideoTracks().forEach(t => localStream.removeTrack(t));
             if (track) {
@@ -1370,7 +1545,6 @@
             }
         }
 
-        // Notifica outros participantes sobre mudanças de estado de mídia (mute/câmera)
         function emitMediaStateChange() {
             if (currentRoom && socket.connected) {
                 socket.emit('media-state-change', {
@@ -1382,7 +1556,6 @@
             }
         }
 
-        // Captura o microfone nativo com DSP ativo
         async function getOrCreateMicrophone() {
             if (micStream && micStream.getAudioTracks().some((t) => t.readyState === 'live')) {
                 return micStream;
@@ -1413,32 +1586,44 @@
                 localFloatCam.classList.add('active-green');
                 localFloatCam.classList.remove('active-danger');
                 localFloatCam.title = 'Câmera Ativa';
+                btnCamera.classList.remove('btn-active-danger');
             } else if (activeVideoType === 'screen') {
                 localStatusBadge.className = 'badge-status badge-live';
                 localStatusBadge.innerText = 'Compartilhando Tela';
                 localFloatCam.classList.add('active-green');
                 localFloatCam.classList.remove('active-danger');
                 localFloatCam.title = 'Compartilhando Tela';
+                btnCamera.classList.add('btn-active-danger');
             } else if (micStream && !isMicMuted) {
                 localStatusBadge.className = 'badge-status badge-live';
                 localStatusBadge.innerText = 'Microfone Ativo';
                 localFloatCam.classList.remove('active-green', 'active-danger');
                 localFloatCam.title = 'Câmera Desligada';
+                btnCamera.classList.add('btn-active-danger');
             } else {
                 localStatusBadge.className = 'badge-status badge-offline';
                 localStatusBadge.innerText = 'Offline';
                 localFloatCam.classList.remove('active-green', 'active-danger');
                 localFloatCam.title = 'Câmera Desligada';
+                btnCamera.classList.add('btn-active-danger');
             }
 
             if (isMicMuted) {
                 localFloatMic.className = 'floating-badge active-danger';
                 localFloatMic.title = 'Microfone Mutado';
                 localFloatMic.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>`;
+                btnMute.classList.add('btn-active-danger');
             } else {
                 localFloatMic.className = 'floating-badge active-green';
                 localFloatMic.title = 'Microfone Ativo';
                 localFloatMic.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>`;
+                btnMute.classList.remove('btn-active-danger');
+            }
+
+            if (activeVideoType === 'screen') {
+                btnScreen.classList.add('btn-active-highlight');
+            } else {
+                btnScreen.classList.remove('btn-active-highlight');
             }
 
             emitMediaStateChange();
@@ -1447,29 +1632,25 @@
         // ==========================================
         // Eventos de Sinalização WebRTC Multi-Peer
         // ==========================================
-
-        // 1. Recebe a lista de usuários que já estão na sala e inicia a chamada para cada um
         socket.on('room-users', async (data) => {
             console.log('👥 Participantes já presentes na sala:', data.users);
             await getOrCreateMicrophone();
 
             for (const otherUserId of data.users) {
-                // Cria conexão P2P atuando como initiator (cria offer)
                 createPeerConnection(otherUserId, true);
             }
+            updateGridLayout();
         });
 
-        // 2. Notificado quando um novo participante entra na sala
         socket.on('user-joined', async (data) => {
             console.log('👤 Novo participante entrou:', data);
             await getOrCreateMicrophone();
             peerUsernames[data.id] = data.username;
-            // Cria o card e aguarda a Offer do novo usuário
             getOrCreateRemoteCard(data.id, data.username);
             emitMediaStateChange();
+            updateGridLayout();
         });
 
-        // 3. Recebe Offer -> Cria PeerConnection (receiver), responde com Answer
         socket.on('offer', async (data) => {
             const offer = data.offer || data;
             const senderId = data.sender;
@@ -1497,7 +1678,6 @@
             }
         });
 
-        // 4. Recebe Answer -> Aplica Remote Description
         socket.on('answer', async (data) => {
             const answer = data.answer || data;
             const senderId = data.sender;
@@ -1515,7 +1695,6 @@
             }
         });
 
-        // 5. Recebe ICE Candidate -> Aplica ou enfileira
         socket.on('ice-candidate', async (data) => {
             const candidateData = data.candidate;
             const senderId = data.sender;
@@ -1537,7 +1716,6 @@
             }
         });
 
-        // 6. Sincronização de Estado de Mídia de Outros Participantes
         socket.on('user-media-state-changed', (data) => {
             const senderId = data.sender;
             const floatMic = document.getElementById(`floatMic-${senderId}`);
@@ -1569,14 +1747,13 @@
             }
         });
 
-        // 7. Participante Saiu da Sala
         socket.on('user-left', (data) => {
             console.log('🚪 Participante saiu:', data);
             closePeerConnection(data.id);
         });
 
         // ==========================================
-        // Ação de Entrada na Sala (join-room)
+        // Entrada e Saída de Sala
         // ==========================================
         btnJoinRoom.addEventListener('click', async () => {
             if (!authToken || !socket.connected) {
@@ -1598,9 +1775,8 @@
             roomFormContainer.style.display = 'none';
             activeRoomBadge.style.display = 'inline-flex';
             roomNameDisplay.innerText = currentRoom;
-            mediaControls.style.display = 'flex';
-            webrtcStatusText.innerText = `WebRTC: Conectado na sala [${currentRoom}]. Microfone ativado.`;
 
+            updateGridLayout();
             await getOrCreateMicrophone();
         });
 
@@ -1609,6 +1785,44 @@
                 btnJoinRoom.click();
             }
         });
+
+        // Sair da Chamada (Leave Room)
+        function leaveRoom() {
+            if (!currentRoom) return;
+
+            // Para tracks de câmera
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(t => t.stop());
+                cameraStream = null;
+            }
+            // Para tracks de tela
+            if (screenStream) {
+                screenStream.getTracks().forEach(t => t.stop());
+                screenStream = null;
+            }
+
+            activeVideoType = 'none';
+            localVideo.srcObject = null;
+            localPlaceholder.style.opacity = '1';
+
+            // Encerra todas as conexões P2P
+            for (const peerId of Object.keys(peerConnections)) {
+                closePeerConnection(peerId);
+            }
+
+            // Notifica o servidor e reconecta para sair limpo das salas
+            socket.emit('leave-room', currentRoom);
+            currentRoom = null;
+
+            // Restaura UI
+            roomFormContainer.style.display = 'flex';
+            activeRoomBadge.style.display = 'none';
+            updateGridLayout();
+            updateLocalStatus();
+            webrtcStatusText.innerText = 'WebRTC: Você saiu da sala.';
+        }
+
+        btnLeaveRoom.addEventListener('click', leaveRoom);
 
         // ==========================================
         // Controles de Mídia Locais
@@ -1629,17 +1843,10 @@
                 updateAllPeersVideoTrack(null);
                 localVideo.srcObject = null;
                 localPlaceholder.style.opacity = '1';
-
-                cameraBtnText.innerText = 'Ligar Câmera';
-                btnCamera.classList.remove('btn-active-danger');
-                btnCamera.classList.add('btn-primary');
-                cameraIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />`;
-
                 updateLocalStatus();
                 return;
             }
 
-            // Parar compartilhamento de tela se estiver ativo
             if (activeVideoType === 'screen') {
                 stopScreenShareTracks();
             }
@@ -1656,11 +1863,6 @@
                 localVideo.srcObject = cameraStream;
                 localPlaceholder.style.opacity = '0';
 
-                cameraBtnText.innerText = 'Desligar Câmera';
-                btnCamera.classList.remove('btn-primary');
-                btnCamera.classList.add('btn-active-danger');
-                cameraIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />`;
-
                 updateAllPeersVideoTrack(cameraStream.getVideoTracks()[0]);
                 updateLocalStatus();
             } catch (err) {
@@ -1674,10 +1876,6 @@
                 screenStream.getTracks().forEach((t) => t.stop());
                 screenStream = null;
             }
-            screenBtnText.innerText = 'Compartilhar Tela';
-            btnScreen.classList.remove('btn-active-danger');
-            btnScreen.classList.add('btn-secondary');
-            screenIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />`;
         }
 
         async function toggleScreenShare() {
@@ -1701,10 +1899,6 @@
                     cameraStream.getTracks().forEach((t) => t.stop());
                     cameraStream = null;
                 }
-                cameraBtnText.innerText = 'Ligar Câmera';
-                btnCamera.classList.remove('btn-active-danger');
-                btnCamera.classList.add('btn-primary');
-                cameraIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />`;
             }
 
             try {
@@ -1718,11 +1912,6 @@
                 localVideo.style.transform = 'none';
                 localVideo.srcObject = screenStream;
                 localPlaceholder.style.opacity = '0';
-
-                screenBtnText.innerText = 'Parar Compartilhamento';
-                btnScreen.classList.remove('btn-secondary');
-                btnScreen.classList.add('btn-active-danger');
-                screenIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />`;
 
                 updateAllPeersVideoTrack(screenStream.getVideoTracks()[0]);
                 updateLocalStatus();
@@ -1756,13 +1945,9 @@
             micStream.getAudioTracks().forEach((t) => (t.enabled = !isMicMuted));
 
             if (isMicMuted) {
-                btnMute.classList.add('btn-muted');
-                muteBtnText.innerText = 'Desmutar Microfone';
                 micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />`;
                 console.log('🔇 Microfone mutado');
             } else {
-                btnMute.classList.remove('btn-muted');
-                muteBtnText.innerText = 'Mutar Microfone';
                 micIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />`;
                 console.log('🎤 Microfone ativado');
             }
