@@ -2699,14 +2699,23 @@
         const socketStatusText = document.getElementById('socketStatusText');
         const webrtcStatusText = document.getElementById('webrtcStatusText');
 
-        // Inicialização do Socket.IO (Sem auto-conectar antes de autenticar)
+        // Inicialização do Socket.IO com Resiliência Avançada e Reconexão Progressiva
         const socket = io({
             auth: {
                 token: authToken,
                 username: currentUser?.username || ''
             },
-            autoConnect: false
+            autoConnect: false,
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            randomizationFactor: 0.5,
+            timeout: 20000
         });
+
+        // Fila de Mensagens (Message Queue) para resiliência offline/queda de rede
+        const pendingMessageQueue = [];
 
         socket.on('authenticated', (data) => {
             console.log('✅ Identidade confirmada pelo servidor:', data);
@@ -3788,7 +3797,7 @@
         userBarMuteBtn.addEventListener('click', () => toggleMute());
 
         // ==========================================
-        // 6. Eventos do Socket.IO
+        // 6. Eventos do Socket.IO & Fila de Mensagens
         // ==========================================
         socket.on('connect_error', (err) => {
             console.warn('🔒 Conexão rejeitada pelo servidor Socket.IO:', err.message);
@@ -3799,15 +3808,49 @@
         });
 
         socket.on('connect', () => {
-            console.log('🟢 Conectado e autenticado no Socket.IO | ID:', socket.id);
+            console.log('🟢 [Socket.IO Conectado] ID:', socket.id);
             if (socketDot) socketDot.classList.add('connected');
             if (socketStatusText) socketStatusText.innerText = `Socket: Conectado (${socket.id.substring(0, 6)}...)`;
+
+            // Reassocia à sala ativa se houver
+            if (currentRoom) {
+                console.log(`🚪 [Socket.IO Reconexão] Reingressando na sala: "${currentRoom}"`);
+                socket.emit('join-room', currentRoom);
+            }
+
+            // Despacha mensagens pendentes acumuladas na Message Queue
+            if (pendingMessageQueue.length > 0) {
+                console.log(`🚀 [Message Queue] Despachando ${pendingMessageQueue.length} mensagem(ns) acumulada(s) após reconexão...`);
+                while (pendingMessageQueue.length > 0) {
+                    const pendingMsg = pendingMessageQueue.shift();
+                    socket.emit('chat-message', pendingMsg);
+                    console.log('✉️ [Message Queue] Mensagem despachada com sucesso:', pendingMsg);
+                }
+            }
         });
 
         socket.on('disconnect', (reason) => {
-            console.log('🔴 Desconectado do servidor Socket.IO. Motivo:', reason);
+            console.log('🔴 [Socket.IO Desconectado] Motivo:', reason);
             if (socketDot) socketDot.classList.remove('connected');
-            if (socketStatusText) socketStatusText.innerText = 'Socket: Desconectado';
+            if (socketStatusText) socketStatusText.innerText = 'Socket: Desconectado (Reconectando...)';
+        });
+
+        socket.io.on('reconnect_attempt', (attempt) => {
+            console.log(`🔄 [Socket.IO] Tentativa de reconexão #${attempt}...`);
+            if (socketStatusText) socketStatusText.innerText = `Socket: Reconectando (#${attempt})...`;
+        });
+
+        socket.io.on('reconnect', (attempt) => {
+            console.log(`✅ [Socket.IO] Reconectado com sucesso após ${attempt} tentativa(s)!`);
+        });
+
+        socket.io.on('reconnect_error', (error) => {
+            console.warn('⚠️ [Socket.IO] Falha temporária ao tentar reconectar:', error.message);
+        });
+
+        socket.io.on('reconnect_failed', () => {
+            console.error('❌ [Socket.IO] Falha definitiva na reconexão.');
+            if (socketStatusText) socketStatusText.innerText = 'Socket: Falha na Conexão';
         });
 
         async function copyRoomLinkAction() {
@@ -3919,25 +3962,34 @@
             const cleanText = text.trim();
             if (!cleanText || !currentRoom) return;
 
+            const myUsername = currentUser?.username || 'Você';
             const timestamp = Date.now();
             const messageData = {
                 room: currentRoom,
                 text: cleanText,
-                sender: currentAuthUser || 'Você',
+                sender: myUsername,
                 timestamp: timestamp
             };
 
-            socket.emit('chat-message', messageData);
-
+            // Renderiza imediatamente na UI do remetente
             appendChatMessage({
                 text: cleanText,
-                sender: currentAuthUser || 'Você',
+                sender: myUsername,
                 timestamp: timestamp,
                 isMine: true
             });
 
             if (mainChatExpandedInput) mainChatExpandedInput.value = '';
             if (chatInput) chatInput.value = '';
+
+            // Se o socket estiver conectado, envia diretamente; caso contrário, enfileira (Message Queue)
+            if (socket.connected) {
+                socket.emit('chat-message', messageData);
+                console.log('💬 [Chat] Mensagem enviada em tempo real:', messageData);
+            } else {
+                pendingMessageQueue.push(messageData);
+                console.warn('⚠️ [Message Queue] Socket offline/desconectado. Mensagem guardada na fila de envio automático:', messageData);
+            }
         }
 
         mainChatExpandedForm.addEventListener('submit', (e) => {
@@ -3952,7 +4004,8 @@
 
         socket.on('chat-message', (data) => {
             console.log('💬 Mensagem recebida no chat:', data);
-            const isMine = Boolean(currentAuthUser && data.sender && data.sender === currentAuthUser);
+            const myUsername = currentUser?.username;
+            const isMine = Boolean(myUsername && data.sender && data.sender === myUsername);
             appendChatMessage({
                 text: data.text,
                 sender: data.sender || 'Participante',
@@ -4135,14 +4188,16 @@
                 }
             };
 
+            // Monitoramento de auditoria e Keep-Alive / ICE Restart
             pc.oniceconnectionstatechange = () => {
-                const state = pc.iceConnectionState;
-                console.log(`🔄 ICE state do peer [${targetSocketId}]:`, state);
+                const iceState = pc.iceConnectionState;
+                console.log(`🔄 [WebRTC ICE State Change] Peer [${targetSocketId}]: ${iceState}`);
                 const statusBadge = document.getElementById(`status-${targetSocketId}`);
                 const spinner = document.getElementById(`spinner-${targetSocketId}`);
                 const placeholderText = document.getElementById(`placeholderText-${targetSocketId}`);
 
-                if (state === 'connected' || state === 'completed') {
+                if (iceState === 'connected' || iceState === 'completed') {
+                    console.log(`✅ [WebRTC Conectado] Malha P2P restabelecida com sucesso com o peer [${targetSocketId}]`);
                     if (statusBadge) {
                         statusBadge.className = 'badge-status badge-live';
                         statusBadge.innerText = 'Ao Vivo';
@@ -4150,18 +4205,37 @@
                     if (spinner) spinner.style.display = 'none';
                     if (placeholderText) placeholderText.innerText = 'Câmera desligada';
                     updateGridLayout();
-                } else if (state === 'checking') {
+                } else if (iceState === 'checking') {
+                    console.log(`⏳ [WebRTC Verificando] Negociando candidatos ICE com o peer [${targetSocketId}]...`);
                     if (statusBadge) {
                         statusBadge.className = 'badge-status badge-connecting';
                         statusBadge.innerHTML = '<span class="spinner-small"></span> Conectando...';
                     }
                     if (spinner) spinner.style.display = 'block';
                     if (placeholderText) placeholderText.innerText = 'Negociando P2P...';
-                } else if (state === 'disconnected' || state === 'failed') {
+                } else if (iceState === 'disconnected' || iceState === 'failed') {
+                    console.warn(`⚠️ [WebRTC Queda/Oscilação] ICE state '${iceState}' detectado no peer [${targetSocketId}]. Disparando ICE Restart para renegociação com STUN/TURN...`);
                     if (statusBadge) {
                         statusBadge.className = 'badge-status badge-offline';
-                        statusBadge.innerText = state === 'failed' ? 'Falha' : 'Desconectado';
+                        statusBadge.innerText = iceState === 'failed' ? 'Falha (Reconectando)' : 'Reconectando...';
                     }
+                    if (spinner) spinner.style.display = 'block';
+                    if (placeholderText) placeholderText.innerText = 'Reconectando malha de áudio/vídeo...';
+
+                    triggerIceRestart(targetSocketId, pc);
+                } else if (iceState === 'closed') {
+                    console.log(`🔴 [WebRTC Fechado] Conexão ICE encerrada com o peer [${targetSocketId}]`);
+                }
+            };
+
+            pc.onconnectionstatechange = () => {
+                const connState = pc.connectionState;
+                console.log(`📡 [WebRTC Connection State Change] Peer [${targetSocketId}]: ${connState}`);
+                if (connState === 'disconnected' || connState === 'failed') {
+                    console.warn(`⚠️ [WebRTC ConnectionState] Estado '${connState}' com [${targetSocketId}]. Forçando ICE Restart...`);
+                    triggerIceRestart(targetSocketId, pc);
+                } else if (connState === 'connected') {
+                    console.log(`🎉 [WebRTC P2P Conectado] Peer [${targetSocketId}] ativo na sessão de voz/vídeo.`);
                 }
             };
 
@@ -4169,17 +4243,66 @@
                 pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
                 .then(offer => pc.setLocalDescription(offer).then(() => offer))
                 .then(offer => {
+                    console.log(`📡 [WebRTC Oferta Inicial] Enviando oferta inicial para peer [${targetSocketId}]`);
                     socket.emit('offer', {
                         target: targetSocketId,
                         room: currentRoom,
-                        offer: offer
+                        offer: offer,
+                        username: currentUser?.username || 'Usuário'
                     });
                 })
-                .catch(err => console.error('Erro ao criar offer:', err));
+                .catch(err => console.error(`❌ [WebRTC Erro Oferta Inicial] Falha ao criar offer para [${targetSocketId}]:`, err));
             }
 
             updateGridLayout();
             return pc;
+        }
+
+        const iceRestartDebounce = {};
+
+        async function triggerIceRestart(targetSocketId, pc) {
+            if (!pc || pc.signalingState === 'closed') {
+                console.warn(`⚠️ [ICE Restart Ignorado] RTCPeerConnection para [${targetSocketId}] inexistente ou fechada.`);
+                return;
+            }
+
+            const now = Date.now();
+            if (iceRestartDebounce[targetSocketId] && (now - iceRestartDebounce[targetSocketId]) < 3500) {
+                console.log(`⏱️ [ICE Restart Debounce] Aguardando intervalo de resiliência para o peer [${targetSocketId}]`);
+                return;
+            }
+            iceRestartDebounce[targetSocketId] = now;
+
+            console.warn(`🚀 [ICE Restart Iniciado] Forçando renegociação e novo mapeamento STUN/TURN para peer [${targetSocketId}]...`);
+
+            try {
+                if (typeof pc.restartIce === 'function') {
+                    pc.restartIce();
+                }
+
+                const offer = await pc.createOffer({
+                    iceRestart: true,
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                });
+
+                await pc.setLocalDescription(offer);
+
+                if (socket.connected && currentRoom) {
+                    socket.emit('offer', {
+                        target: targetSocketId,
+                        room: currentRoom,
+                        offer: offer,
+                        isIceRestart: true,
+                        username: currentUser?.username || 'Usuário'
+                    });
+                    console.log(`📡 [ICE Restart] Oferta de recuperação enviada via Socket para o peer [${targetSocketId}]`);
+                } else {
+                    console.warn(`⚠️ [ICE Restart] Socket temporariamente offline. A renegociação será reenviada ao reconectar.`);
+                }
+            } catch (err) {
+                console.error(`❌ [ICE Restart Erro] Falha ao executar ICE Restart com [${targetSocketId}]:`, err);
+            }
         }
 
         async function processIceCandidateQueueForPeer(socketId) {
@@ -4346,8 +4469,15 @@
             if (!offer || !offer.type || !senderId) return;
 
             try {
+                console.log(`📩 [WebRTC Oferta Recebida] Do peer [${senderId}] | isIceRestart: ${Boolean(data.isIceRestart)}`);
                 if (currentViewMode === 'voice') await getOrCreateMicrophone();
                 const pc = createPeerConnection(senderId, false, data.username);
+
+                // Tratamento seguro de colisão / sinalização durante renegociação ou ICE Restart
+                if (pc.signalingState !== 'stable') {
+                    console.log(`🔄 [WebRTC Glare/Restart] Rollback no peer [${senderId}] (Estado atual: ${pc.signalingState})`);
+                    await pc.setLocalDescription({ type: 'rollback' });
+                }
 
                 await pc.setRemoteDescription(new RTCSessionDescription(offer));
                 await processIceCandidateQueueForPeer(senderId);
@@ -4360,8 +4490,9 @@
                     room: currentRoom,
                     answer: answer
                 });
+                console.log(`📡 [WebRTC Resposta Enviada] Answer enviada para o peer [${senderId}]`);
             } catch (err) {
-                console.error(`Erro ao processar Offer:`, err);
+                console.error(`❌ [WebRTC Erro de Oferta] Falha ao processar oferta de [${senderId}]:`, err);
             }
         });
 
@@ -4371,13 +4502,19 @@
             if (!answer || !answer.type || !senderId) return;
 
             try {
+                console.log(`📩 [WebRTC Resposta Recebida] Answer do peer [${senderId}]`);
                 const pc = peerConnections[senderId];
-                if (pc) {
-                    await pc.setRemoteDescription(new RTCSessionDescription(answer));
-                    await processIceCandidateQueueForPeer(senderId);
+                if (pc && pc.signalingState !== 'closed') {
+                    if (pc.signalingState === 'have-local-offer') {
+                        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+                        await processIceCandidateQueueForPeer(senderId);
+                        console.log(`✅ [WebRTC Negociação Concluída] Descrição remota aplicada para [${senderId}]`);
+                    } else {
+                        console.warn(`⚠️ [WebRTC Answer Ignorada] Peer [${senderId}] no estado '${pc.signalingState}'`);
+                    }
                 }
             } catch (err) {
-                console.error(`Erro ao processar Answer:`, err);
+                console.error(`❌ [WebRTC Erro de Resposta] Erro ao processar Answer de [${senderId}]:`, err);
             }
         });
 
