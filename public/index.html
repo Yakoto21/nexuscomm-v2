@@ -12,6 +12,7 @@
             --bg-primary: #090d16;
             --bg-secondary: #0d1322;
             --bg-sidebar: rgba(10, 14, 26, 0.94);
+            --bg-channels: rgba(15, 23, 42, 0.88);
             --bg-card: rgba(13, 19, 33, 0.72);
             --bg-glass-card: rgba(15, 23, 42, 0.65);
             --border-color: rgba(255, 255, 255, 0.08);
@@ -24,6 +25,7 @@
             --secondary-glow: rgba(14, 165, 233, 0.4);
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
+            --text-dark-muted: #64748b;
             --success: #10b981;
             --success-glow: rgba(16, 185, 129, 0.4);
             --danger: #ef4444;
@@ -50,12 +52,16 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            padding: 32px 24px 100px 96px; /* 72px sidebar + 24px margem */
+            padding: 32px 24px 100px 336px; /* 72px server + 240px channels + 24px margem */
             overflow-x: hidden;
-            transition: padding-left 0.3s ease;
+            transition: padding-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        /* Barra Lateral de Servidores (Server Sidebar) */
+        body.home-view {
+            padding-left: 96px; /* 72px server + 24px margem */
+        }
+
+        /* 1. Barra Lateral de Servidores (Server Sidebar) */
         .server-sidebar {
             position: fixed;
             top: 0;
@@ -73,26 +79,6 @@
             z-index: 1000;
             gap: 8px;
             box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
-        }
-
-        @media (max-width: 768px) {
-            .server-sidebar {
-                bottom: auto;
-                left: 0;
-                right: 0;
-                top: 0;
-                width: 100vw;
-                height: 60px;
-                flex-direction: row;
-                padding: 0 12px;
-                border-right: none;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-                overflow-x: auto;
-            }
-            body {
-                padding-left: 20px;
-                padding-top: 80px;
-            }
         }
 
         .servers-scroll-container {
@@ -234,8 +220,248 @@
             transform: translateY(-50%) scale(1);
         }
 
-        /* Modal de Adicionar Servidor */
-        .server-modal-backdrop {
+        /* 2. Painel de Canais (Channels Sidebar - Fase 2.5) */
+        .channels-sidebar {
+            position: fixed;
+            top: 0;
+            left: 72px;
+            bottom: 0;
+            width: 240px;
+            background: var(--bg-channels);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            z-index: 990;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.35);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+        }
+
+        .channels-sidebar.hidden {
+            transform: translateX(-240px);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .channels-header {
+            height: 60px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
+            flex-shrink: 0;
+        }
+
+        .channels-server-name {
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-add-channel-quick {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .btn-add-channel-quick:hover {
+            background: rgba(99, 102, 241, 0.25);
+            border-color: rgba(99, 102, 241, 0.5);
+            color: #ffffff;
+            transform: scale(1.05);
+        }
+
+        .channels-list-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .channels-list-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .channels-list-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .channel-category {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 8px;
+            margin-bottom: 4px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--text-dark-muted);
+            text-transform: uppercase;
+            user-select: none;
+        }
+
+        .category-header:hover {
+            color: var(--text-muted);
+        }
+
+        .channel-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            color: #94a3b8;
+            font-size: 0.88rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            position: relative;
+        }
+
+        .channel-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #f1f5f9;
+            transform: translateX(2px);
+        }
+
+        .channel-item.active {
+            background: rgba(99, 102, 241, 0.18);
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .channel-icon {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            flex-shrink: 0;
+        }
+
+        .channel-item:hover .channel-icon,
+        .channel-item.active .channel-icon {
+            color: #a5b4fc;
+        }
+
+        .channel-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .channel-badge-live {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 6px var(--success);
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Barra de Perfil do Usuário na base do Channels Sidebar */
+        .channels-user-bar {
+            height: 58px;
+            padding: 0 12px;
+            background: rgba(10, 14, 26, 0.95);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .user-bar-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+        }
+
+        .user-avatar-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #ffffff;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px var(--primary-glow);
+        }
+
+        .user-bar-details {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .user-bar-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-bar-status {
+            font-size: 0.7rem;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        @media (max-width: 900px) {
+            .channels-sidebar {
+                left: 0;
+                top: 60px;
+                width: 100vw;
+                height: calc(100vh - 60px);
+            }
+            body {
+                padding-left: 20px;
+                padding-top: 80px;
+            }
+        }
+
+        /* Modal de Adicionar Canal */
+        .channel-modal-backdrop {
             position: fixed;
             top: 0;
             left: 0;
@@ -251,62 +477,53 @@
             animation: fadeIn 0.25s ease;
         }
 
-        .server-modal-card {
+        .channel-modal-card {
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(24px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 24px;
             padding: 28px;
             width: 100%;
-            max-width: 460px;
+            max-width: 440px;
             box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
             display: flex;
             flex-direction: column;
             gap: 16px;
         }
 
-        .server-modal-header {
+        .channel-type-selector {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
+            gap: 10px;
+            margin-top: 4px;
         }
 
-        .server-modal-header h3 {
-            font-size: 1.25rem;
-            font-weight: 700;
+        .channel-type-option {
+            flex: 1;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .channel-type-option:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .channel-type-option.selected {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
             color: #ffffff;
         }
 
-        .server-modal-desc {
-            font-size: 0.88rem;
-            color: var(--text-muted);
-            line-height: 1.5;
-        }
-
-        .server-modal-form {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .server-modal-label {
-            font-size: 0.82rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #cbd5e1;
-        }
-
-        .server-modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 8px;
-        }
-
+        /* Container Principal */
         .container {
             width: 100%;
-            max-width: 1280px;
+            max-width: 1180px;
             background: var(--bg-card);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
@@ -322,25 +539,13 @@
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(16px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes videoFadeIn {
-            from {
-                opacity: 0;
-                transform: scale(0.96) translateY(12px);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
+            from { opacity: 0; transform: scale(0.96) translateY(12px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
         header {
@@ -543,7 +748,7 @@
         /* Grid Dinâmico de Vídeos */
         .video-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
             gap: 24px;
             width: 100%;
             transition: all 0.4s ease;
@@ -849,14 +1054,8 @@
         }
 
         @keyframes dockSlideUp {
-            from {
-                opacity: 0;
-                transform: translate(-50%, 30px);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, 0);
-            }
+            from { opacity: 0; transform: translate(-50%, 30px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
         }
 
         .dock-btn {
@@ -917,11 +1116,7 @@
             box-shadow: 0 6px 22px rgba(220, 38, 38, 0.6);
         }
 
-        .dock-btn:active {
-            transform: translateY(0) scale(0.98);
-        }
-
-        /* Bolinha de Notificação de Mensagem Não Lida no Botão de Chat */
+        /* Bolinha de Notificação de Mensagem Não Lida */
         .chat-unread-dot {
             position: absolute;
             top: 2px;
@@ -1012,9 +1207,6 @@
 
         .chat-messages::-webkit-scrollbar {
             width: 6px;
-        }
-        .chat-messages::-webkit-scrollbar-track {
-            background: transparent;
         }
         .chat-messages::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.15);
@@ -1235,7 +1427,7 @@
 </head>
 <body>
 
-    <!-- Barra Lateral de Servidores (Server Sidebar estilo Discord / Comunidades) -->
+    <!-- 1. Barra Lateral de Servidores (Server Sidebar) -->
     <nav id="server-sidebar" class="server-sidebar" aria-label="Menu de Servidores e Comunidades">
         <!-- Botão Home / Início -->
         <div class="server-icon-wrapper active" id="btnServerHome" data-tooltip="Início / Salas Rápidas">
@@ -1267,26 +1459,83 @@
         </div>
     </nav>
 
+    <!-- 2. Painel de Canais (Channels Sidebar - Fase 2.5) -->
+    <aside id="channels-sidebar" class="channels-sidebar">
+        <!-- Topo do Painel: Nome do Servidor Ativo -->
+        <div class="channels-header">
+            <div class="channels-server-name">
+                <span id="selectedServerTitle">Comunidade Nexus</span>
+            </div>
+            <button type="button" id="btnOpenAddChannelModal" class="btn-add-channel-quick" title="Criar novo canal neste servidor">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Lista Rolável de Categorias e Canais -->
+        <div class="channels-list-container">
+            <!-- Categoria 1: Canais de Texto -->
+            <div class="channel-category">
+                <div class="category-header">
+                    <span>CANAIS DE TEXTO</span>
+                </div>
+                <div id="textChannelsList" style="display: flex; flex-direction: column; gap: 3px;">
+                    <!-- Renderizado dinamicamente via JS -->
+                </div>
+            </div>
+
+            <!-- Categoria 2: Canais de Voz -->
+            <div class="channel-category">
+                <div class="category-header">
+                    <span>CANAIS DE VOZ</span>
+                </div>
+                <div id="voiceChannelsList" style="display: flex; flex-direction: column; gap: 3px;">
+                    <!-- Renderizado dinamicamente via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Base do Painel: Perfil do Usuário Autenticado -->
+        <div class="channels-user-bar">
+            <div class="user-bar-info">
+                <div class="user-avatar-circle" id="userBarAvatar">NX</div>
+                <div class="user-bar-details">
+                    <span class="user-bar-name" id="userBarName">Conectando...</span>
+                    <span class="user-bar-status">
+                        <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                        Online
+                    </span>
+                </div>
+            </div>
+            <button type="button" id="userBarMuteBtn" class="btn-add-channel-quick" title="Mutar/Desmutar Rápido">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+            </button>
+        </div>
+    </aside>
+
     <!-- Modal para Criar Novo Servidor -->
-    <div id="modalAddServer" class="server-modal-backdrop">
-        <div class="server-modal-card">
-            <div class="server-modal-header">
-                <h3>Criar uma Nova Comunidade</h3>
+    <div id="modalAddServer" class="channel-modal-backdrop">
+        <div class="channel-modal-card">
+            <div class="server-modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff;">Criar uma Nova Comunidade</h3>
                 <button type="button" id="btnCloseServerModal" class="chat-close-btn">
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
-            <p class="server-modal-desc">Sua comunidade reúne salas de áudio, vídeo e canais de texto persistidos para sua equipe.</p>
+            <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">Sua comunidade reúne salas de áudio, vídeo e canais de texto persistidos para sua equipe.</p>
             
-            <form id="formAddServer" class="server-modal-form">
+            <form id="formAddServer" style="display: flex; flex-direction: column; gap: 14px;">
                 <div>
-                    <label for="inputServerName" class="server-modal-label">Nome do Servidor</label>
+                    <label for="inputServerName" style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Nome do Servidor</label>
                     <input type="text" id="inputServerName" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Ex: Comunidade Devs, Nexus Squad" required />
                 </div>
                 <div id="serverModalAlert" class="auth-alert"></div>
-                <div class="server-modal-actions">
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
                     <button type="button" id="btnCancelServerModal" class="btn-room-action" style="padding: 10px 18px;">Cancelar</button>
                     <button type="submit" id="btnSubmitServerModal" class="btn-primary" style="padding: 10px 24px;">Criar Comunidade</button>
                 </div>
@@ -1294,10 +1543,61 @@
         </div>
     </div>
 
+    <!-- Modal para Criar Novo Canal (Fase 2.5) -->
+    <div id="modalAddChannel" class="channel-modal-backdrop">
+        <div class="channel-modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff;">Criar Novo Canal</h3>
+                <button type="button" id="btnCloseChannelModal" class="chat-close-btn">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="formAddChannel" style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                    <label style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Tipo de Canal</label>
+                    <div class="channel-type-selector">
+                        <div class="channel-type-option selected" id="optTypeText">
+                            <span style="font-size: 1.2rem; font-weight: 700; color: #a5b4fc;">#</span>
+                            <div>
+                                <div style="font-size: 0.9rem; font-weight: 600;">Texto</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Mensagens, links e chat</div>
+                            </div>
+                        </div>
+                        <div class="channel-type-option" id="optTypeVoice">
+                            <svg width="20" height="20" fill="none" stroke="#38bdf8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                            </svg>
+                            <div>
+                                <div style="font-size: 0.9rem; font-weight: 600;">Voz</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Áudio e vídeo WebRTC</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="inputChannelName" style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Nome do Canal</label>
+                    <input type="text" id="inputChannelName" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Ex: anuncios, reunioes-geral" required />
+                </div>
+
+                <div id="channelModalAlert" class="auth-alert"></div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
+                    <button type="button" id="btnCancelChannelModal" class="btn-room-action" style="padding: 10px 18px;">Cancelar</button>
+                    <button type="submit" id="btnSubmitChannelModal" class="btn-primary" style="padding: 10px 24px;">Criar Canal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Conteúdo Central -->
     <main class="container">
         <header>
             <h1>NexusComm WebRTC & Comunidades</h1>
-            <p>Plataforma de Videoconferência & Colaboração em Tempo Real</p>
+            <p id="mainHeaderSub">Plataforma de Videoconferência, Voz & Colaboração em Tempo Real</p>
         </header>
 
         <!-- Seção de Autenticação JWT -->
@@ -1349,10 +1649,10 @@
             </div>
         </div>
 
-        <!-- Seção de Conexão à Sala (Room) -->
+        <!-- Seção de Conexão à Sala / Canal Ativo -->
         <div class="room-section">
             <div class="room-section-header">
-                <span id="roomSectionTitle">🚪 Acesso à Sala Privada</span>
+                <span id="roomSectionTitle">🚪 Canal Ativo / Sala WebRTC</span>
                 <div class="room-action-buttons">
                     <button type="button" id="btnNewRoom" class="btn-room-action" title="Gerar código aleatório para nova reunião">
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1363,12 +1663,12 @@
                 </div>
             </div>
             <div id="roomFormContainer" class="room-form">
-                <input type="text" id="roomInput" class="room-input" placeholder="Digite ou gere o nome da sala (ex: sala-reuniao-dev)" />
+                <input type="text" id="roomInput" class="room-input" placeholder="Digite ou selecione um canal na barra lateral" />
                 <button id="btnJoinRoom" class="btn-join">
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                     </svg>
-                    Entrar na Sala
+                    Conectar ao Canal
                 </button>
             </div>
             <div id="activeRoomBadge" class="badge-room" style="justify-content: space-between;">
@@ -1376,7 +1676,7 @@
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>Sala: <strong id="roomNameDisplay"></strong></span>
+                    <span>Conectado em: <strong id="roomNameDisplay"></strong></span>
                 </div>
                 <button type="button" id="btnCopyRoomLink" class="btn-room-action" style="background: rgba(99, 102, 241, 0.25); border-color: rgba(99, 102, 241, 0.4); color: #c7d2fe;">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1435,8 +1735,8 @@
                     </svg>
                 </div>
                 <div class="empty-state-text">
-                    <h4>Você é o único na sala</h4>
-                    <p>Copie o link da reunião e convide sua equipe para entrar!</p>
+                    <h4>Você é o único no canal</h4>
+                    <p>Compartilhe o link do canal ou aguarde outros membros entrarem.</p>
                 </div>
             </div>
             <button type="button" id="btnEmptyStateCopy" class="btn-dock-invite">
@@ -1453,7 +1753,7 @@
                 <div id="socketDot" class="socket-dot"></div>
                 <span id="socketStatusText">Conectando ao Socket.IO...</span>
             </div>
-            <div id="webrtcStatusText">WebRTC: Aguardando entrada na sala</div>
+            <div id="webrtcStatusText">WebRTC: Pronto para conectar aos canais</div>
         </div>
     </main>
 
@@ -1481,19 +1781,19 @@
         </button>
 
         <!-- Botão de Chat em Tempo Real -->
-        <button id="btnToggleChat" class="dock-btn" title="Abrir Chat da Reunião" style="position: relative;">
+        <button id="btnToggleChat" class="dock-btn" title="Abrir Chat do Canal" style="position: relative;">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             <span id="chatUnreadDot" class="chat-unread-dot"></span>
         </button>
 
-        <!-- Botão de Sair da Chamada -->
-        <button id="btnLeaveRoom" class="dock-btn dock-btn-leave" title="Sair da Chamada">
+        <!-- Botão de Sair do Canal / Chamada -->
+        <button id="btnLeaveRoom" class="dock-btn dock-btn-leave" title="Sair do Canal">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l4 4m0 0l-4 4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            <span>Sair</span>
+            <span>Desconectar</span>
         </button>
     </div>
 
@@ -1505,7 +1805,7 @@
                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-                <span>Chat da Reunião</span>
+                <span id="chatPanelTitle">Chat do Canal</span>
             </div>
             <button id="btnCloseChat" class="chat-close-btn" title="Fechar Chat">
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1520,13 +1820,13 @@
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
-                <span>As mensagens são transmitidas em tempo real nesta sala.</span>
+                <span>As mensagens são transmitidas e persistidas no Supabase PostgreSQL.</span>
             </div>
         </div>
 
         <!-- Formulário de Envio de Mensagem -->
         <form id="chatForm" class="chat-input-area">
-            <input type="text" id="chatInput" class="chat-input" placeholder="Envie uma mensagem..." autocomplete="off" />
+            <input type="text" id="chatInput" class="chat-input" placeholder="Envie uma mensagem no canal..." autocomplete="off" />
             <button type="submit" id="btnSendChat" class="chat-send-btn" title="Enviar Mensagem">
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -1540,7 +1840,7 @@
         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
         </svg>
-        <span>Link da sala copiado com sucesso!</span>
+        <span>Link do canal copiado com sucesso!</span>
     </div>
 
     <!-- Client do Socket.IO -->
@@ -1569,6 +1869,7 @@
         const authStatusNotice = document.getElementById('authStatusNotice');
 
         // Elementos de Sala & UX
+        const mainHeaderSub = document.getElementById('mainHeaderSub');
         const roomSectionTitle = document.getElementById('roomSectionTitle');
         const roomInput = document.getElementById('roomInput');
         const btnJoinRoom = document.getElementById('btnJoinRoom');
@@ -1594,6 +1895,25 @@
         const serverModalAlert = document.getElementById('serverModalAlert');
         const btnSubmitServerModal = document.getElementById('btnSubmitServerModal');
 
+        // Elementos do Painel de Canais (Fase 2.5)
+        const channelsSidebar = document.getElementById('channels-sidebar');
+        const selectedServerTitle = document.getElementById('selectedServerTitle');
+        const textChannelsList = document.getElementById('textChannelsList');
+        const voiceChannelsList = document.getElementById('voiceChannelsList');
+        const btnOpenAddChannelModal = document.getElementById('btnOpenAddChannelModal');
+        const modalAddChannel = document.getElementById('modalAddChannel');
+        const btnCloseChannelModal = document.getElementById('btnCloseChannelModal');
+        const btnCancelChannelModal = document.getElementById('btnCancelChannelModal');
+        const formAddChannel = document.getElementById('formAddChannel');
+        const inputChannelName = document.getElementById('inputChannelName');
+        const channelModalAlert = document.getElementById('channelModalAlert');
+        const btnSubmitChannelModal = document.getElementById('btnSubmitChannelModal');
+        const optTypeText = document.getElementById('optTypeText');
+        const optTypeVoice = document.getElementById('optTypeVoice');
+        const userBarAvatar = document.getElementById('userBarAvatar');
+        const userBarName = document.getElementById('userBarName');
+        const userBarMuteBtn = document.getElementById('userBarMuteBtn');
+
         // Elementos de Vídeo e Doca Flutuante de Controles
         const videoGrid = document.getElementById('videoGrid');
         const localVideo = document.getElementById('localVideo');
@@ -1612,6 +1932,7 @@
 
         // Elementos do Chat
         const chatSidebar = document.getElementById('chatSidebar');
+        const chatPanelTitle = document.getElementById('chatPanelTitle');
         const btnToggleChat = document.getElementById('btnToggleChat');
         const btnCloseChat = document.getElementById('btnCloseChat');
         const chatMessages = document.getElementById('chatMessages');
@@ -1632,22 +1953,32 @@
             autoConnect: true
         });
 
+        function updateCurrentUserUI(username) {
+            currentAuthUser = username;
+            localStorage.setItem('nexuscomm_username', username);
+            if (authenticatedUsername) authenticatedUsername.innerText = username;
+            if (userBarName) userBarName.innerText = username;
+            if (userBarAvatar) userBarAvatar.innerText = getServerInitials(username);
+            const localUserTitle = document.getElementById('localUserTitle');
+            if (localUserTitle) localUserTitle.innerText = `${username} (Você)`;
+        }
+
         // Atualização da identidade confirmada pelo servidor
         socket.on('authenticated', (data) => {
             console.log('✅ Identidade confirmada pelo servidor:', data);
             if (data.username) {
-                currentAuthUser = data.username;
-                localStorage.setItem('nexuscomm_username', data.username);
-                if (authenticatedUsername) authenticatedUsername.innerText = currentAuthUser;
-                const localUserTitle = document.getElementById('localUserTitle');
-                if (localUserTitle) localUserTitle.innerText = `${currentAuthUser} (Você)`;
+                updateCurrentUserUI(data.username);
             }
         });
 
         // 3. Estruturas de Estado para Suporte Multi-Participante (Full Mesh)
         let currentRoom = null;
         let activeServerId = null; // null = Início / Salas Públicas
+        let activeChannelId = null;
+        let activeChannelType = 'texto'; // 'texto' | 'voz'
+        let selectedChannelTypeForModal = 'texto';
         let loadedServers = [];
+        let loadedChannels = [];
         let cameraStream = null;
         let micStream = null;
         let screenStream = null;
@@ -1710,6 +2041,7 @@
                 authenticatedUsername.innerText = currentAuthUser || 'Autenticado';
                 authStatusNotice.innerText = 'Autenticado';
                 authStatusNotice.style.color = '#10b981';
+                updateCurrentUserUI(currentAuthUser || 'Usuário');
             } else {
                 authContent.style.display = 'block';
                 authenticatedUserBadge.style.display = 'none';
@@ -1746,6 +2078,7 @@
                 socket.disconnect();
             }
             socket.connect();
+            updateCurrentUserUI(username || 'Usuário');
             fetchServersList();
         }
 
@@ -1829,7 +2162,7 @@
         });
 
         // ==========================================
-        // Integração do Menu de Servidores / Comunidades (Fase 2)
+        // Integração do Menu de Servidores (Fase 2)
         // ==========================================
         function getServerInitials(name) {
             if (!name) return 'NX';
@@ -1848,6 +2181,10 @@
                 if (data.servers && Array.isArray(data.servers)) {
                     loadedServers = data.servers;
                     renderServersList(loadedServers);
+                    // Se não tiver nenhum servidor selecionado, seleciona o primeiro por padrão
+                    if (!activeServerId && loadedServers.length > 0) {
+                        selectServer(loadedServers[0]);
+                    }
                 }
             } catch (err) {
                 console.warn('Aviso ao carregar servidores:', err);
@@ -1879,41 +2216,171 @@
             });
         }
 
-        function selectServer(server) {
+        async function selectServer(server) {
             activeServerId = server.id;
+            document.body.classList.remove('home-view');
+            channelsSidebar.classList.remove('hidden');
+
             document.querySelectorAll('.server-icon-wrapper').forEach(el => el.classList.remove('active'));
             const activeEl = document.getElementById(`server-item-${server.id}`);
             if (activeEl) activeEl.classList.add('active');
 
-            if (roomSectionTitle) {
-                roomSectionTitle.innerText = `🏛️ Comunidade: ${server.nome}`;
+            if (selectedServerTitle) {
+                selectedServerTitle.innerText = server.nome;
             }
 
-            // Define o canal geral como sala padrão da comunidade
-            const communityRoom = `comunidade-${server.id}-geral`;
-            if (roomInput) {
-                roomInput.value = communityRoom;
+            if (mainHeaderSub) {
+                mainHeaderSub.innerText = `Comunidade: ${server.nome} • Navegue pelos canais de texto e voz`;
             }
-            console.log(`🌐 Servidor selecionado: [${server.nome}] (ID: ${server.id})`);
+
+            console.log(`🌐 Servidor ativo: [${server.nome}] (ID: ${server.id})`);
+            await fetchServerChannels(server.id);
         }
 
         btnServerHome.addEventListener('click', () => {
             activeServerId = null;
+            document.body.classList.add('home-view');
+            channelsSidebar.classList.add('hidden');
+
             document.querySelectorAll('.server-icon-wrapper').forEach(el => el.classList.remove('active'));
             btnServerHome.classList.add('active');
             if (roomSectionTitle) {
-                roomSectionTitle.innerText = '🚪 Acesso à Sala Privada';
+                roomSectionTitle.innerText = '🚪 Acesso à Sala Privada / Rápida';
             }
             if (roomInput) {
                 roomInput.value = 'sala-publica';
             }
+            if (mainHeaderSub) {
+                mainHeaderSub.innerText = 'Videoconferência & Colaboração em Salas Rápidas';
+            }
         });
 
-        // Modal de Criação de Servidor
+        // ==========================================
+        // Painel de Canais: Categorias e Roteamento (Fase 2.5)
+        // ==========================================
+        async function fetchServerChannels(serverId) {
+            try {
+                textChannelsList.innerHTML = '<div style="font-size: 0.8rem; color: #64748b; padding: 6px;">Carregando canais...</div>';
+                voiceChannelsList.innerHTML = '';
+
+                const res = await fetch(`/servers/${serverId}/channels`);
+                const data = await res.json();
+
+                if (data.channels && Array.isArray(data.channels)) {
+                    loadedChannels = data.channels;
+                    renderChannels(loadedChannels);
+
+                    // Seleciona o primeiro canal disponível se nenhum estiver ativo
+                    if (loadedChannels.length > 0) {
+                        const firstText = loadedChannels.find(c => c.tipo === 'texto');
+                        const defaultChannel = firstText || loadedChannels[0];
+                        if (defaultChannel) {
+                            if (defaultChannel.tipo === 'texto') {
+                                selectTextChannel(defaultChannel);
+                            } else {
+                                selectVoiceChannel(defaultChannel);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Erro ao buscar canais do servidor:', err);
+                textChannelsList.innerHTML = '<div style="font-size: 0.8rem; color: #fca5a5; padding: 6px;">Erro ao carregar canais.</div>';
+            }
+        }
+
+        function renderChannels(channels) {
+            textChannelsList.innerHTML = '';
+            voiceChannelsList.innerHTML = '';
+
+            const textChannels = channels.filter(c => c.tipo === 'texto');
+            const voiceChannels = channels.filter(c => c.tipo === 'voz');
+
+            if (textChannels.length === 0) {
+                textChannelsList.innerHTML = '<div style="font-size: 0.78rem; color: #64748b; padding: 4px 8px;">Nenhum canal de texto</div>';
+            } else {
+                textChannels.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = `channel-item ${activeChannelId === c.id ? 'active' : ''}`;
+                    item.id = `channel-item-${c.id}`;
+                    item.innerHTML = `
+                        <span class="channel-icon">#</span>
+                        <span class="channel-name">${escapeHtml(c.nome)}</span>
+                    `;
+                    item.addEventListener('click', () => selectTextChannel(c));
+                    textChannelsList.appendChild(item);
+                });
+            }
+
+            if (voiceChannels.length === 0) {
+                voiceChannelsList.innerHTML = '<div style="font-size: 0.78rem; color: #64748b; padding: 4px 8px;">Nenhum canal de voz</div>';
+            } else {
+                voiceChannels.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = `channel-item ${activeChannelId === c.id ? 'active' : ''}`;
+                    item.id = `channel-item-${c.id}`;
+                    item.innerHTML = `
+                        <span class="channel-icon">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                            </svg>
+                        </span>
+                        <span class="channel-name">${escapeHtml(c.nome)}</span>
+                    `;
+                    item.addEventListener('click', () => selectVoiceChannel(c));
+                    voiceChannelsList.appendChild(item);
+                });
+            }
+        }
+
+        // Ao clicar em um canal de texto: exibe o histórico e conecta o chat daquele canal
+        function selectTextChannel(channel) {
+            activeChannelId = channel.id;
+            activeChannelType = 'texto';
+            highlightActiveChannel(channel.id);
+
+            const channelRoomName = `comunidade-${activeServerId}-txt-${channel.nome}`;
+            roomInput.value = channelRoomName;
+            roomSectionTitle.innerText = `💬 Canal de Texto: #${channel.nome}`;
+            chatPanelTitle.innerText = `Chat • #${channel.nome}`;
+
+            // Conecta ao socket na sala do canal de texto para carregar mensagens
+            if (currentRoom !== channelRoomName) {
+                connectToRoom(channelRoomName);
+            }
+
+            // Abre o chat automaticamente para dar foco nas mensagens
+            if (!isChatOpen) {
+                toggleChat();
+            }
+        }
+
+        // Ao clicar em um canal de voz: conecta à sala WebRTC daquele canal
+        async function selectVoiceChannel(channel) {
+            activeChannelId = channel.id;
+            activeChannelType = 'voz';
+            highlightActiveChannel(channel.id);
+
+            const voiceRoomName = `comunidade-${activeServerId}-voz-${channel.nome}`;
+            roomInput.value = voiceRoomName;
+            roomSectionTitle.innerText = `🔊 Canal de Voz: ${channel.nome}`;
+            chatPanelTitle.innerText = `Voz & Chat • ${channel.nome}`;
+
+            // Conecta à sala WebRTC com áudio ativo
+            connectToRoom(voiceRoomName);
+        }
+
+        function highlightActiveChannel(channelId) {
+            document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+            const activeEl = document.getElementById(`channel-item-${channelId}`);
+            if (activeEl) activeEl.classList.add('active');
+        }
+
+        // Modais de Criação de Servidor e Canais
         btnOpenAddServerModal.addEventListener('click', () => {
             if (!authToken) {
-                showAuthAlert('Você precisa estar autenticado para criar uma comunidade.', 'error');
-                alert('Faça login primeiro para poder criar novos servidores e comunidades.');
+                showAuthAlert('Faça login primeiro para criar comunidades.', 'error');
+                alert('Faça login primeiro para criar novas comunidades.');
                 return;
             }
             modalAddServer.style.display = 'flex';
@@ -1948,15 +2415,11 @@
                 });
 
                 const data = await res.json();
-                if (!res.ok) {
-                    throw new Error(data.error || 'Erro ao criar servidor');
-                }
+                if (!res.ok) throw new Error(data.error || 'Erro ao criar servidor');
 
                 closeAddServerModal();
                 await fetchServersList();
-                if (data.server) {
-                    selectServer(data.server);
-                }
+                if (data.server) selectServer(data.server);
             } catch (err) {
                 serverModalAlert.className = 'auth-alert error';
                 serverModalAlert.innerText = err.message;
@@ -1967,7 +2430,90 @@
             }
         });
 
-        // Carrega a lista de servidores na inicialização
+        // Modal de Criação de Canais
+        btnOpenAddChannelModal.addEventListener('click', () => {
+            if (!activeServerId) {
+                alert('Selecione um servidor antes de criar um canal.');
+                return;
+            }
+            if (!authToken) {
+                alert('Você precisa estar autenticado para criar canais.');
+                return;
+            }
+            modalAddChannel.style.display = 'flex';
+            channelModalAlert.style.display = 'none';
+            inputChannelName.value = '';
+            selectedChannelTypeForModal = 'texto';
+            optTypeText.classList.add('selected');
+            optTypeVoice.classList.remove('selected');
+            inputChannelName.focus();
+        });
+
+        optTypeText.addEventListener('click', () => {
+            selectedChannelTypeForModal = 'texto';
+            optTypeText.classList.add('selected');
+            optTypeVoice.classList.remove('selected');
+        });
+
+        optTypeVoice.addEventListener('click', () => {
+            selectedChannelTypeForModal = 'voz';
+            optTypeVoice.classList.add('selected');
+            optTypeText.classList.remove('selected');
+        });
+
+        function closeAddChannelModal() {
+            modalAddChannel.style.display = 'none';
+        }
+
+        btnCloseChannelModal.addEventListener('click', closeAddChannelModal);
+        btnCancelChannelModal.addEventListener('click', closeAddChannelModal);
+
+        formAddChannel.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const channelName = inputChannelName.value.trim();
+            if (!channelName || !activeServerId) return;
+
+            try {
+                btnSubmitChannelModal.disabled = true;
+                btnSubmitChannelModal.innerText = 'Criando...';
+
+                const res = await fetch(`/servers/${activeServerId}/channels`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        nome: channelName,
+                        tipo: selectedChannelTypeForModal
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro ao criar canal');
+
+                closeAddChannelModal();
+                await fetchServerChannels(activeServerId);
+
+                if (data.channel) {
+                    if (data.channel.tipo === 'texto') selectTextChannel(data.channel);
+                    else selectVoiceChannel(data.channel);
+                }
+            } catch (err) {
+                channelModalAlert.className = 'auth-alert error';
+                channelModalAlert.innerText = err.message;
+                channelModalAlert.style.display = 'block';
+            } finally {
+                btnSubmitChannelModal.disabled = false;
+                btnSubmitChannelModal.innerText = 'Criar Canal';
+            }
+        });
+
+        userBarMuteBtn.addEventListener('click', () => {
+            toggleMute();
+        });
+
+        // Carrega servidores na inicialização
         fetchServersList();
 
         // ==========================================
@@ -2044,7 +2590,7 @@
             if (peerCount === 0) {
                 videoGrid.classList.add('single-peer');
                 emptyStateContainer.style.display = 'flex';
-                webrtcStatusText.innerText = `WebRTC: Na sala [${currentRoom}]. Aguardando participantes...`;
+                webrtcStatusText.innerText = `WebRTC: No canal [${currentRoom}]. Aguardando participantes...`;
             } else {
                 videoGrid.classList.remove('single-peer');
                 emptyStateContainer.style.display = 'none';
@@ -2152,13 +2698,13 @@
 
         // Carrega o histórico de mensagens salvas no PostgreSQL para esta sala
         socket.on('room-history', (data) => {
-            console.log(`📜 Histórico de mensagens carregado para a sala [${data.room}]:`, data.messages);
+            console.log(`📜 Histórico de mensagens carregado para [${data.room}]:`, data.messages);
             chatMessages.innerHTML = `
                 <div class="chat-system-notice">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    <span>Histórico sincronizado com PostgreSQL. Mensagens criptografadas e persistidas.</span>
+                    <span>Histórico sincronizado com PostgreSQL para #${data.room}.</span>
                 </div>
             `;
 
@@ -2631,24 +3177,25 @@
         });
 
         // ==========================================
-        // Entrada e Saída de Sala
+        // Entrada e Saída de Sala / Canal
         // ==========================================
-        btnJoinRoom.addEventListener('click', async () => {
+        async function connectToRoom(roomName) {
             if (!authToken || !socket.connected) {
-                showAuthAlert('Você precisa estar autenticado com um token JWT válido para acessar as salas.', 'error');
-                alert('Acesso negado: faça login ou insira um token JWT válido antes de entrar na sala.');
+                showAuthAlert('Você precisa estar autenticado para acessar este canal.', 'error');
                 return;
             }
 
-            const roomName = roomInput.value.trim();
-            if (!roomName) {
-                alert('Por favor, digite o nome da sala.');
-                return;
+            // Se já estava em outra sala, sai dela primeiro
+            if (currentRoom && currentRoom !== roomName) {
+                for (const peerId of Object.keys(peerConnections)) {
+                    closePeerConnection(peerId);
+                }
+                socket.emit('leave-room', currentRoom);
             }
 
             currentRoom = roomName;
             socket.emit('join-room', currentRoom);
-            console.log('🚪 Entrando na sala:', currentRoom);
+            console.log('🚪 Conectado ao canal/sala:', currentRoom);
 
             roomFormContainer.style.display = 'none';
             activeRoomBadge.style.display = 'inline-flex';
@@ -2656,6 +3203,15 @@
 
             updateGridLayout();
             await getOrCreateMicrophone();
+        }
+
+        btnJoinRoom.addEventListener('click', () => {
+            const roomName = roomInput.value.trim();
+            if (!roomName) {
+                alert('Por favor, digite o nome da sala.');
+                return;
+            }
+            connectToRoom(roomName);
         });
 
         roomInput.addEventListener('keypress', (e) => {
@@ -2694,7 +3250,7 @@
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    <span>As mensagens são transmitidas em tempo real nesta sala.</span>
+                    <span>Você foi desconectado do canal.</span>
                 </div>
             `;
             chatUnreadDot.style.display = 'none';
@@ -2704,7 +3260,7 @@
             activeRoomBadge.style.display = 'none';
             updateGridLayout();
             updateLocalStatus();
-            webrtcStatusText.innerText = 'WebRTC: Você saiu da sala.';
+            webrtcStatusText.innerText = 'WebRTC: Você saiu do canal.';
         }
 
         btnLeaveRoom.addEventListener('click', leaveRoom);
@@ -2714,11 +3270,10 @@
         // ==========================================
         async function toggleCamera() {
             if (!currentRoom) {
-                alert('Por favor, entre em uma sala primeiro.');
+                alert('Por favor, entre em um canal primeiro.');
                 return;
             }
 
-            // Desligar Câmera
             if (activeVideoType === 'camera') {
                 if (cameraStream) {
                     cameraStream.getTracks().forEach((t) => t.stop());
@@ -2765,7 +3320,7 @@
 
         async function toggleScreenShare() {
             if (!currentRoom) {
-                alert('Por favor, entre em uma sala primeiro.');
+                alert('Por favor, entre em um canal primeiro.');
                 return;
             }
 

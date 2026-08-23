@@ -217,4 +217,36 @@ routes.get('/servers/:serverId/channels', async (req: Request, res: Response) =>
     }
 });
 
+// Criar Canal em um Servidor (POST /servers/:serverId/channels)
+routes.post('/servers/:serverId/channels', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const serverIdParam = req.params.serverId;
+        const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
+        const { nome, tipo } = req.body;
+
+        if (isNaN(serverId)) {
+            return res.status(400).json({ error: 'ID do servidor inválido.' });
+        }
+
+        if (!nome || !tipo || !['texto', 'voz'].includes(tipo)) {
+            return res.status(400).json({ error: 'Nome e tipo ("texto" ou "voz") são obrigatórios.' });
+        }
+
+        const cleanName = String(nome).trim().toLowerCase().replace(/\s+/g, '-');
+
+        const result = await pool.query(
+            'INSERT INTO channels (server_id, nome, tipo) VALUES ($1, $2, $3) RETURNING *',
+            [serverId, cleanName, tipo]
+        );
+
+        return res.status(201).json({
+            message: 'Canal criado com sucesso!',
+            channel: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Erro ao criar canal no servidor:', error);
+        return res.status(500).json({ error: 'Erro ao criar canal.' });
+    }
+});
+
 export { routes };
