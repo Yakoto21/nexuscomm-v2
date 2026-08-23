@@ -88,6 +88,20 @@ export async function initDb() {
             CREATE INDEX IF NOT EXISTS idx_messages_data_envio ON messages(data_envio);
         `);
 
+        // 6. Cria um servidor padrão de comunidade se nenhum existir
+        const serversCountRes = await pool.query('SELECT COUNT(*) FROM servers');
+        if (parseInt(serversCountRes.rows[0].count, 10) === 0) {
+            const defaultServerRes = await pool.query(
+                "INSERT INTO servers (nome) VALUES ('Comunidade NexusComm') RETURNING id"
+            );
+            const defaultServerId = defaultServerRes.rows[0].id;
+            await pool.query(
+                "INSERT INTO channels (server_id, nome, tipo) VALUES ($1, 'geral', 'texto'), ($1, 'Voz Principal', 'voz')",
+                [defaultServerId]
+            );
+            console.log('🎉 Servidor padrão [Comunidade NexusComm] criado com sucesso!');
+        }
+
         console.log('✅ Tabelas do PostgreSQL (Users, Servers, Channels, Messages) verificadas e sincronizadas com sucesso!');
     } catch (err) {
         console.error('❌ Erro ao conectar ou inicializar tabelas no PostgreSQL:', err);

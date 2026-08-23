@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusComm V2 - Salas Privadas, WebRTC Multi-Peer & Chat</title>
+    <title>NexusComm V2 - Plataforma de Comunidades & WebRTC</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -11,6 +11,7 @@
         :root {
             --bg-primary: #090d16;
             --bg-secondary: #0d1322;
+            --bg-sidebar: rgba(10, 14, 26, 0.94);
             --bg-card: rgba(13, 19, 33, 0.72);
             --bg-glass-card: rgba(15, 23, 42, 0.65);
             --border-color: rgba(255, 255, 255, 0.08);
@@ -49,8 +50,258 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            padding: 32px 24px 100px 24px;
+            padding: 32px 24px 100px 96px; /* 72px sidebar + 24px margem */
             overflow-x: hidden;
+            transition: padding-left 0.3s ease;
+        }
+
+        /* Barra Lateral de Servidores (Server Sidebar) */
+        .server-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 72px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 14px 0;
+            z-index: 1000;
+            gap: 8px;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .server-sidebar {
+                bottom: auto;
+                left: 0;
+                right: 0;
+                top: 0;
+                width: 100vw;
+                height: 60px;
+                flex-direction: row;
+                padding: 0 12px;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                overflow-x: auto;
+            }
+            body {
+                padding-left: 20px;
+                padding-top: 80px;
+            }
+        }
+
+        .servers-scroll-container {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 4px 0;
+        }
+
+        .servers-scroll-container::-webkit-scrollbar {
+            width: 0px;
+        }
+
+        .server-divider {
+            width: 32px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            margin: 4px 0;
+            flex-shrink: 0;
+        }
+
+        .server-icon-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        /* Indicador vertical branco à esquerda */
+        .server-pill {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 0;
+            background: #ffffff;
+            border-radius: 0 4px 4px 0;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+        }
+
+        .server-icon-wrapper:hover .server-pill {
+            height: 20px;
+            opacity: 1;
+        }
+
+        .server-icon-wrapper.active .server-pill {
+            height: 38px;
+            opacity: 1;
+        }
+
+        .server-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(30, 41, 59, 0.75);
+            color: #cbd5e1;
+            font-weight: 700;
+            font-size: 0.92rem;
+            letter-spacing: 0.02em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            user-select: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            text-transform: uppercase;
+        }
+
+        .server-icon-wrapper:hover .server-icon,
+        .server-icon-wrapper.active .server-icon {
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
+            color: #ffffff;
+            box-shadow: 0 6px 18px var(--primary-glow);
+            transform: scale(1.04);
+        }
+
+        .server-home-btn {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            border-color: rgba(99, 102, 241, 0.35);
+        }
+
+        .server-icon-wrapper:hover .server-home-btn,
+        .server-icon-wrapper.active .server-home-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
+            color: #ffffff;
+        }
+
+        .btn-add-server {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px dashed rgba(16, 185, 129, 0.4);
+            color: #10b981;
+        }
+
+        .server-icon-wrapper:hover .btn-add-server {
+            background: #10b981;
+            color: #ffffff;
+            border-style: solid;
+            box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+        }
+
+        /* Tooltip flutuante ao lado do ícone */
+        .server-icon-wrapper::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 76px;
+            top: 50%;
+            transform: translateY(-50%) scale(0.9);
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            color: #ffffff;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            z-index: 1002;
+        }
+
+        .server-icon-wrapper:hover::after {
+            opacity: 1;
+            transform: translateY(-50%) scale(1);
+        }
+
+        /* Modal de Adicionar Servidor */
+        .server-modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            animation: fadeIn 0.25s ease;
+        }
+
+        .server-modal-card {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 28px;
+            width: 100%;
+            max-width: 460px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .server-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .server-modal-header h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .server-modal-desc {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .server-modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .server-modal-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #cbd5e1;
+        }
+
+        .server-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 8px;
         }
 
         .container {
@@ -581,7 +832,7 @@
         .control-dock {
             position: fixed;
             bottom: 24px;
-            left: 50%;
+            left: calc(50% + 36px);
             transform: translateX(-50%);
             z-index: 999;
             background: rgba(13, 19, 33, 0.88);
@@ -964,7 +1215,7 @@
         .toast-copied {
             position: fixed;
             bottom: 90px;
-            left: 50%;
+            left: calc(50% + 36px);
             transform: translateX(-50%);
             background: rgba(16, 185, 129, 0.95);
             backdrop-filter: blur(12px);
@@ -984,10 +1235,69 @@
 </head>
 <body>
 
+    <!-- Barra Lateral de Servidores (Server Sidebar estilo Discord / Comunidades) -->
+    <nav id="server-sidebar" class="server-sidebar" aria-label="Menu de Servidores e Comunidades">
+        <!-- Botão Home / Início -->
+        <div class="server-icon-wrapper active" id="btnServerHome" data-tooltip="Início / Salas Rápidas">
+            <span class="server-pill"></span>
+            <div class="server-icon server-home-btn">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
+        </div>
+
+        <div class="server-divider"></div>
+
+        <!-- Lista Dinâmica de Servidores vindos da API PostgreSQL -->
+        <div id="serversList" class="servers-scroll-container">
+            <!-- Renderizado dinamicamente via JS -->
+        </div>
+
+        <div class="server-divider"></div>
+
+        <!-- Botão de Adicionar Novo Servidor (+) -->
+        <div class="server-icon-wrapper" id="btnOpenAddServerModal" data-tooltip="Criar uma Comunidade">
+            <span class="server-pill"></span>
+            <div class="server-icon btn-add-server">
+                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Modal para Criar Novo Servidor -->
+    <div id="modalAddServer" class="server-modal-backdrop">
+        <div class="server-modal-card">
+            <div class="server-modal-header">
+                <h3>Criar uma Nova Comunidade</h3>
+                <button type="button" id="btnCloseServerModal" class="chat-close-btn">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <p class="server-modal-desc">Sua comunidade reúne salas de áudio, vídeo e canais de texto persistidos para sua equipe.</p>
+            
+            <form id="formAddServer" class="server-modal-form">
+                <div>
+                    <label for="inputServerName" class="server-modal-label">Nome do Servidor</label>
+                    <input type="text" id="inputServerName" class="room-input" style="width: 100%; margin-top: 6px;" placeholder="Ex: Comunidade Devs, Nexus Squad" required />
+                </div>
+                <div id="serverModalAlert" class="auth-alert"></div>
+                <div class="server-modal-actions">
+                    <button type="button" id="btnCancelServerModal" class="btn-room-action" style="padding: 10px 18px;">Cancelar</button>
+                    <button type="submit" id="btnSubmitServerModal" class="btn-primary" style="padding: 10px 24px;">Criar Comunidade</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <main class="container">
         <header>
-            <h1>NexusComm WebRTC P2P</h1>
-            <p>Videoconferência & Colaboração em Tempo Real</p>
+            <h1>NexusComm WebRTC & Comunidades</h1>
+            <p>Plataforma de Videoconferência & Colaboração em Tempo Real</p>
         </header>
 
         <!-- Seção de Autenticação JWT -->
@@ -1042,7 +1352,7 @@
         <!-- Seção de Conexão à Sala (Room) -->
         <div class="room-section">
             <div class="room-section-header">
-                <span>🚪 Acesso à Sala Privada</span>
+                <span id="roomSectionTitle">🚪 Acesso à Sala Privada</span>
                 <div class="room-action-buttons">
                     <button type="button" id="btnNewRoom" class="btn-room-action" title="Gerar código aleatório para nova reunião">
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1259,6 +1569,7 @@
         const authStatusNotice = document.getElementById('authStatusNotice');
 
         // Elementos de Sala & UX
+        const roomSectionTitle = document.getElementById('roomSectionTitle');
         const roomInput = document.getElementById('roomInput');
         const btnJoinRoom = document.getElementById('btnJoinRoom');
         const btnNewRoom = document.getElementById('btnNewRoom');
@@ -1270,6 +1581,18 @@
         const roomNameDisplay = document.getElementById('roomNameDisplay');
         const emptyStateContainer = document.getElementById('emptyStateContainer');
         const btnEmptyStateCopy = document.getElementById('btnEmptyStateCopy');
+
+        // Elementos do Menu de Servidores
+        const btnServerHome = document.getElementById('btnServerHome');
+        const serversList = document.getElementById('serversList');
+        const btnOpenAddServerModal = document.getElementById('btnOpenAddServerModal');
+        const modalAddServer = document.getElementById('modalAddServer');
+        const btnCloseServerModal = document.getElementById('btnCloseServerModal');
+        const btnCancelServerModal = document.getElementById('btnCancelServerModal');
+        const formAddServer = document.getElementById('formAddServer');
+        const inputServerName = document.getElementById('inputServerName');
+        const serverModalAlert = document.getElementById('serverModalAlert');
+        const btnSubmitServerModal = document.getElementById('btnSubmitServerModal');
 
         // Elementos de Vídeo e Doca Flutuante de Controles
         const videoGrid = document.getElementById('videoGrid');
@@ -1323,6 +1646,8 @@
 
         // 3. Estruturas de Estado para Suporte Multi-Participante (Full Mesh)
         let currentRoom = null;
+        let activeServerId = null; // null = Início / Salas Públicas
+        let loadedServers = [];
         let cameraStream = null;
         let micStream = null;
         let screenStream = null;
@@ -1416,11 +1741,12 @@
             if (username) {
                 localStorage.setItem('nexuscomm_username', username);
             }
-            socket.auth = { token: authToken };
+            socket.auth = { token: authToken, username: currentAuthUser };
             if (socket.connected) {
                 socket.disconnect();
             }
             socket.connect();
+            fetchServersList();
         }
 
         btnLogin.addEventListener('click', async () => {
@@ -1496,11 +1822,153 @@
             localStorage.removeItem('nexuscomm_username');
             authToken = '';
             currentAuthUser = '';
-            socket.auth = { token: '' };
+            socket.auth = { token: '', username: '' };
             socket.disconnect();
             updateAuthUI(false);
             showAuthAlert('Você saiu. Faça login ou informe um token para conectar.', 'error');
         });
+
+        // ==========================================
+        // Integração do Menu de Servidores / Comunidades (Fase 2)
+        // ==========================================
+        function getServerInitials(name) {
+            if (!name) return 'NX';
+            const clean = name.trim();
+            const words = clean.split(/\s+/);
+            if (words.length >= 2) {
+                return (words[0][0] + words[1][0]).toUpperCase();
+            }
+            return clean.substring(0, 2).toUpperCase();
+        }
+
+        async function fetchServersList() {
+            try {
+                const res = await fetch('/servers');
+                const data = await res.json();
+                if (data.servers && Array.isArray(data.servers)) {
+                    loadedServers = data.servers;
+                    renderServersList(loadedServers);
+                }
+            } catch (err) {
+                console.warn('Aviso ao carregar servidores:', err);
+            }
+        }
+
+        function renderServersList(servers) {
+            if (!serversList) return;
+            serversList.innerHTML = '';
+
+            servers.forEach((server) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = `server-icon-wrapper ${activeServerId === server.id ? 'active' : ''}`;
+                wrapper.setAttribute('data-tooltip', server.nome);
+                wrapper.setAttribute('id', `server-item-${server.id}`);
+
+                const initials = getServerInitials(server.nome);
+
+                wrapper.innerHTML = `
+                    <span class="server-pill"></span>
+                    <div class="server-icon">${initials}</div>
+                `;
+
+                wrapper.addEventListener('click', () => {
+                    selectServer(server);
+                });
+
+                serversList.appendChild(wrapper);
+            });
+        }
+
+        function selectServer(server) {
+            activeServerId = server.id;
+            document.querySelectorAll('.server-icon-wrapper').forEach(el => el.classList.remove('active'));
+            const activeEl = document.getElementById(`server-item-${server.id}`);
+            if (activeEl) activeEl.classList.add('active');
+
+            if (roomSectionTitle) {
+                roomSectionTitle.innerText = `🏛️ Comunidade: ${server.nome}`;
+            }
+
+            // Define o canal geral como sala padrão da comunidade
+            const communityRoom = `comunidade-${server.id}-geral`;
+            if (roomInput) {
+                roomInput.value = communityRoom;
+            }
+            console.log(`🌐 Servidor selecionado: [${server.nome}] (ID: ${server.id})`);
+        }
+
+        btnServerHome.addEventListener('click', () => {
+            activeServerId = null;
+            document.querySelectorAll('.server-icon-wrapper').forEach(el => el.classList.remove('active'));
+            btnServerHome.classList.add('active');
+            if (roomSectionTitle) {
+                roomSectionTitle.innerText = '🚪 Acesso à Sala Privada';
+            }
+            if (roomInput) {
+                roomInput.value = 'sala-publica';
+            }
+        });
+
+        // Modal de Criação de Servidor
+        btnOpenAddServerModal.addEventListener('click', () => {
+            if (!authToken) {
+                showAuthAlert('Você precisa estar autenticado para criar uma comunidade.', 'error');
+                alert('Faça login primeiro para poder criar novos servidores e comunidades.');
+                return;
+            }
+            modalAddServer.style.display = 'flex';
+            serverModalAlert.style.display = 'none';
+            inputServerName.value = '';
+            inputServerName.focus();
+        });
+
+        function closeAddServerModal() {
+            modalAddServer.style.display = 'none';
+        }
+
+        btnCloseServerModal.addEventListener('click', closeAddServerModal);
+        btnCancelServerModal.addEventListener('click', closeAddServerModal);
+
+        formAddServer.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const serverName = inputServerName.value.trim();
+            if (!serverName) return;
+
+            try {
+                btnSubmitServerModal.disabled = true;
+                btnSubmitServerModal.innerText = 'Criando...';
+
+                const res = await fetch('/servers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ nome: serverName })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'Erro ao criar servidor');
+                }
+
+                closeAddServerModal();
+                await fetchServersList();
+                if (data.server) {
+                    selectServer(data.server);
+                }
+            } catch (err) {
+                serverModalAlert.className = 'auth-alert error';
+                serverModalAlert.innerText = err.message;
+                serverModalAlert.style.display = 'block';
+            } finally {
+                btnSubmitServerModal.disabled = false;
+                btnSubmitServerModal.innerText = 'Criar Comunidade';
+            }
+        });
+
+        // Carrega a lista de servidores na inicialização
+        fetchServersList();
 
         // ==========================================
         // Eventos do Socket.IO (Conexão e Autenticação)
@@ -1568,7 +2036,6 @@
                 emptyStateContainer.style.display = 'none';
                 videoGrid.classList.add('single-peer');
                 controlDock.style.display = 'none';
-                if (isChatOpen) toggleChat();
                 return;
             }
 
