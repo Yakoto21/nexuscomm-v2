@@ -43,6 +43,9 @@ const io = new Server(httpServer, {
     }
 });
 
+// Mapa de rastreamento de presença online (socket.id -> userId)
+const onlineUsersMap = new Map<string, number>();
+
 // Middleware de Autenticação do Socket.IO (io.use) para interceptar conexões iniciais
 io.use(async (socket, next) => {
     // 1. Extrai o token enviado pelo cliente via socket.handshake.auth.token ou headers
@@ -273,24 +276,90 @@ io.on('connection', (socket) => {
     // Adiciona o socket à sala pessoal do usuário para notificações diretas (DMs, amizades)
     if (userId) {
         socket.join(`user_${userId}`);
+        onlineUsersMap.set(socket.id, userId);
+        
+        // Notifica presença online para todos
+        io.emit('user-presence', {
+            userId: userId,
+            status: 'online'
+        });
     }
 
-    // Evento para envio de Mensagem Direta (DM) em tempo real
-    socket.on('send-direct-message', async (data) => {
-        const receiverId = Number(data.receiverId);
-        const content = String(data.content || '').trim();
+    // Retorna a lista atual de IDs de usuários online
+    socket.on('get-online-users', (callback) => {
+        const uniqueOnlineUserIds = Array.from(new Set(Array.from(onlineUsersMap.values())));
+        if (typeof callback === 'function') {
+            callback(uniqueOnlineUserIds);
+        } else {
+            socket.emit('online-users-list', uniqueOnlineUserIds);
+        }
+    });
+
+    // Handler universal de envio de DM (send-dm e send-direct-message)
+    const handleSendDm = async (data: any) => {
+        const receiverId = Number(data.receiverId || data.targetUserId);
+        const content = String(data.content || data.text || '').trim();
         if (!userId || !receiverId || !content) return;
 
         try {
             const savedMsg = await saveDirectMessage(userId, receiverId, content);
-            // Envia de volta para o remetente
+            // Envia confirmação de volta para o remetente
+            socket.emit('receive-dm', savedMsg);
             socket.emit('direct-message-received', savedMsg);
-            // Emite para o destinatário na sua sala de usuário
+            // Emite para o destinatário na sua sala pessoal isolada
+            io.to(`user_${receiverId}`).emit('receive-dm', savedMsg);
             io.to(`user_${receiverId}`).emit('direct-message-received', savedMsg);
             console.log(`✉️ [DM] ${username} -> User ${receiverId}: ${content.substring(0, 30)}`);
         } catch (dmErr) {
             console.error('Erro ao processar DM via socket:', dmErr);
         }
+    };
+
+    socket.on('send-dm', handleSendDm);
+    socket.on('send-direct-message', handleSendDm);
+
+    // Sinalização de Chamadas Privadas P2P (WebRTC DM Calls)
+    socket.on('dm-call-invite', async (data) => {
+        const targetUserId = Number(data?.targetUserId);
+        if (!userId || !targetUserId) return;
+
+        const callerInfo = await findUserById(userId);
+        console.log(`📞 [DM Call Invite] ${username} ligando para User ${targetUserId} (Vídeo: ${!!data.isVideo})`);
+
+        io.to(`user_${targetUserId}`).emit('dm-incoming-call', {
+            callerId: userId,
+            callerSocketId: socket.id,
+            callerUsername: callerInfo?.username || username,
+            callerDisplayName: callerInfo?.display_name || callerInfo?.username || username,
+            callerAvatarUrl: callerInfo?.avatar_url || null,
+            isVideo: !!data.isVideo,
+            callRoom: data.callRoom || `dm_call_${Math.min(userId, targetUserId)}_${Math.max(userId, targetUserId)}`
+        });
+    });
+
+    socket.on('dm-call-response', (data) => {
+        const targetUserId = Number(data?.targetUserId);
+        if (!userId || !targetUserId) return;
+
+        console.log(`📞 [DM Call Response] User ${userId} respondeu chamada de User ${targetUserId}: Aceito = ${!!data.accepted}`);
+        io.to(`user_${targetUserId}`).emit('dm-call-response', {
+            responderId: userId,
+            responderSocketId: socket.id,
+            responderUsername: username,
+            accepted: !!data.accepted,
+            callRoom: data.callRoom
+        });
+    });
+
+    socket.on('dm-call-end', (data) => {
+        const targetUserId = Number(data?.targetUserId);
+        if (!userId || !targetUserId) return;
+
+        console.log(`📴 [DM Call Ended] User ${userId} encerrou a chamada com User ${targetUserId}`);
+        io.to(`user_${targetUserId}`).emit('dm-call-ended', {
+            endedByUserId: userId,
+            callRoom: data.callRoom
+        });
     });
 
     // Eventos para sinalização instantânea de pedidos de amizade
@@ -325,6 +394,17 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log(`❌ Usuário desconectado: ${socket.id} (${username})`);
+        if (userId) {
+            onlineUsersMap.delete(socket.id);
+            // Verifica se o usuário ainda possui outros sockets ativos
+            const remainingUserSockets = Array.from(onlineUsersMap.values()).filter(id => id === userId);
+            if (remainingUserSockets.length === 0) {
+                io.emit('user-presence', {
+                    userId: userId,
+                    status: 'offline'
+                });
+            }
+        }
     });
 });
 

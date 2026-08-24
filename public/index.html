@@ -2136,6 +2136,244 @@
             gap: 16px;
         }
 
+        /* Estilos do Chat DM e Chamadas Privadas (Sprint 3 - Parte 2) */
+        .dm-chat-view {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: transparent;
+            position: relative;
+        }
+
+        .dm-chat-topbar {
+            height: 60px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .dm-topbar-friend-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .dm-topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-dm-call-action {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 10px;
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-dm-call-action:hover {
+            background: rgba(99, 102, 241, 0.4);
+            border-color: rgba(99, 102, 241, 0.6);
+            color: #ffffff;
+            transform: scale(1.03);
+        }
+
+        .btn-dm-call-action.btn-video-call:hover {
+            background: rgba(56, 189, 248, 0.35);
+            border-color: rgba(56, 189, 248, 0.6);
+        }
+
+        .dm-chat-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .dm-messages-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .dm-welcome-box {
+            padding: 20px 0 28px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .dm-welcome-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: #ffffff;
+            font-size: 1.6rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+        }
+
+        .dm-message-bubble {
+            display: flex;
+            gap: 12px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            transition: background 0.15s ease;
+        }
+
+        .dm-message-bubble:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .dm-message-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #334155;
+            color: #ffffff;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .dm-message-content-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+
+        .dm-message-header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .dm-message-author {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .dm-message-timestamp {
+            font-size: 0.72rem;
+            color: var(--text-dark-muted);
+        }
+
+        .dm-message-text {
+            font-size: 0.92rem;
+            color: #e2e8f0;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+        .dm-chat-input-bar {
+            padding: 14px 24px;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dm-chat-input-bar input {
+            flex: 1;
+            background: rgba(10, 14, 26, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #ffffff;
+            font-size: 0.92rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .dm-chat-input-bar input:focus {
+            border-color: rgba(99, 102, 241, 0.6);
+            background: rgba(10, 14, 26, 0.9);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Overlay de Chamada Privada WebRTC */
+        .dm-call-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 14, 26, 0.96);
+            backdrop-filter: blur(24px);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .dm-call-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            flex-shrink: 0;
+        }
+
+        .dm-call-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            padding: 10px 0;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Modal de Notificação de Chamada Recebida */
+        .incoming-call-modal-overlay {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 9999;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(99, 102, 241, 0.3);
+            border-radius: 20px;
+            padding: 18px 22px;
+            backdrop-filter: blur(20px);
+            animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            max-width: 440px;
+        }
+
         /* Overlay de Configurações de Usuário */
         .user-settings-overlay {
             position: fixed;
@@ -2520,8 +2758,8 @@
 
             <!-- 2. Palco Social: Gestão de Amigos e DMs -->
             <main id="homeFriendsStage" class="home-stage">
-                <!-- Topbar do Social Hub -->
-                <div class="home-stage-topbar">
+                <!-- Topbar do Social Hub (Visível quando em Amigos) -->
+                <div class="home-stage-topbar" id="homeStageTopbar">
                     <div class="home-topbar-left">
                         <div class="home-topbar-title">
                             <svg width="20" height="20" fill="none" stroke="#a5b4fc" viewBox="0 0 24 24">
@@ -2560,7 +2798,7 @@
                     </div>
                 </div>
 
-                <!-- Conteúdo do Palco de Amigos -->
+                <!-- Conteúdo do Palco de Amigos (Abas: Online / Todos / Pendentes / Adicionar) -->
                 <div class="home-stage-body" id="homeStageContent">
                     <!-- ABA 1: Listagem de Amigos (Online / Todos / Pendentes) -->
                     <div id="viewFriendsList" style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
@@ -2612,7 +2850,134 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- VISTA 3: Chat de Mensagens Diretas (DM) - Sprint 3 (Parte 2) -->
+                <div id="viewDirectMessageChat" class="dm-chat-view hidden">
+                    <!-- Topbar do Chat DM -->
+                    <div class="dm-chat-topbar">
+                        <div class="dm-topbar-friend-info">
+                            <button type="button" id="btnDmBackToFriends" class="btn-header-action" title="Voltar para a lista de amigos" style="margin-right: 4px;">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                            <div class="friend-avatar-wrap">
+                                <div class="user-avatar-circle" id="dmFriendAvatar">NX</div>
+                                <span class="friend-status-dot status-offline" id="dmFriendStatusDot"></span>
+                            </div>
+                            <div style="display: flex; flex-direction: column;">
+                                <div style="font-size: 1rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+                                    <span id="dmFriendName">Amigo</span>
+                                    <span id="dmFriendTag" style="font-size: 0.78rem; color: var(--text-dark-muted); font-weight: 500;">@usuario</span>
+                                </div>
+                                <span id="dmFriendPresenceText" style="font-size: 0.75rem; color: var(--text-muted);">Offline</span>
+                            </div>
+                        </div>
+
+                        <div class="dm-topbar-actions">
+                            <button type="button" id="btnDmStartVoiceCall" class="btn-dm-call-action" title="Iniciar Chamada de Voz P2P">
+                                <svg width="16" height="16" fill="none" stroke="#38bdf8" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                </svg>
+                                <span>Voz</span>
+                            </button>
+                            <button type="button" id="btnDmStartVideoCall" class="btn-dm-call-action btn-video-call" title="Iniciar Chamada de Vídeo WebRTC">
+                                <svg width="16" height="16" fill="none" stroke="#a78bfa" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                <span>Vídeo</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Corpo de Mensagens da DM -->
+                    <div class="dm-chat-body">
+                        <!-- Overlay de Chamada Privada Ativa -->
+                        <div id="dmPrivateCallOverlay" class="dm-call-overlay hidden">
+                            <div class="dm-call-top">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span class="badge-status badge-live" id="dmCallStatusBadge">Chamada em Andamento</span>
+                                    <span id="dmCallTimer" style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">00:00</span>
+                                </div>
+                                <button type="button" id="btnDmEndCall" class="btn-primary" style="background: #ef4444; border-color: #dc2626; padding: 8px 16px; font-size: 0.85rem; border-radius: 10px;">
+                                    Encerrar Chamada
+                                </button>
+                            </div>
+                            <div class="dm-call-grid" id="dmCallGrid">
+                                <!-- Participante Local -->
+                                <div class="video-card local-card" id="dmLocalCard">
+                                    <div class="card-video-wrapper">
+                                        <video id="dmLocalVideo" autoplay playsinline muted></video>
+                                        <div class="video-placeholder" id="dmLocalPlaceholder">
+                                            <div class="placeholder-avatar" id="dmLocalPlaceholderAvatar">VC</div>
+                                            <span class="placeholder-text">Câmera desligada</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-overlay">
+                                        <span class="user-badge" id="dmLocalUserBadge">Você</span>
+                                    </div>
+                                </div>
+                                <!-- Participante Remoto -->
+                                <div class="video-card" id="dmRemoteCard">
+                                    <div class="card-video-wrapper">
+                                        <video id="dmRemoteVideo" autoplay playsinline></video>
+                                        <div class="video-placeholder" id="dmRemotePlaceholder">
+                                            <div class="placeholder-avatar" id="dmRemotePlaceholderAvatar">AM</div>
+                                            <span class="placeholder-text" id="dmRemotePlaceholderText">Conectando áudio/vídeo...</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-overlay">
+                                        <span class="user-badge" id="dmRemoteUserBadge">Amigo</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mensagens Roláveis -->
+                        <div class="dm-messages-scroll" id="dmChatMessagesContainer">
+                            <div class="dm-welcome-box" id="dmWelcomeBanner">
+                                <div class="dm-welcome-avatar" id="dmWelcomeAvatar">NX</div>
+                                <h2 style="font-size: 1.4rem; font-weight: 700; color: #ffffff; margin: 0;" id="dmWelcomeTitle">Início da conversa com Amigo</h2>
+                                <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0;" id="dmWelcomeDesc">Este é o começo do seu histórico de mensagens diretas e privadas.</p>
+                            </div>
+                            <div id="dmMessagesList" style="display: flex; flex-direction: column; gap: 10px;">
+                                <!-- Mensagens renderizadas dinamicamente via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Form de Envio de DM -->
+                        <form id="formDmChat" class="dm-chat-input-bar">
+                            <input type="text" id="inputDmMessage" placeholder="Conversar em Mensagens Diretas..." autocomplete="off" required />
+                            <button type="submit" id="btnSendDmMessage" class="btn-primary" style="padding: 10px 18px; border-radius: 10px;">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </main>
+        </div>
+
+        <!-- Modal / Banner de Chamada Recebida (Sprint 3 - Parte 2) -->
+        <div id="modalIncomingCall" class="incoming-call-modal-overlay hidden">
+            <div class="user-avatar-circle" id="incomingCallAvatar" style="width: 44px; height: 44px; font-size: 1rem; border: 2px solid #6366f1;">NX</div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <strong id="incomingCallUsername" style="color: #ffffff; font-size: 0.95rem;">Amigo</strong>
+                <span id="incomingCallType" style="color: var(--text-muted); font-size: 0.78rem;">Chamada de vídeo recebida...</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" id="btnAcceptIncomingCall" class="btn-friend-action btn-accept" title="Atender Chamada">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                </button>
+                <button type="button" id="btnDeclineIncomingCall" class="btn-friend-action btn-decline" title="Recusar Chamada">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <!-- ==========================================
@@ -3276,6 +3641,51 @@
         const btnSubmitAddFriend = document.getElementById('btnSubmitAddFriend');
         const addFriendAlert = document.getElementById('addFriendAlert');
 
+        // Elementos de Chat DM & Chamadas Privadas (Sprint 3 - Parte 2)
+        const homeStageTopbar = document.getElementById('homeStageTopbar');
+        const homeStageContent = document.getElementById('homeStageContent');
+        const viewDirectMessageChat = document.getElementById('viewDirectMessageChat');
+        const btnDmBackToFriends = document.getElementById('btnDmBackToFriends');
+        const dmFriendAvatar = document.getElementById('dmFriendAvatar');
+        const dmFriendStatusDot = document.getElementById('dmFriendStatusDot');
+        const dmFriendName = document.getElementById('dmFriendName');
+        const dmFriendTag = document.getElementById('dmFriendTag');
+        const dmFriendPresenceText = document.getElementById('dmFriendPresenceText');
+        const btnDmStartVoiceCall = document.getElementById('btnDmStartVoiceCall');
+        const btnDmStartVideoCall = document.getElementById('btnDmStartVideoCall');
+
+        const dmChatMessagesContainer = document.getElementById('dmChatMessagesContainer');
+        const dmWelcomeBanner = document.getElementById('dmWelcomeBanner');
+        const dmWelcomeAvatar = document.getElementById('dmWelcomeAvatar');
+        const dmWelcomeTitle = document.getElementById('dmWelcomeTitle');
+        const dmWelcomeDesc = document.getElementById('dmWelcomeDesc');
+        const dmMessagesList = document.getElementById('dmMessagesList');
+        const formDmChat = document.getElementById('formDmChat');
+        const inputDmMessage = document.getElementById('inputDmMessage');
+
+        // Overlay de Chamada Privada WebRTC
+        const dmPrivateCallOverlay = document.getElementById('dmPrivateCallOverlay');
+        const dmCallStatusBadge = document.getElementById('dmCallStatusBadge');
+        const dmCallTimer = document.getElementById('dmCallTimer');
+        const btnDmEndCall = document.getElementById('btnDmEndCall');
+        const dmLocalVideo = document.getElementById('dmLocalVideo');
+        const dmLocalPlaceholder = document.getElementById('dmLocalPlaceholder');
+        const dmLocalPlaceholderAvatar = document.getElementById('dmLocalPlaceholderAvatar');
+        const dmLocalUserBadge = document.getElementById('dmLocalUserBadge');
+        const dmRemoteVideo = document.getElementById('dmRemoteVideo');
+        const dmRemotePlaceholder = document.getElementById('dmRemotePlaceholder');
+        const dmRemotePlaceholderAvatar = document.getElementById('dmRemotePlaceholderAvatar');
+        const dmRemotePlaceholderText = document.getElementById('dmRemotePlaceholderText');
+        const dmRemoteUserBadge = document.getElementById('dmRemoteUserBadge');
+
+        // Modal de Chamada Recebida
+        const modalIncomingCall = document.getElementById('modalIncomingCall');
+        const incomingCallAvatar = document.getElementById('incomingCallAvatar');
+        const incomingCallUsername = document.getElementById('incomingCallUsername');
+        const incomingCallType = document.getElementById('incomingCallType');
+        const btnAcceptIncomingCall = document.getElementById('btnAcceptIncomingCall');
+        const btnDeclineIncomingCall = document.getElementById('btnDeclineIncomingCall');
+
         // Controles de Vídeo / Mídia
         const videoGrid = document.getElementById('videoGrid');
         const localVideo = document.getElementById('localVideo');
@@ -3424,6 +3834,15 @@
         let cachedFriendships = { accepted: [], pending_incoming: [], pending_outgoing: [], blocked: [] };
         let onlineUserIdsSet = new Set();
         let activeDmUserId = null;
+        let activeDmFriendObj = null;
+
+        // Estado de Chamadas Privadas P2P (WebRTC DM)
+        let isPrivateCallActive = false;
+        let privateCallRoom = null;
+        let activePrivateCallPeer = null; // { targetUserId, targetSocketId, isVideo }
+        let pendingIncomingCallData = null;
+        let privateCallTimerInterval = null;
+        let privateCallStartTime = null;
 
         let cameraStream = null;
         let micStream = null;
@@ -4570,10 +4989,17 @@
                     btnMsg.className = 'btn-friend-action';
                     btnMsg.title = 'Mensagem Direta';
                     btnMsg.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>';
-                    btnMsg.addEventListener('click', () => {
-                        startDirectMessageWith(friend);
+                    btnMsg.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openDirectMessageChat(friend);
                     });
                     actionsGroup.appendChild(btnMsg);
+
+                    // Clicar no card inteiro também abre a DM diretamente
+                    card.style.cursor = 'pointer';
+                    card.addEventListener('click', () => {
+                        openDirectMessageChat(friend);
+                    });
                 }
 
                 card.appendChild(leftDiv);
@@ -4627,17 +5053,468 @@
                 item.appendChild(dot);
 
                 item.addEventListener('click', () => {
-                    startDirectMessageWith(friend);
+                    openDirectMessageChat(friend);
                 });
 
                 homeDmsList.appendChild(item);
             });
         }
 
-        function startDirectMessageWith(friend) {
+        // ==========================================
+        // 4.1 Interface de Chat Pessoal (DM) & Histórico (Sprint 3 - Parte 2)
+        // ==========================================
+        async function openDirectMessageChat(friend) {
+            if (!friend) return;
             activeDmUserId = friend.id;
+            activeDmFriendObj = friend;
+
+            // Oculta Topbar e Palco de Amigos, Revela Chat de DM
+            if (homeStageTopbar) homeStageTopbar.classList.add('hidden');
+            if (homeStageContent) homeStageContent.classList.add('hidden');
+            if (viewDirectMessageChat) viewDirectMessageChat.classList.remove('hidden');
+
+            // Atualiza Topbar do Chat DM
+            const displayName = friend.display_name || friend.username || 'Amigo';
+            if (dmFriendName) dmFriendName.textContent = displayName;
+            if (dmFriendTag) dmFriendTag.textContent = `@${friend.username || 'usuario'}`;
+
+            const isOnline = onlineUserIdsSet.has(friend.id);
+            if (dmFriendStatusDot) {
+                dmFriendStatusDot.className = `friend-status-dot ${isOnline ? 'status-online' : 'status-offline'}`;
+            }
+            if (dmFriendPresenceText) {
+                dmFriendPresenceText.textContent = isOnline ? 'Disponível / Online' : 'Offline';
+            }
+
+            if (dmFriendAvatar) {
+                dmFriendAvatar.textContent = '';
+                if (friend.avatar_url) {
+                    const img = document.createElement('img');
+                    img.src = friend.avatar_url;
+                    img.className = 'user-avatar-img';
+                    img.alt = displayName;
+                    dmFriendAvatar.appendChild(img);
+                } else {
+                    dmFriendAvatar.textContent = getServerInitials(displayName);
+                }
+            }
+
+            // Atualiza Banner de Boas-Vindas da DM
+            if (dmWelcomeTitle) dmWelcomeTitle.textContent = `Início da conversa com ${displayName}`;
+            if (dmWelcomeDesc) dmWelcomeDesc.textContent = `Este é o começo do seu histórico de mensagens diretas e privadas com @${friend.username || 'usuario'}.`;
+            if (dmWelcomeAvatar) {
+                dmWelcomeAvatar.textContent = '';
+                if (friend.avatar_url) {
+                    const img = document.createElement('img');
+                    img.src = friend.avatar_url;
+                    img.className = 'user-avatar-img';
+                    img.alt = displayName;
+                    dmWelcomeAvatar.appendChild(img);
+                } else {
+                    dmWelcomeAvatar.textContent = getServerInitials(displayName);
+                }
+            }
+
+            if (inputDmMessage) {
+                inputDmMessage.placeholder = `Conversar com @${friend.username || 'amigo'}...`;
+                inputDmMessage.focus();
+            }
+
             renderDirectMessagesList();
-            switchSocialTab('all');
+            await fetchDirectMessagesHistory(friend.id);
+        }
+
+        function closeDirectMessageChat() {
+            activeDmUserId = null;
+            activeDmFriendObj = null;
+
+            if (viewDirectMessageChat) viewDirectMessageChat.classList.add('hidden');
+            if (homeStageTopbar) homeStageTopbar.classList.remove('hidden');
+            if (homeStageContent) homeStageContent.classList.remove('hidden');
+
+            renderDirectMessagesList();
+            switchSocialTab(currentSocialTab || 'online');
+        }
+
+        async function fetchDirectMessagesHistory(friendId) {
+            if (!friendId || !authToken) return;
+            if (!dmMessagesList) return;
+
+            dmMessagesList.textContent = '';
+            const loadingMsg = document.createElement('div');
+            loadingMsg.style.cssText = 'padding: 20px; text-align: center; color: var(--text-dark-muted); font-size: 0.85rem;';
+            loadingMsg.textContent = 'Carregando histórico de mensagens diretas...';
+            dmMessagesList.appendChild(loadingMsg);
+
+            try {
+                const res = await fetch(`/dms/${friendId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await res.json();
+                dmMessagesList.textContent = '';
+
+                if (data && Array.isArray(data.messages)) {
+                    data.messages.forEach(msg => {
+                        renderDmMessageItem(msg, false);
+                    });
+                }
+                scrollDmChatToBottom();
+            } catch (err) {
+                console.error('Erro ao carregar mensagens diretas:', err);
+                if (dmMessagesList) {
+                    dmMessagesList.textContent = '';
+                    const errorMsg = document.createElement('div');
+                    errorMsg.style.cssText = 'padding: 20px; text-align: center; color: #f87171; font-size: 0.85rem;';
+                    errorMsg.textContent = 'Erro ao carregar mensagens diretas.';
+                    dmMessagesList.appendChild(errorMsg);
+                }
+            }
+        }
+
+        function renderDmMessageItem(msg, shouldScroll = true) {
+            if (!dmMessagesList || !msg) return;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'dm-message-bubble';
+
+            // Avatar
+            const avatar = document.createElement('div');
+            avatar.className = 'dm-message-avatar';
+            const authorName = msg.sender_display_name || msg.sender_username || (msg.sender_id === currentUser?.id ? (currentUser?.display_name || currentUser?.username) : (activeDmFriendObj?.display_name || activeDmFriendObj?.username)) || 'Usuário';
+
+            const avatarUrl = msg.sender_avatar_url || (msg.sender_id === currentUser?.id ? currentUser?.avatar_url : activeDmFriendObj?.avatar_url);
+            if (avatarUrl) {
+                const img = document.createElement('img');
+                img.src = avatarUrl;
+                img.className = 'user-avatar-img';
+                img.alt = authorName;
+                avatar.appendChild(img);
+            } else {
+                avatar.textContent = getServerInitials(authorName);
+            }
+
+            // Conteúdo
+            const wrap = document.createElement('div');
+            wrap.className = 'dm-message-content-wrap';
+
+            const header = document.createElement('div');
+            header.className = 'dm-message-header';
+
+            const authorSpan = document.createElement('span');
+            authorSpan.className = 'dm-message-author';
+            authorSpan.textContent = authorName;
+
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'dm-message-timestamp';
+            const dateObj = msg.timestamp || msg.created_at ? new Date(msg.timestamp || msg.created_at) : new Date();
+            timeSpan.textContent = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            header.appendChild(authorSpan);
+            header.appendChild(timeSpan);
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'dm-message-text';
+            textDiv.textContent = msg.text || msg.content || '';
+
+            wrap.appendChild(header);
+            wrap.appendChild(textDiv);
+
+            bubble.appendChild(avatar);
+            bubble.appendChild(wrap);
+
+            dmMessagesList.appendChild(bubble);
+
+            if (shouldScroll) {
+                scrollDmChatToBottom();
+            }
+        }
+
+        function scrollDmChatToBottom() {
+            if (dmChatMessagesContainer) {
+                dmChatMessagesContainer.scrollTop = dmChatMessagesContainer.scrollHeight;
+            }
+        }
+
+        async function sendDmAction(content) {
+            const safeContent = (content || '').trim();
+            if (!safeContent || !activeDmUserId) return;
+
+            if (socket.connected) {
+                socket.emit('send-dm', {
+                    receiverId: activeDmUserId,
+                    content: safeContent
+                });
+            } else {
+                try {
+                    const res = await fetch(`/dms/${activeDmUserId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({ content: safeContent })
+                    });
+                    const data = await res.json();
+                    if (data?.message) {
+                        renderDmMessageItem(data.message, true);
+                    }
+                } catch (err) {
+                    console.error('Erro no envio HTTP da DM:', err);
+                }
+            }
+
+            if (inputDmMessage) {
+                inputDmMessage.value = '';
+            }
+        }
+
+        function handleIncomingDm(msg) {
+            if (!msg) return;
+            console.log('💬 Nova DM recebida:', msg);
+
+            if (activeDmUserId && (msg.sender_id === activeDmUserId || msg.receiver_id === activeDmUserId)) {
+                renderDmMessageItem(msg, true);
+            }
+
+            renderDirectMessagesList();
+        }
+
+        // ==========================================
+        // 4.2 Isolamento WebRTC: Chamadas P2P Privadas (Sprint 3 - Parte 2)
+        // ==========================================
+        async function startPrivateCall(friend, isVideo) {
+            if (!friend || !currentUser) return;
+            const myId = Number(currentUser.id);
+            const otherId = Number(friend.id);
+            if (!myId || !otherId) return;
+
+            privateCallRoom = `dm_call_${Math.min(myId, otherId)}_${Math.max(myId, otherId)}`;
+            activePrivateCallPeer = { targetUserId: otherId, isVideo: !!isVideo };
+            isPrivateCallActive = true;
+
+            // Mostra o overlay de chamada dentro da DM
+            if (dmPrivateCallOverlay) dmPrivateCallOverlay.classList.remove('hidden');
+            if (dmCallStatusBadge) dmCallStatusBadge.textContent = 'Chamando...';
+            if (dmRemoteUserBadge) dmRemoteUserBadge.textContent = friend.display_name || friend.username || 'Amigo';
+
+            // Inicia mídia local
+            try {
+                await getOrCreateMicrophone();
+                if (isVideo) {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: { ideal: 1280 }, height: { ideal: 720 } }
+                    });
+                    if (dmLocalVideo) {
+                        dmLocalVideo.style.transform = 'scaleX(-1)';
+                        dmLocalVideo.srcObject = cameraStream;
+                    }
+                    if (dmLocalPlaceholder) dmLocalPlaceholder.style.opacity = '0';
+                    updateAllPeersVideoTrack(cameraStream.getVideoTracks()[0]);
+                } else {
+                    if (dmLocalPlaceholder) dmLocalPlaceholder.style.opacity = '1';
+                }
+            } catch (mediaErr) {
+                console.warn('Aviso de mídia na chamada privada:', mediaErr);
+            }
+
+            // Conecta na sala privada isolada
+            connectToRoom(privateCallRoom);
+
+            // Emite convite de chamada privada via Socket.IO
+            socket.emit('dm-call-invite', {
+                targetUserId: otherId,
+                isVideo: !!isVideo,
+                callRoom: privateCallRoom
+            });
+
+            startPrivateCallTimer();
+        }
+
+        function startPrivateCallTimer() {
+            stopPrivateCallTimer();
+            privateCallStartTime = Date.now();
+            if (dmCallTimer) dmCallTimer.textContent = '00:00';
+            privateCallTimerInterval = setInterval(() => {
+                if (!privateCallStartTime) return;
+                const elapsed = Math.floor((Date.now() - privateCallStartTime) / 1000);
+                const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const secs = String(elapsed % 60).padStart(2, '0');
+                if (dmCallTimer) dmCallTimer.textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function stopPrivateCallTimer() {
+            if (privateCallTimerInterval) {
+                clearInterval(privateCallTimerInterval);
+                privateCallTimerInterval = null;
+            }
+            privateCallStartTime = null;
+        }
+
+        function handleIncomingCall(data) {
+            if (!data) return;
+            console.log('📞 Chamada privada recebida:', data);
+            pendingIncomingCallData = data;
+
+            if (incomingCallUsername) {
+                incomingCallUsername.textContent = data.callerDisplayName || data.callerUsername || 'Amigo';
+            }
+            if (incomingCallType) {
+                incomingCallType.textContent = data.isVideo ? 'Chamada de Vídeo WebRTC' : 'Chamada de Voz P2P';
+            }
+            if (incomingCallAvatar) {
+                incomingCallAvatar.textContent = '';
+                if (data.callerAvatarUrl) {
+                    const img = document.createElement('img');
+                    img.src = data.callerAvatarUrl;
+                    img.className = 'user-avatar-img';
+                    img.alt = data.callerDisplayName || 'Avatar';
+                    incomingCallAvatar.appendChild(img);
+                } else {
+                    incomingCallAvatar.textContent = getServerInitials(data.callerDisplayName || data.callerUsername || 'NX');
+                }
+            }
+
+            if (modalIncomingCall) {
+                modalIncomingCall.classList.remove('hidden');
+            }
+        }
+
+        async function acceptIncomingCallAction() {
+            if (!pendingIncomingCallData) return;
+            const callData = pendingIncomingCallData;
+            pendingIncomingCallData = null;
+
+            if (modalIncomingCall) modalIncomingCall.classList.add('hidden');
+
+            socket.emit('dm-call-response', {
+                targetUserId: callData.callerId,
+                accepted: true,
+                callRoom: callData.callRoom
+            });
+
+            // Localiza ou monta o objeto do amigo
+            const friendObj = (cachedFriendships.accepted || []).find(f => f.id === callData.callerId) || {
+                id: callData.callerId,
+                username: callData.callerUsername,
+                display_name: callData.callerDisplayName,
+                avatar_url: callData.callerAvatarUrl
+            };
+
+            await openDirectMessageChat(friendObj);
+
+            // Inicia o WebRTC na sala privada
+            privateCallRoom = callData.callRoom;
+            activePrivateCallPeer = { targetUserId: callData.callerId, isVideo: !!callData.isVideo };
+            isPrivateCallActive = true;
+
+            if (dmPrivateCallOverlay) dmPrivateCallOverlay.classList.remove('hidden');
+            if (dmCallStatusBadge) dmCallStatusBadge.textContent = 'Conectando...';
+            if (dmRemoteUserBadge) dmRemoteUserBadge.textContent = friendObj.display_name || friendObj.username || 'Amigo';
+
+            try {
+                await getOrCreateMicrophone();
+                if (callData.isVideo) {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: { ideal: 1280 }, height: { ideal: 720 } }
+                    });
+                    if (dmLocalVideo) {
+                        dmLocalVideo.style.transform = 'scaleX(-1)';
+                        dmLocalVideo.srcObject = cameraStream;
+                    }
+                    if (dmLocalPlaceholder) dmLocalPlaceholder.style.opacity = '0';
+                    updateAllPeersVideoTrack(cameraStream.getVideoTracks()[0]);
+                } else {
+                    if (dmLocalPlaceholder) dmLocalPlaceholder.style.opacity = '1';
+                }
+            } catch (mediaErr) {
+                console.warn('Aviso de mídia ao atender chamada:', mediaErr);
+            }
+
+            connectToRoom(callData.callRoom);
+            startPrivateCallTimer();
+        }
+
+        function declineIncomingCallAction() {
+            if (!pendingIncomingCallData) return;
+            const callData = pendingIncomingCallData;
+            pendingIncomingCallData = null;
+
+            if (modalIncomingCall) modalIncomingCall.classList.add('hidden');
+
+            socket.emit('dm-call-response', {
+                targetUserId: callData.callerId,
+                accepted: false,
+                callRoom: callData.callRoom
+            });
+        }
+
+        function endPrivateCallAction() {
+            if (!isPrivateCallActive) return;
+            isPrivateCallActive = false;
+
+            if (activePrivateCallPeer && privateCallRoom) {
+                socket.emit('dm-call-end', {
+                    targetUserId: activePrivateCallPeer.targetUserId,
+                    callRoom: privateCallRoom
+                });
+            }
+
+            stopPrivateCallTimer();
+            leaveRoom();
+
+            if (dmPrivateCallOverlay) dmPrivateCallOverlay.classList.add('hidden');
+            if (dmRemoteVideo) dmRemoteVideo.srcObject = null;
+            if (dmRemotePlaceholder) dmRemotePlaceholder.style.opacity = '1';
+
+            privateCallRoom = null;
+            activePrivateCallPeer = null;
+        }
+
+        function handlePrivateCallResponse(data) {
+            if (!data) return;
+            if (!data.accepted) {
+                alert(`${data.responderUsername || 'O usuário'} recusou ou não pôde atender a chamada.`);
+                endPrivateCallAction();
+            } else {
+                if (dmCallStatusBadge) dmCallStatusBadge.textContent = 'Conectado';
+            }
+        }
+
+        function handlePrivateCallEnded(data) {
+            console.log('📴 Chamada privada encerrada pelo outro participante:', data);
+            stopPrivateCallTimer();
+            leaveRoom();
+            isPrivateCallActive = false;
+            if (dmPrivateCallOverlay) dmPrivateCallOverlay.classList.add('hidden');
+            if (dmRemoteVideo) dmRemoteVideo.srcObject = null;
+            if (dmRemotePlaceholder) dmRemotePlaceholder.style.opacity = '1';
+            privateCallRoom = null;
+            activePrivateCallPeer = null;
+        }
+
+        function handleUserPresence(data) {
+            if (!data?.userId) return;
+            if (data.status === 'online') {
+                onlineUserIdsSet.add(Number(data.userId));
+            } else {
+                onlineUserIdsSet.delete(Number(data.userId));
+            }
+
+            updateFriendsBadges();
+            renderFriendsList();
+            renderDirectMessagesList();
+
+            // Atualiza status do amigo no topo da DM se estiver aberta
+            if (activeDmUserId === Number(data.userId)) {
+                const isOnline = data.status === 'online';
+                if (dmFriendStatusDot) {
+                    dmFriendStatusDot.className = `friend-status-dot ${isOnline ? 'status-online' : 'status-offline'}`;
+                }
+                if (dmFriendPresenceText) {
+                    dmFriendPresenceText.textContent = isOnline ? 'Disponível / Online' : 'Offline';
+                }
+            }
         }
 
         async function sendFriendRequestAction(targetUsername) {
@@ -4711,13 +5588,46 @@
             }
         }
 
-        // Listeners do Hub Social
-        if (tabFriendsOnline) tabFriendsOnline.addEventListener('click', () => switchSocialTab('online'));
-        if (tabFriendsAll) tabFriendsAll.addEventListener('click', () => switchSocialTab('all'));
-        if (tabFriendsPending) tabFriendsPending.addEventListener('click', () => switchSocialTab('pending'));
-        if (tabFriendsAdd) tabFriendsAdd.addEventListener('click', () => switchSocialTab('add'));
-        if (btnHomeNavFriends) btnHomeNavFriends.addEventListener('click', () => switchSocialTab('online'));
+        // Listeners do Hub Social & DM
+        if (tabFriendsOnline) tabFriendsOnline.addEventListener('click', () => { closeDirectMessageChat(); switchSocialTab('online'); });
+        if (tabFriendsAll) tabFriendsAll.addEventListener('click', () => { closeDirectMessageChat(); switchSocialTab('all'); });
+        if (tabFriendsPending) tabFriendsPending.addEventListener('click', () => { closeDirectMessageChat(); switchSocialTab('pending'); });
+        if (tabFriendsAdd) tabFriendsAdd.addEventListener('click', () => { closeDirectMessageChat(); switchSocialTab('add'); });
+        if (btnHomeNavFriends) btnHomeNavFriends.addEventListener('click', () => { closeDirectMessageChat(); switchSocialTab('online'); });
         if (inputSearchFriends) inputSearchFriends.addEventListener('input', () => renderFriendsList());
+        if (btnDmBackToFriends) btnDmBackToFriends.addEventListener('click', closeDirectMessageChat);
+
+        if (formDmChat) {
+            formDmChat.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const text = inputDmMessage?.value;
+                if (text) sendDmAction(text);
+            });
+        }
+
+        if (btnDmStartVoiceCall) {
+            btnDmStartVoiceCall.addEventListener('click', () => {
+                if (activeDmFriendObj) startPrivateCall(activeDmFriendObj, false);
+            });
+        }
+
+        if (btnDmStartVideoCall) {
+            btnDmStartVideoCall.addEventListener('click', () => {
+                if (activeDmFriendObj) startPrivateCall(activeDmFriendObj, true);
+            });
+        }
+
+        if (btnDmEndCall) {
+            btnDmEndCall.addEventListener('click', endPrivateCallAction);
+        }
+
+        if (btnAcceptIncomingCall) {
+            btnAcceptIncomingCall.addEventListener('click', acceptIncomingCallAction);
+        }
+
+        if (btnDeclineIncomingCall) {
+            btnDeclineIncomingCall.addEventListener('click', declineIncomingCallAction);
+        }
 
         if (formAddFriend) {
             formAddFriend.addEventListener('submit', (e) => {
@@ -4745,7 +5655,22 @@
             });
         }
 
-        // Socket listeners para Hub Social
+        // Socket listeners para Hub Social & DMs & Chamadas Privadas
+        socket.on('receive-dm', handleIncomingDm);
+        socket.on('direct-message-received', handleIncomingDm);
+        socket.on('dm-incoming-call', handleIncomingCall);
+        socket.on('dm-call-response', handlePrivateCallResponse);
+        socket.on('dm-call-ended', handlePrivateCallEnded);
+        socket.on('user-presence', handleUserPresence);
+        socket.on('online-users-list', (onlineList) => {
+            if (Array.isArray(onlineList)) {
+                onlineUserIdsSet = new Set(onlineList.map(Number));
+                updateFriendsBadges();
+                renderFriendsList();
+                renderDirectMessagesList();
+            }
+        });
+
         socket.on('friend-request-received', (data) => {
             console.log('📬 Nova solicitação de amizade recebida:', data);
             fetchFriendsList();
@@ -5485,6 +6410,22 @@
                 });
                 stream.addTrack(event.track);
 
+                // Se estiver em Chamada Privada DM
+                if (isPrivateCallActive) {
+                    if (dmRemoteVideo && dmRemoteVideo.srcObject !== stream) {
+                        dmRemoteVideo.srcObject = stream;
+                    }
+                    if (event.track.kind === 'video') {
+                        if (dmRemotePlaceholder) dmRemotePlaceholder.style.opacity = '0';
+                    }
+                    if (dmCallStatusBadge) {
+                        dmCallStatusBadge.textContent = 'Conectado (Ao Vivo)';
+                    }
+                    if (dmRemoteVideo) {
+                        dmRemoteVideo.play().catch(e => console.warn('Autoplay DM aguardando interação:', e));
+                    }
+                }
+
                 const videoEl = document.getElementById(`video-${targetSocketId}`);
                 if (videoEl && videoEl.srcObject !== stream) videoEl.srcObject = stream;
 
@@ -5514,6 +6455,9 @@
 
                 if (iceState === 'connected' || iceState === 'completed') {
                     console.log(`✅ [WebRTC Conectado] Malha P2P restabelecida com sucesso com o peer [${targetSocketId}]`);
+                    if (isPrivateCallActive && dmCallStatusBadge) {
+                        dmCallStatusBadge.textContent = 'Conectado';
+                    }
                     if (statusBadge) {
                         statusBadge.className = 'badge-status badge-live';
                         statusBadge.innerText = 'Ao Vivo';
