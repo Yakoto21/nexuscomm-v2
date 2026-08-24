@@ -168,6 +168,15 @@ io.on('connection', (socket) => {
         });
     });
 
+    // Saída Graciosa da Sala (Room Teardown)
+    socket.on('leave-room', (room) => {
+        if (!room) return;
+        const roomName = String(room).trim();
+        socket.leave(roomName);
+        console.log(`🚪 Usuário ${socket.id} (${username}) saiu da sala: "${roomName}"`);
+        socket.to(roomName).emit('user-left', { id: socket.id, username: username, room: roomName });
+    });
+
     // 1. Repasse da Oferta WebRTC (offer) direcionada para um peer específico ou para a sala
     socket.on('offer', (data) => {
         const payload = {

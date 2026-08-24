@@ -1075,6 +1075,134 @@
             box-shadow: 0 0 16px rgba(99, 102, 241, 0.35);
         }
 
+        /* ==========================================
+           DOCK DE VOZ PERSISTENTE EM SEGUNDO PLANO (Sprint 6)
+           ========================================== */
+        .persistent-voice-dock {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: rgba(16, 185, 129, 0.12);
+            border-top: 1px solid rgba(16, 185, 129, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            gap: 8px;
+            transition: all 0.25s ease;
+            animation: fadeIn 0.3s ease-out;
+            user-select: none;
+        }
+
+        .persistent-voice-dock:hover {
+            background: rgba(16, 185, 129, 0.18);
+        }
+
+        .persistent-voice-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .persistent-voice-ping {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.2);
+            flex-shrink: 0;
+        }
+
+        .ping-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+            animation: pingPulse 1.8s infinite;
+        }
+
+        @keyframes pingPulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .persistent-voice-text {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .persistent-voice-status {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #34d399;
+            letter-spacing: 0.02em;
+            line-height: 1.2;
+        }
+
+        .persistent-voice-channel {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+
+        .persistent-voice-actions {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+
+        .btn-voice-mini {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-voice-mini:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .btn-voice-mini.active-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-voice-disconnect {
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .btn-voice-disconnect:hover {
+            background: #ef4444;
+            color: #ffffff;
+            border-color: #dc2626;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
         .video-placeholder {
             position: absolute;
             display: flex;
@@ -2996,6 +3124,31 @@
                     </div>
                 </div>
 
+                <!-- Mini Dock Persistente de Conexão de Voz em Segundo Plano (Sprint 6) -->
+                <div id="persistentVoiceDock" class="persistent-voice-dock" style="display: none;">
+                    <div class="persistent-voice-info" id="btnReturnToVoiceStage" title="Clique para abrir tela da chamada de voz">
+                        <div class="persistent-voice-ping">
+                            <span class="ping-dot"></span>
+                        </div>
+                        <div class="persistent-voice-text">
+                            <span class="persistent-voice-status">Voz Conectada</span>
+                            <span class="persistent-voice-channel" id="persistentVoiceChannelName">#geral-voz</span>
+                        </div>
+                    </div>
+                    <div class="persistent-voice-actions">
+                        <button type="button" id="btnPersistentMute" class="btn-voice-mini" title="Mutar/Desmutar Microfone">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                        </button>
+                        <button type="button" id="btnPersistentDisconnect" class="btn-voice-mini btn-voice-disconnect" title="Desconectar da Voz">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l4 4m0 0l-4 4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Base do Painel: Perfil do Usuário Autenticado + Engrenagem ⚙️ -->
                 <div class="channels-user-bar">
                     <div class="user-bar-info">
@@ -3298,6 +3451,31 @@
                                 Nenhuma conversa recente.
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Mini Dock Persistente de Conexão de Voz no Hub Social (Sprint 6) -->
+                <div id="persistentVoiceDockHome" class="persistent-voice-dock" style="display: none;">
+                    <div class="persistent-voice-info" id="btnReturnToVoiceStageHome" title="Clique para voltar à chamada de voz">
+                        <div class="persistent-voice-ping">
+                            <span class="ping-dot"></span>
+                        </div>
+                        <div class="persistent-voice-text">
+                            <span class="persistent-voice-status">Voz Conectada</span>
+                            <span class="persistent-voice-channel" id="persistentVoiceChannelNameHome">#geral-voz</span>
+                        </div>
+                    </div>
+                    <div class="persistent-voice-actions">
+                        <button type="button" id="btnPersistentMuteHome" class="btn-voice-mini" title="Mutar/Desmutar Microfone">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                        </button>
+                        <button type="button" id="btnPersistentDisconnectHome" class="btn-voice-mini btn-voice-disconnect" title="Desconectar da Voz">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l4 4m0 0l-4 4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -4272,6 +4450,19 @@
         const sliderMicSensitivity = document.getElementById('sliderMicSensitivity');
         const labelMicSensitivity = document.getElementById('labelMicSensitivity');
 
+        // Docks Persistentes de Voz em Segundo Plano (Sprint 6)
+        const persistentVoiceDock = document.getElementById('persistentVoiceDock');
+        const persistentVoiceChannelName = document.getElementById('persistentVoiceChannelName');
+        const btnReturnToVoiceStage = document.getElementById('btnReturnToVoiceStage');
+        const btnPersistentMute = document.getElementById('btnPersistentMute');
+        const btnPersistentDisconnect = document.getElementById('btnPersistentDisconnect');
+
+        const persistentVoiceDockHome = document.getElementById('persistentVoiceDockHome');
+        const persistentVoiceChannelNameHome = document.getElementById('persistentVoiceChannelNameHome');
+        const btnReturnToVoiceStageHome = document.getElementById('btnReturnToVoiceStageHome');
+        const btnPersistentMuteHome = document.getElementById('btnPersistentMuteHome');
+        const btnPersistentDisconnectHome = document.getElementById('btnPersistentDisconnectHome');
+
         const chatSidebar = document.getElementById('chatSidebar');
         const chatPanelTitle = document.getElementById('chatPanelTitle');
         const btnToggleChat = document.getElementById('btnToggleChat');
@@ -4389,7 +4580,11 @@
         // Estruturas de Estado
         let currentViewMode = 'empty'; // 'empty' | 'text' | 'voice'
         let currentRoom = null;
+        let currentTextRoom = null; // Sala de texto ativa independente
+        let currentVoiceRoom = null; // Sala de voz WebRTC ativa independente
         let currentActiveChannelObj = null;
+        let activeTextChannelObj = null;
+        let activeVoiceChannelObj = null;
         let activeServerId = null;
         let activeServerObj = null;
         let activeChannelId = null;
@@ -4428,6 +4623,7 @@
         const peerUsernames = {}; 
         const localStream = new MediaStream();
 
+        // Configuração de NAT Traversal Avançada com múltiplos servidores STUN públicos (Sprint 6)
         const rtcConfiguration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -4435,7 +4631,9 @@
                 { urls: 'stun:stun2.l.google.com:19302' },
                 { urls: 'stun:stun3.l.google.com:19302' },
                 { urls: 'stun:stun4.l.google.com:19302' },
-                { urls: 'stun:stun.cloudflare.com:3478' }
+                { urls: 'stun:stun.services.mozilla.com' },
+                { urls: 'stun:stun.cloudflare.com:3478' },
+                { urls: 'stun:global.stun.twilio.com:3478' }
             ],
             iceCandidatePoolSize: 10
         };
@@ -4451,17 +4649,35 @@
 
             if (mode === 'empty') {
                 communityWelcomeView.classList.add('active');
-                controlDock.style.display = 'none';
+                if (controlDock) controlDock.style.display = 'none';
                 if (chatSidebar.classList.contains('open')) toggleChatSidebar(false);
             } else if (mode === 'text') {
                 mainTextChatView.classList.add('active');
-                controlDock.style.display = 'none';
+                if (controlDock) controlDock.style.display = 'none';
                 if (chatSidebar.classList.contains('open')) toggleChatSidebar(false);
-                setTimeout(() => mainChatExpandedInput.focus(), 100);
+                setTimeout(() => mainChatExpandedInput?.focus(), 100);
             } else if (mode === 'voice') {
                 voiceStageView.classList.add('active');
-                controlDock.style.display = 'flex';
+                if (controlDock) controlDock.style.display = 'flex';
                 updateGridLayout();
+            }
+
+            // Gerencia os docks persistentes de voz em segundo plano (Sprint 6)
+            updatePersistentVoiceDocks();
+        }
+
+        function updatePersistentVoiceDocks() {
+            const hasActiveVoice = Boolean(currentVoiceRoom && activeVoiceChannelObj);
+            const isVoiceViewActive = (currentViewMode === 'voice');
+
+            if (hasActiveVoice && !isVoiceViewActive) {
+                if (persistentVoiceDock) persistentVoiceDock.style.display = 'flex';
+                if (persistentVoiceDockHome) persistentVoiceDockHome.style.display = 'flex';
+                if (persistentVoiceChannelName) persistentVoiceChannelName.innerText = `#${activeVoiceChannelObj?.nome || 'voz'}`;
+                if (persistentVoiceChannelNameHome) persistentVoiceChannelNameHome.innerText = `#${activeVoiceChannelObj?.nome || 'voz'}`;
+            } else {
+                if (persistentVoiceDock) persistentVoiceDock.style.display = 'none';
+                if (persistentVoiceDockHome) persistentVoiceDockHome.style.display = 'none';
             }
         }
 
@@ -5937,8 +6153,8 @@
                 console.warn('Aviso de mídia na chamada privada:', mediaErr);
             }
 
-            // Conecta na sala privada isolada
-            connectToRoom(privateCallRoom);
+            // Conecta na sala privada isolada via Socket.IO
+            socket.emit('join-room', privateCallRoom);
 
             // Emite convite de chamada privada via Socket.IO
             socket.emit('dm-call-invite', {
@@ -6051,7 +6267,7 @@
                 console.warn('Aviso de mídia ao atender chamada:', mediaErr);
             }
 
-            connectToRoom(callData.callRoom);
+            socket.emit('join-room', callData.callRoom);
             startPrivateCallTimer();
         }
 
@@ -6070,25 +6286,57 @@
         }
 
         function endPrivateCallAction() {
-            if (!isPrivateCallActive) return;
-            isPrivateCallActive = false;
+            if (!isPrivateCallActive && !privateCallRoom) return;
 
-            if (activePrivateCallPeer && privateCallRoom) {
+            const roomToEnd = privateCallRoom;
+            const targetPeer = activePrivateCallPeer;
+
+            isPrivateCallActive = false;
+            stopPrivateCallTimer();
+
+            if (targetPeer && roomToEnd && socket.connected) {
                 socket.emit('dm-call-end', {
-                    targetUserId: activePrivateCallPeer.targetUserId,
-                    callRoom: privateCallRoom
+                    targetUserId: targetPeer.targetUserId,
+                    callRoom: roomToEnd
                 });
             }
 
-            stopPrivateCallTimer();
-            leaveRoom();
+            if (roomToEnd && socket.connected) {
+                socket.emit('leave-room', roomToEnd);
+            }
+
+            // Teardown das mídias da chamada DM
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(t => t.stop());
+                cameraStream = null;
+            }
+            if (micStream) {
+                micStream.getTracks().forEach(t => t.stop());
+                micStream = null;
+            }
+            localStream.getTracks().forEach(t => t.stop());
+
+            for (const peerId of Object.keys(peerConnections)) {
+                closePeerConnection(peerId);
+            }
+
+            if (peerAudioNodes['dm-remote']) {
+                try {
+                    peerAudioNodes['dm-remote'].sourceNode.disconnect();
+                    peerAudioNodes['dm-remote'].gainNode.disconnect();
+                } catch(e) {}
+                delete peerAudioNodes['dm-remote'];
+            }
 
             if (dmPrivateCallOverlay) dmPrivateCallOverlay.classList.add('hidden');
+            if (dmLocalVideo) dmLocalVideo.srcObject = null;
+            if (dmLocalPlaceholder) dmLocalPlaceholder.style.opacity = '1';
             if (dmRemoteVideo) dmRemoteVideo.srcObject = null;
             if (dmRemotePlaceholder) dmRemotePlaceholder.style.opacity = '1';
 
             privateCallRoom = null;
             activePrivateCallPeer = null;
+            updateLocalStatus();
         }
 
         function handlePrivateCallResponse(data) {
@@ -6104,13 +6352,39 @@
         function handlePrivateCallEnded(data) {
             console.log('📴 Chamada privada encerrada pelo outro participante:', data);
             stopPrivateCallTimer();
-            leaveRoom();
             isPrivateCallActive = false;
+
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(t => t.stop());
+                cameraStream = null;
+            }
+            if (micStream) {
+                micStream.getTracks().forEach(t => t.stop());
+                micStream = null;
+            }
+            localStream.getTracks().forEach(t => t.stop());
+
+            for (const peerId of Object.keys(peerConnections)) {
+                closePeerConnection(peerId);
+            }
+
+            if (peerAudioNodes['dm-remote']) {
+                try {
+                    peerAudioNodes['dm-remote'].sourceNode.disconnect();
+                    peerAudioNodes['dm-remote'].gainNode.disconnect();
+                } catch(e) {}
+                delete peerAudioNodes['dm-remote'];
+            }
+
             if (dmPrivateCallOverlay) dmPrivateCallOverlay.classList.add('hidden');
+            if (dmLocalVideo) dmLocalVideo.srcObject = null;
+            if (dmLocalPlaceholder) dmLocalPlaceholder.style.opacity = '1';
             if (dmRemoteVideo) dmRemoteVideo.srcObject = null;
             if (dmRemotePlaceholder) dmRemotePlaceholder.style.opacity = '1';
+
             privateCallRoom = null;
             activePrivateCallPeer = null;
+            updateLocalStatus();
         }
 
         function handleUserPresence(data) {
@@ -6443,6 +6717,7 @@
 
         function selectTextChannel(channel) {
             activeChannelId = channel.id;
+            activeTextChannelObj = channel;
             currentActiveChannelObj = channel;
             highlightActiveChannel(channel.id);
 
@@ -6456,22 +6731,46 @@
 
             setViewMode('text');
 
-            if (currentRoom !== textRoomName) {
-                connectToRoom(textRoomName, false);
+            // Gerencia a troca de salas de texto via Socket.IO sem interromper a chamada de voz em segundo plano (Sprint 6)
+            if (currentTextRoom && currentTextRoom !== textRoomName) {
+                socket.emit('leave-room', currentTextRoom);
             }
+            currentTextRoom = textRoomName;
+            currentRoom = textRoomName; // Sincroniza sala ativa de texto para o chat
+            socket.emit('join-room', currentTextRoom);
+            console.log(`💬 [Canal de Texto] Entrou na sala de texto: "${currentTextRoom}" (Voz ativa: "${currentVoiceRoom || 'nenhuma'}")`);
         }
 
         async function selectVoiceChannel(channel) {
             activeChannelId = channel.id;
+            activeVoiceChannelObj = channel;
             currentActiveChannelObj = channel;
             highlightActiveChannel(channel.id);
 
             const voiceRoomName = `comunidade-${activeServerId}-voz-${channel.nome}`;
             if (voiceChannelHeading) voiceChannelHeading.innerText = `🔊 Canal de Voz: ${channel.nome}`;
             if (chatPanelTitle) chatPanelTitle.innerText = `Chat de Apoio • ${channel.nome}`;
+            if (persistentVoiceChannelName) persistentVoiceChannelName.innerText = `#${channel.nome}`;
+            if (persistentVoiceChannelNameHome) persistentVoiceChannelNameHome.innerText = `#${channel.nome}`;
+
+            // Se já estiver neste mesmo canal de voz, apenas exibe a visualização completa
+            if (currentVoiceRoom === voiceRoomName) {
+                setViewMode('voice');
+                return;
+            }
+
+            // Se estiver em outro canal de voz, realiza o teardown prévio antes de entrar no novo
+            if (currentVoiceRoom && currentVoiceRoom !== voiceRoomName) {
+                leaveVoiceChannel(true);
+            }
+
+            currentVoiceRoom = voiceRoomName;
+            socket.emit('join-room', currentVoiceRoom);
+            console.log(`🎙️ [Canal de Voz] Conectando ao canal de voz: "${currentVoiceRoom}"`);
 
             setViewMode('voice');
-            connectToRoom(voiceRoomName, true);
+            await getOrCreateMicrophone();
+            updateGridLayout();
         }
 
         function highlightActiveChannel(channelId) {
@@ -7412,7 +7711,7 @@
         }
 
         // ==========================================
-        // 9. WebRTC Multi-Peer (RTCPeerConnection)
+        // 9. WebRTC Multi-Peer (RTCPeerConnection) & NAT Traversal
         // ==========================================
         function createPeerConnection(targetSocketId, isInitiator, targetUsername) {
             if (peerConnections[targetSocketId]) return peerConnections[targetSocketId];
@@ -7429,10 +7728,11 @@
             });
 
             pc.onicecandidate = (event) => {
-                if (event.candidate && currentRoom) {
+                const targetRoom = isPrivateCallActive ? privateCallRoom : currentVoiceRoom;
+                if (event.candidate && targetRoom) {
                     socket.emit('ice-candidate', {
                         target: targetSocketId,
-                        room: currentRoom,
+                        room: targetRoom,
                         candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate
                     });
                 }
@@ -7549,10 +7849,11 @@
                 pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
                 .then(offer => pc.setLocalDescription(offer).then(() => offer))
                 .then(offer => {
-                    console.log(`📡 [WebRTC Oferta Inicial] Enviando oferta inicial para peer [${targetSocketId}]`);
+                    const targetRoom = isPrivateCallActive ? privateCallRoom : currentVoiceRoom;
+                    console.log(`📡 [WebRTC Oferta Inicial] Enviando oferta inicial para peer [${targetSocketId}] na sala [${targetRoom}]`);
                     socket.emit('offer', {
                         target: targetSocketId,
-                        room: currentRoom,
+                        room: targetRoom,
                         offer: offer,
                         username: currentUser?.username || 'Usuário'
                     });
@@ -7594,17 +7895,18 @@
 
                 await pc.setLocalDescription(offer);
 
-                if (socket.connected && currentRoom) {
+                const targetRoom = isPrivateCallActive ? privateCallRoom : currentVoiceRoom;
+                if (socket.connected && targetRoom) {
                     socket.emit('offer', {
                         target: targetSocketId,
-                        room: currentRoom,
+                        room: targetRoom,
                         offer: offer,
                         isIceRestart: true,
                         username: currentUser?.username || 'Usuário'
                     });
                     console.log(`📡 [ICE Restart] Oferta de recuperação enviada via Socket para o peer [${targetSocketId}]`);
                 } else {
-                    console.warn(`⚠️ [ICE Restart] Socket temporariamente offline. A renegociação será reenviada ao reconectar.`);
+                    console.warn(`⚠️ [ICE Restart] Socket temporariamente offline.`);
                 }
             } catch (err) {
                 console.error(`❌ [ICE Restart Erro] Falha ao executar ICE Restart com [${targetSocketId}]:`, err);
@@ -7614,21 +7916,28 @@
         async function processIceCandidateQueueForPeer(socketId) {
             const queue = iceCandidateQueues[socketId];
             const pc = peerConnections[socketId];
-            if (!queue || !pc) return;
+            if (!queue || queue.length === 0 || !pc) return;
+            if (!pc.remoteDescription || !pc.remoteDescription.type) return;
 
+            console.log(`🚀 [ICE Queue] Processando ${queue.length} candidate(s) pendente(s) para [${socketId}]`);
             while (queue.length > 0) {
                 const candidate = queue.shift();
                 try {
                     await pc.addIceCandidate(candidate);
                 } catch (e) {
-                    console.error('Erro ao aplicar ICE Candidate:', e);
+                    console.warn(`Aviso ao aplicar ICE Candidate da fila para [${socketId}]:`, e);
                 }
             }
         }
 
         function closePeerConnection(targetSocketId) {
             if (peerConnections[targetSocketId]) {
-                peerConnections[targetSocketId].close();
+                const pc = peerConnections[targetSocketId];
+                pc.ontrack = null;
+                pc.onicecandidate = null;
+                pc.oniceconnectionstatechange = null;
+                pc.onconnectionstatechange = null;
+                pc.close();
                 delete peerConnections[targetSocketId];
             }
             if (remoteStreams[targetSocketId]) {
@@ -7677,9 +7986,10 @@
         }
 
         function emitMediaStateChange() {
-            if (currentRoom && socket.connected) {
+            const targetRoom = isPrivateCallActive ? privateCallRoom : currentVoiceRoom;
+            if (targetRoom && socket.connected) {
                 socket.emit('media-state-change', {
-                    room: currentRoom,
+                    room: targetRoom,
                     isMicMuted: isMicMuted,
                     isCameraOff: activeVideoType === 'none',
                     activeVideoType: activeVideoType
@@ -7763,11 +8073,15 @@
                 localFloatMic.title = 'Microfone Mutado';
                 localFloatMic.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>`;
                 btnMute.classList.add('btn-active-danger');
+                if (btnPersistentMute) btnPersistentMute.classList.add('active-danger');
+                if (btnPersistentMuteHome) btnPersistentMuteHome.classList.add('active-danger');
             } else {
                 localFloatMic.className = 'floating-badge active-green';
                 localFloatMic.title = 'Microfone Ativo';
                 localFloatMic.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>`;
                 btnMute.classList.remove('btn-active-danger');
+                if (btnPersistentMute) btnPersistentMute.classList.remove('active-danger');
+                if (btnPersistentMuteHome) btnPersistentMuteHome.classList.remove('active-danger');
             }
 
             if (activeVideoType === 'screen') btnScreen.classList.add('btn-active-highlight');
@@ -7778,8 +8092,9 @@
 
         // Eventos WebRTC
         socket.on('room-users', async (data) => {
-            console.log('👥 Participantes na sala:', data.users);
-            if (currentViewMode === 'voice') {
+            console.log('👥 Participantes na sala:', data.users, '| Sala:', data.room);
+            const isTargetVoice = (currentVoiceRoom && data.room === currentVoiceRoom) || (isPrivateCallActive && data.room === privateCallRoom);
+            if (isTargetVoice || currentViewMode === 'voice') {
                 await getOrCreateMicrophone();
                 for (const otherUserId of data.users) {
                     createPeerConnection(otherUserId, true);
@@ -7790,7 +8105,8 @@
 
         socket.on('user-joined', async (data) => {
             console.log('👤 Participante entrou:', data);
-            if (currentViewMode === 'voice') {
+            const isTargetVoice = (currentVoiceRoom && (!data.room || data.room === currentVoiceRoom)) || isPrivateCallActive || (currentViewMode === 'voice');
+            if (isTargetVoice) {
                 await getOrCreateMicrophone();
                 peerUsernames[data.id] = data.username;
                 getOrCreateRemoteCard(data.id, data.username);
@@ -7806,7 +8122,7 @@
 
             try {
                 console.log(`📩 [WebRTC Oferta Recebida] Do peer [${senderId}] | isIceRestart: ${Boolean(data.isIceRestart)}`);
-                if (currentViewMode === 'voice') await getOrCreateMicrophone();
+                await getOrCreateMicrophone();
                 const pc = createPeerConnection(senderId, false, data.username);
 
                 // Tratamento seguro de colisão / sinalização durante renegociação ou ICE Restart
@@ -7821,9 +8137,10 @@
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
 
+                const targetRoom = isPrivateCallActive ? privateCallRoom : currentVoiceRoom;
                 socket.emit('answer', {
                     target: senderId,
-                    room: currentRoom,
+                    room: targetRoom,
                     answer: answer
                 });
                 console.log(`📡 [WebRTC Resposta Enviada] Answer enviada para o peer [${senderId}]`);
@@ -7857,7 +8174,7 @@
         socket.on('ice-candidate', async (data) => {
             const candidateData = data.candidate;
             const senderId = data.sender;
-            if (!candidateData || !candidateData.candidate || !senderId) return;
+            if (!candidateData || !senderId) return;
 
             try {
                 const candidate = new RTCIceCandidate(candidateData);
@@ -7869,7 +8186,7 @@
                     iceCandidateQueues[senderId].push(candidate);
                 }
             } catch (err) {
-                console.error(`Erro ao processar ICE Candidate:`, err);
+                console.error(`Erro ao processar ICE Candidate de [${senderId}]:`, err);
             }
         });
 
@@ -7909,41 +8226,15 @@
             closePeerConnection(data.id);
         });
 
-        async function connectToRoom(roomName, isVoice = false) {
-            if (!authToken) {
-                logoutApp('Você precisa estar autenticado para acessar este canal.');
-                return;
-            }
+        // ==========================================
+        // 10. Desconexão e Teardown Gracioso (Sprint 6)
+        // ==========================================
+        function leaveVoiceChannel(notifyServer = true) {
+            if (!currentVoiceRoom && !isPrivateCallActive) return;
 
-            if (!socket.connected) {
-                try {
-                    socket.auth = { token: authToken, username: currentUser?.username || '' };
-                    socket.connect();
-                } catch (sockErr) {
-                    console.warn('Aviso na conexão do socket:', sockErr);
-                }
-            }
+            console.log('🛑 [Teardown Gracioso] Desconectando e encerrando todas as mídias e instâncias WebRTC...');
 
-            if (currentRoom && currentRoom !== roomName) {
-                for (const peerId of Object.keys(peerConnections)) {
-                    closePeerConnection(peerId);
-                }
-                socket.emit('leave-room', currentRoom);
-            }
-
-            currentRoom = roomName;
-            socket.emit('join-room', currentRoom);
-            console.log('🚪 Entrando no canal/sala:', currentRoom, '| Modo Voz:', isVoice);
-
-            if (isVoice) {
-                updateGridLayout();
-                await getOrCreateMicrophone();
-            }
-        }
-
-        function leaveRoom() {
-            if (!currentRoom) return;
-
+            // 1. Encerra ativamente todas as tracks de mídia local
             if (cameraStream) {
                 cameraStream.getTracks().forEach(t => t.stop());
                 cameraStream = null;
@@ -7952,27 +8243,86 @@
                 screenStream.getTracks().forEach(t => t.stop());
                 screenStream = null;
             }
+            if (micStream) {
+                micStream.getTracks().forEach(t => t.stop());
+                micStream = null;
+            }
+            localStream.getTracks().forEach(t => t.stop());
 
             activeVideoType = 'none';
-            localVideo.srcObject = null;
-            localPlaceholder.style.opacity = '1';
+            if (localVideo) localVideo.srcObject = null;
+            if (localPlaceholder) localPlaceholder.style.opacity = '1';
 
+            // 2. Fecha todas as conexões PeerConnection
             for (const peerId of Object.keys(peerConnections)) {
                 closePeerConnection(peerId);
             }
 
-            socket.emit('leave-room', currentRoom);
-            currentRoom = null;
+            // 3. Notifica o servidor via Socket.IO
+            if (notifyServer && currentVoiceRoom && socket.connected) {
+                socket.emit('leave-room', currentVoiceRoom);
+            }
+
+            // 4. Limpa estado de voz e docks
+            const exitedRoom = currentVoiceRoom;
+            currentVoiceRoom = null;
+            activeVoiceChannelObj = null;
+
+            if (persistentVoiceDock) persistentVoiceDock.style.display = 'none';
+            if (persistentVoiceDockHome) persistentVoiceDockHome.style.display = 'none';
 
             if (isChatOpen) toggleChatSidebar(false);
             updateGridLayout();
             updateLocalStatus();
 
-            setViewMode('empty');
+            // 5. Se estiver visualizando o palco de voz, alterna para o canal de texto ou tela inicial
+            if (currentViewMode === 'voice') {
+                if (activeTextChannelObj) {
+                    selectTextChannel(activeTextChannelObj);
+                } else {
+                    setViewMode('empty');
+                }
+            }
+
             if (webrtcStatusText) webrtcStatusText.innerText = 'Desconectado do canal de voz.';
+            console.log(`✅ [Teardown Gracioso Concluído] Sessão de voz finalizada com sucesso (Canal: ${exitedRoom || 'nenhum'}).`);
         }
 
-        if (btnLeaveRoom) btnLeaveRoom.addEventListener('click', leaveRoom);
+        function leaveRoom() {
+            leaveVoiceChannel(true);
+        }
+
+        if (btnLeaveRoom) btnLeaveRoom.addEventListener('click', () => leaveVoiceChannel(true));
+        if (btnPersistentDisconnect) btnPersistentDisconnect.addEventListener('click', (e) => { e.stopPropagation(); leaveVoiceChannel(true); });
+        if (btnPersistentDisconnectHome) btnPersistentDisconnectHome.addEventListener('click', (e) => { e.stopPropagation(); leaveVoiceChannel(true); });
+
+        if (btnReturnToVoiceStage) {
+            btnReturnToVoiceStage.addEventListener('click', () => {
+                openServerPanel();
+                setViewMode('voice');
+            });
+        }
+
+        if (btnReturnToVoiceStageHome) {
+            btnReturnToVoiceStageHome.addEventListener('click', () => {
+                openServerPanel();
+                setViewMode('voice');
+            });
+        }
+
+        if (btnPersistentMute) {
+            btnPersistentMute.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleMute();
+            });
+        }
+
+        if (btnPersistentMuteHome) {
+            btnPersistentMuteHome.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleMute();
+            });
+        }
 
         // ==========================================
         // Controles de Mídia
@@ -8103,7 +8453,7 @@
         if (btnMute) btnMute.addEventListener('click', toggleMute);
 
         // ==========================================
-        // 8. Inicialização do Auth Gate
+        // 11. Inicialização do Auth Gate
         // ==========================================
         async function verifyAuthAndInit() {
             if (!authToken) {
