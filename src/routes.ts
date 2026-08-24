@@ -17,6 +17,11 @@ import {
     removeRoleFromMember,
     getMemberRoles,
     getServerMembers,
+    getFriendships,
+    sendFriendRequest,
+    respondFriendRequest,
+    getDirectMessages,
+    saveDirectMessage,
     pool
 } from './db';
 
@@ -558,6 +563,108 @@ routes.get('/servers/:serverId/my-roles', ensureAuthenticated, async (req: Reque
     } catch (error) {
         console.error('Erro ao buscar meus cargos no servidor:', error);
         return res.status(500).json({ error: 'Erro ao buscar cargos.' });
+    }
+});
+
+// ==========================================
+// Hub Social: Sistema de Amigos & DMs (Sprint 3)
+// ==========================================
+
+// Listar amigos e solicitações (GET /friends)
+routes.get('/friends', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        if (!userId) return res.status(401).json({ error: 'Não autorizado.' });
+
+        const lists = await getFriendships(userId);
+        return res.status(200).json(lists);
+    } catch (error) {
+        console.error('Erro ao buscar lista de amigos:', error);
+        return res.status(500).json({ error: 'Erro interno ao buscar amigos.' });
+    }
+});
+
+// Enviar solicitação de amizade (POST /friends/request)
+routes.post('/friends/request', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        const { target_username } = req.body;
+
+        if (!userId) return res.status(401).json({ error: 'Não autorizado.' });
+        if (!target_username || typeof target_username !== 'string') {
+            return res.status(400).json({ error: 'Nome de usuário alvo é obrigatório.' });
+        }
+
+        const result = await sendFriendRequest(userId, target_username);
+        return res.status(200).json({
+            message: result.autoAccepted ? 'Pedido aceito mutuamente! Vocês agora são amigos.' : 'Pedido de amizade enviado com sucesso!',
+            ...result
+        });
+    } catch (error: any) {
+        console.warn('Aviso ao enviar pedido de amizade:', error?.message);
+        return res.status(400).json({ error: error?.message || 'Erro ao enviar pedido de amizade.' });
+    }
+});
+
+// Responder a pedido de amizade (POST /friends/respond)
+routes.post('/friends/respond', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        const { friendship_id, action } = req.body;
+
+        if (!userId) return res.status(401).json({ error: 'Não autorizado.' });
+        if (!friendship_id || !action) {
+            return res.status(400).json({ error: 'friendship_id e action são obrigatórios.' });
+        }
+
+        const result = await respondFriendRequest(userId, Number(friendship_id), action);
+        return res.status(200).json(result);
+    } catch (error: any) {
+        console.warn('Aviso ao responder pedido de amizade:', error?.message);
+        return res.status(400).json({ error: error?.message || 'Erro ao processar resposta.' });
+    }
+});
+
+// Obter histórico de mensagens diretas (GET /dms/:otherUserId)
+routes.get('/dms/:otherUserId', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        const otherUserId = Number(req.params.otherUserId);
+        const limit = req.query.limit ? Number(req.query.limit) : 50;
+
+        if (!userId || isNaN(otherUserId)) {
+            return res.status(400).json({ error: 'IDs de usuário inválidos.' });
+        }
+
+        const messages = await getDirectMessages(userId, otherUserId, limit);
+        return res.status(200).json({ messages });
+    } catch (error) {
+        console.error('Erro ao buscar mensagens diretas:', error);
+        return res.status(500).json({ error: 'Erro ao carregar mensagens diretas.' });
+    }
+});
+
+// Enviar mensagem direta (POST /dms/:otherUserId)
+routes.post('/dms/:otherUserId', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const senderId = Number(req.userId);
+        const receiverId = Number(req.params.otherUserId);
+        const { content } = req.body;
+
+        if (!senderId || isNaN(receiverId)) {
+            return res.status(400).json({ error: 'IDs de usuário inválidos.' });
+        }
+
+        const sanitizedContent = sanitizePlainText(content);
+        if (!sanitizedContent) {
+            return res.status(400).json({ error: 'Conteúdo da mensagem é obrigatório.' });
+        }
+
+        const message = await saveDirectMessage(senderId, receiverId, sanitizedContent);
+        return res.status(201).json({ message });
+    } catch (error: any) {
+        console.error('Erro ao enviar mensagem direta:', error);
+        return res.status(500).json({ error: error?.message || 'Erro ao enviar mensagem direta.' });
     }
 });
 

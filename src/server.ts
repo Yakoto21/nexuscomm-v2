@@ -6,7 +6,7 @@ import path from 'path';
 import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { routes } from './routes';
-import { initDb, saveMessage, getMessagesByChannel, findUserById } from './db';
+import { initDb, saveMessage, getMessagesByChannel, findUserById, saveDirectMessage } from './db';
 
 // Carrega as variáveis de ambiente
 dotenv.config();
@@ -270,10 +270,54 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Adiciona o socket à sala pessoal do usuário para notificações diretas (DMs, amizades)
+    if (userId) {
+        socket.join(`user_${userId}`);
+    }
+
+    // Evento para envio de Mensagem Direta (DM) em tempo real
+    socket.on('send-direct-message', async (data) => {
+        const receiverId = Number(data.receiverId);
+        const content = String(data.content || '').trim();
+        if (!userId || !receiverId || !content) return;
+
+        try {
+            const savedMsg = await saveDirectMessage(userId, receiverId, content);
+            // Envia de volta para o remetente
+            socket.emit('direct-message-received', savedMsg);
+            // Emite para o destinatário na sua sala de usuário
+            io.to(`user_${receiverId}`).emit('direct-message-received', savedMsg);
+            console.log(`✉️ [DM] ${username} -> User ${receiverId}: ${content.substring(0, 30)}`);
+        } catch (dmErr) {
+            console.error('Erro ao processar DM via socket:', dmErr);
+        }
+    });
+
+    // Eventos para sinalização instantânea de pedidos de amizade
+    socket.on('friend-request-sent', (data) => {
+        if (data?.targetUserId) {
+            io.to(`user_${data.targetUserId}`).emit('friend-request-received', {
+                senderId: userId,
+                senderUsername: username,
+                ...data
+            });
+        }
+    });
+
+    socket.on('friend-request-status-changed', (data) => {
+        if (data?.otherUserId) {
+            io.to(`user_${data.otherUserId}`).emit('friend-request-updated', {
+                userId: userId,
+                username: username,
+                ...data
+            });
+        }
+    });
+
     // Notifica quando o usuário estiver desconectando das salas
     socket.on('disconnecting', () => {
         for (const room of socket.rooms) {
-            if (room !== socket.id) {
+            if (room !== socket.id && !room.startsWith('user_')) {
                 socket.to(room).emit('user-left', { id: socket.id, username: username });
             }
         }

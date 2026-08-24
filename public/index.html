@@ -1843,6 +1843,299 @@
             position: relative;
         }
 
+        /* Painéis de Modo (Server Panel & Social Hub Home Panel) */
+        .server-panel,
+        .home-panel {
+            display: flex;
+            flex-direction: row;
+            flex: 1 1 0%;
+            height: 100vh;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .server-panel.hidden,
+        .home-panel.hidden {
+            display: none !important;
+        }
+
+        /* Estilos do Hub Social (Home / Amigos / DMs) */
+        .home-stage {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            padding: 0;
+            gap: 0;
+            background: rgba(10, 14, 26, 0.45);
+        }
+
+        .home-stage-topbar {
+            height: 60px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .home-topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .home-topbar-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .home-topbar-divider {
+            width: 1px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .friends-tabs-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .friends-tab {
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .friends-tab:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #ffffff;
+        }
+
+        .friends-tab.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+        }
+
+        .friends-tab.btn-tab-add-friend {
+            background: #10b981;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .friends-tab.btn-tab-add-friend:hover {
+            background: #059669;
+            transform: scale(1.02);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+        }
+
+        .badge-counter {
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 2px 6px;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        .badge-counter.badge-neutral {
+            background: rgba(255, 255, 255, 0.15);
+            color: #cbd5e1;
+        }
+
+        .home-stage-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .friends-search-box {
+            display: flex;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 8px 14px;
+            gap: 10px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .friends-search-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #ffffff;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        .friends-section-heading {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .friends-cards-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 880px;
+            width: 100%;
+        }
+
+        .friend-row-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .friend-row-card:hover {
+            background: rgba(30, 41, 59, 0.7);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .friend-card-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .friend-avatar-wrap {
+            position: relative;
+        }
+
+        .friend-status-dot {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid #0f172a;
+        }
+
+        .status-online { background: #10b981; }
+        .status-offline { background: #64748b; }
+
+        .friend-card-meta {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .friend-card-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .friend-card-tag {
+            font-size: 0.75rem;
+            color: var(--text-dark-muted);
+        }
+
+        .friend-card-sub {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .friend-actions-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-friend-action {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-friend-action:hover {
+            background: rgba(99, 102, 241, 0.3);
+            color: #ffffff;
+            transform: scale(1.08);
+        }
+
+        .btn-friend-action.btn-accept {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+        .btn-friend-action.btn-accept:hover {
+            background: #10b981;
+            color: #ffffff;
+        }
+
+        .btn-friend-action.btn-decline {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+        .btn-friend-action.btn-decline:hover {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        .add-friend-panel-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 680px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
         /* Overlay de Configurações de Usuário */
         .user-settings-overlay {
             position: fixed;
@@ -1977,78 +2270,350 @@
             </div>
         </nav>
 
-        <!-- 2. Painel de Canais (Channels Sidebar) -->
-        <aside id="channels-sidebar" class="channels-sidebar">
-            <!-- Topo do Painel: Banner / Nome do Servidor Ativo + Configurações + Criar Canal -->
-            <div class="channels-header" id="channelsSidebarHeader">
-                <div class="channels-server-name" id="btnOpenServerHome">
-                    <span id="selectedServerTitle">Comunidade Nexus</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <!-- ⚙️ Gatilho de Acesso: Configurações do Servidor -->
-                    <button type="button" id="btnOpenServerSettings" class="btn-header-action" title="Configurações do Servidor">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </button>
-                    <button type="button" id="btnOpenAddChannelModal" class="btn-header-action" title="Criar novo canal">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Lista Rolável de Categorias e Canais -->
-            <div class="channels-list-container">
-                <div class="channel-category">
-                    <div class="category-header">
-                        <span>CANAIS DE TEXTO</span>
+        <!-- 2. PAINEL DE SERVIDORES / COMUNIDADES (#serverPanel) -->
+        <div id="serverPanel" class="server-panel">
+            <!-- Painel de Canais (Channels Sidebar) -->
+            <aside id="channels-sidebar" class="channels-sidebar">
+                <!-- Topo do Painel: Banner / Nome do Servidor Ativo + Configurações + Criar Canal -->
+                <div class="channels-header" id="channelsSidebarHeader">
+                    <div class="channels-server-name" id="btnOpenServerHome">
+                        <span id="selectedServerTitle">Comunidade Nexus</span>
                     </div>
-                    <div id="textChannelsList" style="display: flex; flex-direction: column; gap: 3px;">
-                        <!-- Renderizado dinamicamente via JS -->
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <!-- ⚙️ Gatilho de Acesso: Configurações do Servidor -->
+                        <button type="button" id="btnOpenServerSettings" class="btn-header-action" title="Configurações do Servidor">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </button>
+                        <button type="button" id="btnOpenAddChannelModal" class="btn-header-action" title="Criar novo canal">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
-                <div class="channel-category">
-                    <div class="category-header">
-                        <span>CANAIS DE VOZ</span>
+                <!-- Lista Rolável de Categorias e Canais -->
+                <div class="channels-list-container">
+                    <div class="channel-category">
+                        <div class="category-header">
+                            <span>CANAIS DE TEXTO</span>
+                        </div>
+                        <div id="textChannelsList" style="display: flex; flex-direction: column; gap: 3px;">
+                            <!-- Renderizado dinamicamente via JS -->
+                        </div>
                     </div>
-                    <div id="voiceChannelsList" style="display: flex; flex-direction: column; gap: 3px;">
-                        <!-- Renderizado dinamicamente via JS -->
-                    </div>
-                </div>
-            </div>
 
-            <!-- Base do Painel: Perfil do Usuário Autenticado + Engrenagem ⚙️ -->
-            <div class="channels-user-bar">
-                <div class="user-bar-info">
-                    <div class="user-avatar-circle" id="userBarAvatar">NX</div>
-                    <div class="user-bar-details">
-                        <span class="user-bar-name" id="userBarName">Conectando...</span>
-                        <span class="user-bar-status">
-                            <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
-                            Online
-                        </span>
+                    <div class="channel-category">
+                        <div class="category-header">
+                            <span>CANAIS DE VOZ</span>
+                        </div>
+                        <div id="voiceChannelsList" style="display: flex; flex-direction: column; gap: 3px;">
+                            <!-- Renderizado dinamicamente via JS -->
+                        </div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 4px; align-items: center;">
-                    <button type="button" id="userBarMuteBtn" class="btn-header-action" title="Mutar/Desmutar Microfone">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                        </svg>
-                    </button>
-                    <!-- ⚙️ Ícone de engrenagem para Configurações do Usuário -->
-                    <button type="button" id="btnOpenUserSettings" class="btn-header-action" title="Configurações do Perfil">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </button>
+
+                <!-- Base do Painel: Perfil do Usuário Autenticado + Engrenagem ⚙️ -->
+                <div class="channels-user-bar">
+                    <div class="user-bar-info">
+                        <div class="user-avatar-circle" id="userBarAvatar">NX</div>
+                        <div class="user-bar-details">
+                            <span class="user-bar-name" id="userBarName">Conectando...</span>
+                            <span class="user-bar-status">
+                                <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                                Online
+                            </span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <button type="button" id="userBarMuteBtn" class="btn-header-action" title="Mutar/Desmutar Microfone">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                        </button>
+                        <!-- ⚙️ Ícone de engrenagem para Configurações do Usuário -->
+                        <button type="button" id="btnOpenUserSettings" class="btn-header-action" title="Configurações do Perfil">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </aside>
+            </aside>
+
+            <!-- Conteúdo Central: Palco Principal do Servidor -->
+            <main class="container">
+                <header style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div>
+                            <h1 id="mainServerHeading" style="font-size: 1.8rem; margin: 0;">NexusComm Comunidades</h1>
+                            <p id="mainHeaderSub" style="margin: 0; font-size: 0.9rem;">Videoconferência, Voz & Canais de Texto em Tempo Real</p>
+                        </div>
+
+                        <div id="authenticatedUserBadge" class="badge-room" style="display: flex; align-items: center; gap: 8px;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                            <span>Olá, <strong id="authenticatedUsername">Usuário</strong></span>
+                            <button type="button" id="btnLogout" style="background: none; border: none; color: #fca5a5; font-size: 0.8rem; cursor: pointer; text-decoration: underline; margin-left: 6px;">Sair</button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- ESTÁGIO 1: Home da Comunidade (Welcome View) -->
+                <div id="communityWelcomeView" class="view-stage active">
+                    <div class="community-welcome-card">
+                        <div class="welcome-hero-avatar" id="welcomeServerAvatar">NX</div>
+                        <div>
+                            <h2 id="welcomeServerTitle">Bem-vindo à Comunidade NexusComm!</h2>
+                            <p>Esta é a página inicial da sua comunidade. Selecione um canal no menu lateral para começar a conversar ou entrar em uma chamada de voz e vídeo.</p>
+                        </div>
+
+                        <div class="welcome-quick-channels">
+                            <div class="welcome-channel-card" id="btnQuickEnterGeneralText">
+                                <span style="font-size: 1.4rem; font-weight: 700; color: #a5b4fc;">#</span>
+                                <div>
+                                    <strong style="color: #fff; font-size: 0.95rem;">Canal Geral de Texto</strong>
+                                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Conversar e ler histórico</p>
+                                </div>
+                            </div>
+
+                            <div class="welcome-channel-card" id="btnQuickEnterGeneralVoice">
+                                <svg width="22" height="22" fill="none" stroke="#38bdf8" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                                </svg>
+                                <div>
+                                    <strong style="color: #fff; font-size: 0.95rem;">Canal Geral de Voz</strong>
+                                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Entrar no canal de voz/vídeo</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ESTÁGIO 2: Chat de Texto Expandido -->
+                <div id="mainTextChatView" class="view-stage text-chat-stage">
+                    <div class="text-chat-header">
+                        <div class="text-chat-header-title">
+                            <span class="hash-tag">#</span>
+                            <h3 id="expandedChatChannelTitle">geral</h3>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" id="btnCopyChannelLink" class="btn-header-action" title="Copiar Link de Acesso Rápido">
+                                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="main-chat-messages-container" id="mainChatMessagesContainer">
+                        <div class="channel-welcome-banner">
+                            <div class="channel-welcome-avatar">#</div>
+                            <h2 style="font-size: 1.5rem; font-weight: 700; color: #fff; margin: 0;" id="expandedChatWelcomeTitle">Bem-vindo a #geral!</h2>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Este é o início do canal de texto #geral.</p>
+                        </div>
+                    </div>
+
+                    <form id="mainChatExpandedForm" class="main-chat-input-bar">
+                        <input type="text" id="mainChatExpandedInput" placeholder="Conversar em #geral..." autocomplete="off" />
+                        <button type="submit" id="btnSendMainExpandedChat">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- ESTÁGIO 3: Palco de Voz / Videoconferência WebRTC -->
+                <div id="voiceStageView" class="view-stage">
+                    <div class="video-grid" id="videoGrid">
+                        <!-- Participante Local -->
+                        <div class="video-card local-card" id="localCard">
+                            <div class="card-video-wrapper">
+                                <video id="localVideo" autoplay playsinline muted></video>
+                                <div class="video-placeholder" id="localPlaceholder">
+                                    <div class="placeholder-avatar" id="localPlaceholderAvatar">VC</div>
+                                    <span class="placeholder-text">Câmera desligada</span>
+                                </div>
+                            </div>
+                            <div class="card-overlay">
+                                <span class="user-badge" id="localUserTitle">Você</span>
+                                <div class="status-indicators">
+                                    <span id="localMicIndicator" class="mic-dot" title="Status Microfone"></span>
+                                    <span id="localCamIndicator" class="cam-dot" title="Status Câmera"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- ==========================================
+             3. HUB SOCIAL: #homePanel (Sprint 3: Amigos & DMs)
+             ========================================== -->
+        <div id="homePanel" class="home-panel hidden">
+            <!-- 1. Barra Lateral de Mensagens Diretas & Amigos -->
+            <aside id="homeDmsSidebar" class="channels-sidebar">
+                <div class="channels-header">
+                    <div style="font-size: 0.9rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                        </svg>
+                        <span>Mensagens Diretas</span>
+                    </div>
+                </div>
+
+                <div class="channels-list-container">
+                    <!-- Botão Fixo de Amigos -->
+                    <div class="channel-item active" id="btnHomeNavFriends" style="font-weight: 600; color: #ffffff;">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <span style="flex: 1;">Amigos</span>
+                        <span id="badgePendingDmsSidebar" class="badge-counter hidden">0</span>
+                    </div>
+
+                    <div class="channel-category" style="margin-top: 10px;">
+                        <div class="category-header">
+                            <span>CONVERSAS DIRETAS</span>
+                        </div>
+                        <div id="homeDmsList" style="display: flex; flex-direction: column; gap: 3px;">
+                            <!-- Conversas de DM renderizadas dinamicamente -->
+                            <div style="padding: 12px 10px; font-size: 0.8rem; color: var(--text-dark-muted); text-align: center;">
+                                Nenhuma conversa recente.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barra de Usuário no Home -->
+                <div class="channels-user-bar">
+                    <div class="user-bar-info">
+                        <div class="user-avatar-circle" id="userBarAvatarHome">NX</div>
+                        <div class="user-bar-details">
+                            <span class="user-bar-name" id="userBarNameHome">Conectando...</span>
+                            <span class="user-bar-status">
+                                <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                                Online
+                            </span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <button type="button" id="userBarMuteBtnHome" class="btn-header-action" title="Mutar/Desmutar Microfone">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                        </button>
+                        <button type="button" id="btnOpenUserSettingsHome" class="btn-header-action" title="Configurações do Perfil">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 2. Palco Social: Gestão de Amigos e DMs -->
+            <main id="homeFriendsStage" class="home-stage">
+                <!-- Topbar do Social Hub -->
+                <div class="home-stage-topbar">
+                    <div class="home-topbar-left">
+                        <div class="home-topbar-title">
+                            <svg width="20" height="20" fill="none" stroke="#a5b4fc" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            <span>Amigos</span>
+                        </div>
+
+                        <div class="home-topbar-divider"></div>
+
+                        <nav class="friends-tabs-nav">
+                            <button type="button" class="friends-tab active" id="tabFriendsOnline">
+                                <span>Online</span>
+                                <span class="badge-counter badge-neutral" id="countFriendsOnline">0</span>
+                            </button>
+                            <button type="button" class="friends-tab" id="tabFriendsAll">
+                                <span>Todos</span>
+                                <span class="badge-counter badge-neutral" id="countFriendsAll">0</span>
+                            </button>
+                            <button type="button" class="friends-tab" id="tabFriendsPending">
+                                <span>Pendentes</span>
+                                <span class="badge-counter hidden" id="countFriendsPending">0</span>
+                            </button>
+                            <button type="button" class="friends-tab btn-tab-add-friend" id="tabFriendsAdd">
+                                <span>Adicionar Amigo</span>
+                            </button>
+                        </nav>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="badge-room" style="display: flex; align-items: center; gap: 8px;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                            <span>Olá, <strong id="authenticatedUsernameHome">Usuário</strong></span>
+                            <button type="button" id="btnLogoutHome" style="background: none; border: none; color: #fca5a5; font-size: 0.8rem; cursor: pointer; text-decoration: underline; margin-left: 6px;">Sair</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conteúdo do Palco de Amigos -->
+                <div class="home-stage-body" id="homeStageContent">
+                    <!-- ABA 1: Listagem de Amigos (Online / Todos / Pendentes) -->
+                    <div id="viewFriendsList" style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
+                        <div class="friends-search-box">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-dark-muted);">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input type="text" id="inputSearchFriends" placeholder="Buscar amigos..." />
+                        </div>
+
+                        <div class="friends-section-heading" id="friendsListSectionTitle">
+                            ONLINE — 0
+                        </div>
+
+                        <div class="friends-cards-list" id="friendsListContainer">
+                            <!-- Cards de amigos renderizados via JS -->
+                        </div>
+                    </div>
+
+                    <!-- ABA 2: Adicionar Amigo -->
+                    <div id="viewFriendsAdd" class="hidden" style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
+                        <div class="add-friend-panel-card">
+                            <h2 style="font-size: 1.2rem; font-weight: 700; color: #ffffff; margin: 0;">ADICIONAR AMIGO</h2>
+                            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0;">
+                                Você pode adicionar amigos usando o nome de usuário NexusComm deles.
+                            </p>
+
+                            <form id="formAddFriend" style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+                                <div style="display: flex; gap: 10px; background: rgba(10, 14, 26, 0.7); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px; padding: 6px 10px; align-items: center;">
+                                    <input type="text" id="inputAddFriendUsername" placeholder="Digite o nome de usuário (ex: gabriel, alex)..." class="room-input" style="flex: 1; border: none; background: transparent; padding: 10px;" required />
+                                    <button type="submit" id="btnSubmitAddFriend" class="btn-primary" style="padding: 10px 20px; font-size: 0.9rem; white-space: nowrap;">
+                                        Enviar Pedido de Amizade
+                                    </button>
+                                </div>
+                                <div id="addFriendAlert" class="auth-alert"></div>
+                            </form>
+                        </div>
+
+                        <div style="max-width: 680px; width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 24px; display: flex; align-items: center; gap: 16px; color: var(--text-muted); font-size: 0.85rem;">
+                            <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(99, 102, 241, 0.15); display: flex; align-items: center; justify-content: center; color: #a5b4fc; flex-shrink: 0;">
+                                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <strong style="color: #ffffff; display: block;">NexusComm Social Hub</strong>
+                                Adicione seus colegas para iniciar conversas de voz, conferências de vídeo em alta resolução e mensagens instantâneas.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
 
         <!-- ==========================================
              3. Interface de Administração do Servidor em Tela Cheia (Discord Style)
@@ -2679,6 +3244,38 @@
 
         let pendingUserAvatarBase64 = null;
 
+        // Elementos do Hub Social (Home / Amigos / DMs - Sprint 3)
+        const serverPanel = document.getElementById('serverPanel');
+        const homePanel = document.getElementById('homePanel');
+        const btnHomeNavFriends = document.getElementById('btnHomeNavFriends');
+        const badgePendingDmsSidebar = document.getElementById('badgePendingDmsSidebar');
+        const homeDmsList = document.getElementById('homeDmsList');
+        const userBarAvatarHome = document.getElementById('userBarAvatarHome');
+        const userBarNameHome = document.getElementById('userBarNameHome');
+        const userBarMuteBtnHome = document.getElementById('userBarMuteBtnHome');
+        const btnOpenUserSettingsHome = document.getElementById('btnOpenUserSettingsHome');
+        const authenticatedUsernameHome = document.getElementById('authenticatedUsernameHome');
+        const btnLogoutHome = document.getElementById('btnLogoutHome');
+
+        const tabFriendsOnline = document.getElementById('tabFriendsOnline');
+        const tabFriendsAll = document.getElementById('tabFriendsAll');
+        const tabFriendsPending = document.getElementById('tabFriendsPending');
+        const tabFriendsAdd = document.getElementById('tabFriendsAdd');
+        const countFriendsOnline = document.getElementById('countFriendsOnline');
+        const countFriendsAll = document.getElementById('countFriendsAll');
+        const countFriendsPending = document.getElementById('countFriendsPending');
+
+        const viewFriendsList = document.getElementById('viewFriendsList');
+        const viewFriendsAdd = document.getElementById('viewFriendsAdd');
+        const inputSearchFriends = document.getElementById('inputSearchFriends');
+        const friendsListSectionTitle = document.getElementById('friendsListSectionTitle');
+        const friendsListContainer = document.getElementById('friendsListContainer');
+
+        const formAddFriend = document.getElementById('formAddFriend');
+        const inputAddFriendUsername = document.getElementById('inputAddFriendUsername');
+        const btnSubmitAddFriend = document.getElementById('btnSubmitAddFriend');
+        const addFriendAlert = document.getElementById('addFriendAlert');
+
         // Controles de Vídeo / Mídia
         const videoGrid = document.getElementById('videoGrid');
         const localVideo = document.getElementById('localVideo');
@@ -2757,10 +3354,18 @@
                 if (userBarName) {
                     userBarName.textContent = displayName;
                 }
+                if (userBarNameHome) {
+                    userBarNameHome.textContent = displayName;
+                }
 
                 const topAuthUserEl = authenticatedUsername || document.getElementById('authenticatedUsername');
                 if (topAuthUserEl) {
                     topAuthUserEl.textContent = displayName;
+                }
+
+                const topAuthUserHomeEl = authenticatedUsernameHome || document.getElementById('authenticatedUsernameHome');
+                if (topAuthUserHomeEl) {
+                    topAuthUserHomeEl.textContent = displayName;
                 }
 
                 if (userBarAvatar) {
@@ -2773,6 +3378,19 @@
                         userBarAvatar.appendChild(img);
                     } else {
                         userBarAvatar.textContent = getServerInitials(displayName);
+                    }
+                }
+
+                if (userBarAvatarHome) {
+                    userBarAvatarHome.textContent = '';
+                    if (activeUser.avatar_url) {
+                        const img = document.createElement('img');
+                        img.src = activeUser.avatar_url;
+                        img.className = 'user-avatar-img';
+                        img.alt = displayName;
+                        userBarAvatarHome.appendChild(img);
+                    } else {
+                        userBarAvatarHome.textContent = getServerInitials(displayName);
                     }
                 }
             } catch (err) {
@@ -2800,6 +3418,13 @@
         let loadedChannels = [];
         let loadedServerRoles = [];
         let loadedServerMembers = [];
+
+        // Estado do Hub Social (Amigos & DMs)
+        let currentSocialTab = 'online'; // 'online' | 'all' | 'pending' | 'add'
+        let cachedFriendships = { accepted: [], pending_incoming: [], pending_outgoing: [], blocked: [] };
+        let onlineUserIdsSet = new Set();
+        let activeDmUserId = null;
+
         let cameraStream = null;
         let micStream = null;
         let screenStream = null;
@@ -3644,18 +4269,11 @@
                 if (data && Array.isArray(data.servers)) {
                     loadedServers = data.servers;
                     renderServersList(loadedServers);
-                    if (loadedServers.length > 0) {
-                        const targetServer = (activeServerId && loadedServers.find(s => s.id === activeServerId)) || loadedServers[0];
+                    if (loadedServers.length > 0 && activeServerId) {
+                        const targetServer = loadedServers.find(s => s.id === activeServerId) || loadedServers[0];
                         selectServer(targetServer);
                     } else {
-                        activeServerId = null;
-                        activeServerObj = null;
-                        if (selectedServerTitle) selectedServerTitle.textContent = 'NexusComm';
-                        if (mainServerHeading) mainServerHeading.textContent = 'Bem-vindo ao NexusComm';
-                        if (mainHeaderSub) mainHeaderSub.textContent = 'Crie sua primeira comunidade no botão + à esquerda';
-                        if (welcomeServerTitle) welcomeServerTitle.textContent = 'Crie ou participe de uma comunidade';
-                        setViewMode('empty');
-                        renderChannels([]);
+                        openHomePanel();
                     }
                 }
             } catch (err) {
@@ -3704,12 +4322,446 @@
             });
         }
 
+        // ==========================================
+        // Hub Social: Navegação & Amigos (Sprint 3)
+        // ==========================================
+        function openHomePanel() {
+            activeServerId = null;
+            activeServerObj = null;
+
+            if (serverPanel) serverPanel.classList.add('hidden');
+            if (homePanel) homePanel.classList.remove('hidden');
+
+            document.querySelectorAll('.server-icon-wrapper').forEach(el => el.classList.remove('active'));
+            if (btnServerHome) btnServerHome.classList.add('active');
+
+            fetchFriendsList();
+        }
+
+        function openServerPanel() {
+            if (homePanel) homePanel.classList.add('hidden');
+            if (serverPanel) serverPanel.classList.remove('hidden');
+            if (btnServerHome) btnServerHome.classList.remove('active');
+        }
+
+        function switchSocialTab(tab) {
+            currentSocialTab = tab;
+            [tabFriendsOnline, tabFriendsAll, tabFriendsPending, tabFriendsAdd].forEach(btn => {
+                if (btn) btn.classList.remove('active');
+            });
+
+            if (tab === 'online') {
+                if (tabFriendsOnline) tabFriendsOnline.classList.add('active');
+                if (viewFriendsList) viewFriendsList.classList.remove('hidden');
+                if (viewFriendsAdd) viewFriendsAdd.classList.add('hidden');
+            } else if (tab === 'all') {
+                if (tabFriendsAll) tabFriendsAll.classList.add('active');
+                if (viewFriendsList) viewFriendsList.classList.remove('hidden');
+                if (viewFriendsAdd) viewFriendsAdd.classList.add('hidden');
+            } else if (tab === 'pending') {
+                if (tabFriendsPending) tabFriendsPending.classList.add('active');
+                if (viewFriendsList) viewFriendsList.classList.remove('hidden');
+                if (viewFriendsAdd) viewFriendsAdd.classList.add('hidden');
+            } else if (tab === 'add') {
+                if (tabFriendsAdd) tabFriendsAdd.classList.add('active');
+                if (viewFriendsList) viewFriendsList.classList.add('hidden');
+                if (viewFriendsAdd) viewFriendsAdd.classList.remove('hidden');
+                if (inputAddFriendUsername) inputAddFriendUsername.focus();
+            }
+
+            renderFriendsList();
+        }
+
+        async function fetchFriendsList() {
+            if (!authToken) return;
+            try {
+                const res = await fetch('/friends', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (res.ok) {
+                    cachedFriendships = await res.json();
+                    updateFriendsBadges();
+                    renderFriendsList();
+                    renderDirectMessagesList();
+                }
+            } catch (err) {
+                console.warn('Aviso ao carregar amigos:', err);
+            }
+        }
+
+        function updateFriendsBadges() {
+            const accepted = cachedFriendships.accepted || [];
+            const onlineCount = accepted.filter(f => onlineUserIdsSet.has(f.id)).length;
+            const allCount = accepted.length;
+            const incoming = cachedFriendships.pending_incoming || [];
+            const outgoing = cachedFriendships.pending_outgoing || [];
+            const totalPending = incoming.length + outgoing.length;
+
+            if (countFriendsOnline) countFriendsOnline.textContent = String(onlineCount);
+            if (countFriendsAll) countFriendsAll.textContent = String(allCount);
+            if (countFriendsPending) {
+                countFriendsPending.textContent = String(totalPending);
+                if (totalPending > 0) {
+                    countFriendsPending.classList.remove('hidden');
+                } else {
+                    countFriendsPending.classList.add('hidden');
+                }
+            }
+            if (badgePendingDmsSidebar) {
+                const incomingCount = incoming.length;
+                badgePendingDmsSidebar.textContent = String(incomingCount);
+                if (incomingCount > 0) {
+                    badgePendingDmsSidebar.classList.remove('hidden');
+                } else {
+                    badgePendingDmsSidebar.classList.add('hidden');
+                }
+            }
+        }
+
+        function renderFriendsList() {
+            if (!friendsListContainer) return;
+            friendsListContainer.textContent = '';
+
+            const searchTerm = (inputSearchFriends?.value || '').trim().toLowerCase();
+
+            let targetList = [];
+            let sectionTitleText = '';
+
+            if (currentSocialTab === 'online') {
+                targetList = (cachedFriendships.accepted || []).filter(f => {
+                    const isOnline = onlineUserIdsSet.has(f.id);
+                    const matchesSearch = !searchTerm || (f.username && f.username.toLowerCase().includes(searchTerm)) || (f.display_name && f.display_name.toLowerCase().includes(searchTerm));
+                    return isOnline && matchesSearch;
+                });
+                sectionTitleText = `ONLINE — ${targetList.length}`;
+            } else if (currentSocialTab === 'all') {
+                targetList = (cachedFriendships.accepted || []).filter(f => {
+                    return !searchTerm || (f.username && f.username.toLowerCase().includes(searchTerm)) || (f.display_name && f.display_name.toLowerCase().includes(searchTerm));
+                });
+                sectionTitleText = `TODOS OS AMIGOS — ${targetList.length}`;
+            } else if (currentSocialTab === 'pending') {
+                const incoming = (cachedFriendships.pending_incoming || []).map(f => ({ ...f, _type: 'incoming' }));
+                const outgoing = (cachedFriendships.pending_outgoing || []).map(f => ({ ...f, _type: 'outgoing' }));
+                targetList = [...incoming, ...outgoing].filter(f => {
+                    return !searchTerm || (f.username && f.username.toLowerCase().includes(searchTerm)) || (f.display_name && f.display_name.toLowerCase().includes(searchTerm));
+                });
+                sectionTitleText = `PENDENTES — ${targetList.length}`;
+            }
+
+            if (friendsListSectionTitle) {
+                friendsListSectionTitle.textContent = sectionTitleText;
+            }
+
+            if (targetList.length === 0) {
+                const emptyCard = document.createElement('div');
+                emptyCard.style.cssText = 'padding: 40px 20px; text-align: center; color: var(--text-dark-muted); font-size: 0.9rem;';
+                
+                let emptyMsg = 'Nenhum amigo online no momento.';
+                if (currentSocialTab === 'all') emptyMsg = 'Você ainda não tem amigos adicionados.';
+                if (currentSocialTab === 'pending') emptyMsg = 'Nenhuma solicitação de amizade pendente.';
+                if (searchTerm) emptyMsg = 'Nenhum amigo encontrado com essa busca.';
+
+                emptyCard.textContent = emptyMsg;
+                friendsListContainer.appendChild(emptyCard);
+                return;
+            }
+
+            targetList.forEach(friend => {
+                const card = document.createElement('div');
+                card.className = 'friend-row-card';
+
+                // Lado Esquerdo: Avatar + Nomes
+                const leftDiv = document.createElement('div');
+                leftDiv.className = 'friend-card-left';
+
+                const avatarWrap = document.createElement('div');
+                avatarWrap.className = 'friend-avatar-wrap';
+
+                const avatarCircle = document.createElement('div');
+                avatarCircle.className = 'user-avatar-circle';
+                const friendDisplayName = friend.display_name || friend.username || 'Amigo';
+                if (friend.avatar_url) {
+                    const img = document.createElement('img');
+                    img.src = friend.avatar_url;
+                    img.className = 'user-avatar-img';
+                    img.alt = friendDisplayName;
+                    avatarCircle.appendChild(img);
+                } else {
+                    avatarCircle.textContent = getServerInitials(friendDisplayName);
+                }
+
+                const statusDot = document.createElement('span');
+                const isOnline = onlineUserIdsSet.has(friend.id);
+                statusDot.className = `friend-status-dot ${isOnline ? 'status-online' : 'status-offline'}`;
+
+                avatarWrap.appendChild(avatarCircle);
+                avatarWrap.appendChild(statusDot);
+
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'friend-card-meta';
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'friend-card-name';
+                nameDiv.textContent = friendDisplayName;
+
+                const tagSpan = document.createElement('span');
+                tagSpan.className = 'friend-card-tag';
+                tagSpan.textContent = `@${friend.username || 'usuario'}`;
+                nameDiv.appendChild(tagSpan);
+
+                const subDiv = document.createElement('div');
+                subDiv.className = 'friend-card-sub';
+                if (friend._type === 'incoming') {
+                    subDiv.textContent = 'Pedido de amizade recebido';
+                } else if (friend._type === 'outgoing') {
+                    subDiv.textContent = 'Pedido de amizade enviado';
+                } else {
+                    subDiv.textContent = isOnline ? 'Online' : 'Offline';
+                }
+
+                metaDiv.appendChild(nameDiv);
+                metaDiv.appendChild(subDiv);
+
+                leftDiv.appendChild(avatarWrap);
+                leftDiv.appendChild(metaDiv);
+
+                // Lado Direito: Ações
+                const actionsGroup = document.createElement('div');
+                actionsGroup.className = 'friend-actions-group';
+
+                if (friend._type === 'incoming') {
+                    // Botão Aceitar (Verde)
+                    const btnAccept = document.createElement('button');
+                    btnAccept.type = 'button';
+                    btnAccept.className = 'btn-friend-action btn-accept';
+                    btnAccept.title = 'Aceitar Pedido de Amizade';
+                    btnAccept.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>';
+                    btnAccept.addEventListener('click', () => {
+                        respondFriendRequestAction(friend.friendship_id, 'accept');
+                    });
+
+                    // Botão Recusar (Vermelho)
+                    const btnDecline = document.createElement('button');
+                    btnDecline.type = 'button';
+                    btnDecline.className = 'btn-friend-action btn-decline';
+                    btnDecline.title = 'Recusar Pedido';
+                    btnDecline.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>';
+                    btnDecline.addEventListener('click', () => {
+                        respondFriendRequestAction(friend.friendship_id, 'decline');
+                    });
+
+                    actionsGroup.appendChild(btnAccept);
+                    actionsGroup.appendChild(btnDecline);
+                } else if (friend._type === 'outgoing') {
+                    // Botão Cancelar Pedido
+                    const btnCancel = document.createElement('button');
+                    btnCancel.type = 'button';
+                    btnCancel.className = 'btn-friend-action btn-decline';
+                    btnCancel.title = 'Cancelar Pedido Enviado';
+                    btnCancel.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>';
+                    btnCancel.addEventListener('click', () => {
+                        respondFriendRequestAction(friend.friendship_id, 'decline');
+                    });
+                    actionsGroup.appendChild(btnCancel);
+                } else {
+                    // Amigo Aceito: Botão Iniciar Conversa / Mensagem Direta
+                    const btnMsg = document.createElement('button');
+                    btnMsg.type = 'button';
+                    btnMsg.className = 'btn-friend-action';
+                    btnMsg.title = 'Mensagem Direta';
+                    btnMsg.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>';
+                    btnMsg.addEventListener('click', () => {
+                        startDirectMessageWith(friend);
+                    });
+                    actionsGroup.appendChild(btnMsg);
+                }
+
+                card.appendChild(leftDiv);
+                card.appendChild(actionsGroup);
+                friendsListContainer.appendChild(card);
+            });
+        }
+
+        function renderDirectMessagesList() {
+            if (!homeDmsList) return;
+            homeDmsList.textContent = '';
+
+            const friends = cachedFriendships.accepted || [];
+            if (friends.length === 0) {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.style.cssText = 'padding: 12px 10px; font-size: 0.8rem; color: var(--text-dark-muted); text-align: center;';
+                emptyMsg.textContent = 'Nenhuma conversa recente.';
+                homeDmsList.appendChild(emptyMsg);
+                return;
+            }
+
+            friends.forEach(friend => {
+                const item = document.createElement('div');
+                item.className = `channel-item ${activeDmUserId === friend.id ? 'active' : ''}`;
+                item.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; cursor: pointer;';
+
+                const avatar = document.createElement('div');
+                avatar.className = 'user-avatar-circle';
+                avatar.style.cssText = 'width: 28px; height: 28px; font-size: 0.75rem; flex-shrink: 0;';
+                const name = friend.display_name || friend.username || 'Amigo';
+                if (friend.avatar_url) {
+                    const img = document.createElement('img');
+                    img.src = friend.avatar_url;
+                    img.className = 'user-avatar-img';
+                    img.alt = name;
+                    avatar.appendChild(img);
+                } else {
+                    avatar.textContent = getServerInitials(name);
+                }
+
+                const nameSpan = document.createElement('span');
+                nameSpan.style.cssText = 'flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.88rem;';
+                nameSpan.textContent = name;
+
+                const isOnline = onlineUserIdsSet.has(friend.id);
+                const dot = document.createElement('span');
+                dot.style.cssText = `width: 6px; height: 6px; border-radius: 50%; background: ${isOnline ? '#10b981' : '#64748b'}; flex-shrink: 0;`;
+
+                item.appendChild(avatar);
+                item.appendChild(nameSpan);
+                item.appendChild(dot);
+
+                item.addEventListener('click', () => {
+                    startDirectMessageWith(friend);
+                });
+
+                homeDmsList.appendChild(item);
+            });
+        }
+
+        function startDirectMessageWith(friend) {
+            activeDmUserId = friend.id;
+            renderDirectMessagesList();
+            switchSocialTab('all');
+        }
+
+        async function sendFriendRequestAction(targetUsername) {
+            if (!targetUsername || !authToken) return;
+            if (addFriendAlert) {
+                addFriendAlert.className = 'auth-alert';
+                addFriendAlert.textContent = 'Enviando pedido de amizade...';
+                addFriendAlert.style.display = 'block';
+            }
+
+            try {
+                const res = await fetch('/friends/request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ target_username: targetUsername })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    if (addFriendAlert) {
+                        addFriendAlert.className = 'auth-alert error';
+                        addFriendAlert.textContent = data.error || 'Não foi possível enviar o pedido de amizade.';
+                        addFriendAlert.style.display = 'block';
+                    }
+                    return;
+                }
+
+                if (addFriendAlert) {
+                    addFriendAlert.className = 'auth-alert success';
+                    addFriendAlert.textContent = data.message || 'Pedido de amizade enviado com sucesso!';
+                    addFriendAlert.style.display = 'block';
+                }
+
+                if (inputAddFriendUsername) inputAddFriendUsername.value = '';
+
+                // Emite sinal via Socket para atualização em tempo real
+                socket.emit('friend-request-sent', { targetUserId: data.friendship?.user_id_2 });
+
+                await fetchFriendsList();
+            } catch (err) {
+                console.error('Erro ao enviar pedido de amizade:', err);
+                if (addFriendAlert) {
+                    addFriendAlert.className = 'auth-alert error';
+                    addFriendAlert.textContent = 'Erro de conexão com o servidor.';
+                    addFriendAlert.style.display = 'block';
+                }
+            }
+        }
+
+        async function respondFriendRequestAction(friendshipId, action) {
+            if (!friendshipId || !action || !authToken) return;
+            try {
+                const res = await fetch('/friends/respond', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ friendship_id: friendshipId, action: action })
+                });
+
+                if (res.ok) {
+                    socket.emit('friend-request-status-changed', { friendshipId, action });
+                    await fetchFriendsList();
+                }
+            } catch (err) {
+                console.error('Erro ao responder solicitação de amizade:', err);
+            }
+        }
+
+        // Listeners do Hub Social
+        if (tabFriendsOnline) tabFriendsOnline.addEventListener('click', () => switchSocialTab('online'));
+        if (tabFriendsAll) tabFriendsAll.addEventListener('click', () => switchSocialTab('all'));
+        if (tabFriendsPending) tabFriendsPending.addEventListener('click', () => switchSocialTab('pending'));
+        if (tabFriendsAdd) tabFriendsAdd.addEventListener('click', () => switchSocialTab('add'));
+        if (btnHomeNavFriends) btnHomeNavFriends.addEventListener('click', () => switchSocialTab('online'));
+        if (inputSearchFriends) inputSearchFriends.addEventListener('input', () => renderFriendsList());
+
+        if (formAddFriend) {
+            formAddFriend.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const usernameVal = (inputAddFriendUsername?.value || '').trim();
+                if (usernameVal) sendFriendRequestAction(usernameVal);
+            });
+        }
+
+        if (btnLogout) {
+            btnLogout.addEventListener('click', () => logoutApp('Você saiu da sua conta.'));
+        }
+        if (btnLogoutHome) {
+            btnLogoutHome.addEventListener('click', () => logoutApp('Você saiu da sua conta.'));
+        }
+
+        if (btnOpenUserSettingsHome) {
+            btnOpenUserSettingsHome.addEventListener('click', () => {
+                if (btnOpenUserSettings) btnOpenUserSettings.click();
+            });
+        }
+        if (userBarMuteBtnHome) {
+            userBarMuteBtnHome.addEventListener('click', () => {
+                if (btnMute) btnMute.click();
+            });
+        }
+
+        // Socket listeners para Hub Social
+        socket.on('friend-request-received', (data) => {
+            console.log('📬 Nova solicitação de amizade recebida:', data);
+            fetchFriendsList();
+        });
+
+        socket.on('friend-request-updated', (data) => {
+            console.log('🔄 Atualização de solicitação de amizade:', data);
+            fetchFriendsList();
+        });
+
         async function selectServer(server) {
             if (!server) return;
             activeServerId = server.id;
             activeServerObj = server;
-            document.body.classList.remove('home-view');
-            channelsSidebar.classList.remove('hidden');
+
+            openServerPanel();
 
             document.querySelectorAll('.server-icon-wrapper').forEach(el => el.classList.remove('active'));
             const activeEl = document.getElementById(`server-item-${server.id}`);
@@ -3728,19 +4780,7 @@
 
         if (btnServerHome) {
             btnServerHome.addEventListener('click', () => {
-                activeServerId = null;
-                activeServerObj = null;
-                document.body.classList.add('home-view');
-                if (channelsSidebar) channelsSidebar.classList.add('hidden');
-
-                document.querySelectorAll('.server-icon-wrapper').forEach(el => el.classList.remove('active'));
-                btnServerHome.classList.add('active');
-                if (mainServerHeading) mainServerHeading.innerText = 'NexusComm Salas Rápidas';
-                if (mainHeaderSub) mainHeaderSub.innerText = 'Videoconferência & Colaboração WebRTC';
-                
-                const defaultRoom = 'sala-publica';
-                connectToRoom(defaultRoom);
-                setViewMode('voice');
+                openHomePanel();
             });
         }
 

@@ -146,7 +146,31 @@ export async function initDb() {
             );
         `);
 
-        // 8. Migração automática: se a tabela messages foi criada previamente com channel_id INTEGER, converte para VARCHAR(255)
+        // 8. Tabela de Amizades (friendships - Sprint 3)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS friendships (
+                id SERIAL PRIMARY KEY,
+                user_id_1 INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                user_id_2 INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                status VARCHAR(20) NOT NULL CHECK (status IN ('pending', 'accepted', 'blocked')),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT chk_different_users CHECK (user_id_1 <> user_id_2),
+                CONSTRAINT unique_friendship UNIQUE (user_id_1, user_id_2)
+            );
+        `);
+
+        // 9. Tabela de Mensagens Diretas (direct_messages - Sprint 3)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS direct_messages (
+                id SERIAL PRIMARY KEY,
+                sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        // 10. Migração automática: se a tabela messages foi criada previamente com channel_id INTEGER, converte para VARCHAR(255)
         await pool.query(`
             DO $$
             BEGIN
@@ -162,6 +186,41 @@ export async function initDb() {
             END $$;
         `);
 
+        // 11. Habilitação de Segurança em Nível de Linha (RLS) para Friendships e DMs
+        await pool.query(`
+            ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE direct_messages ENABLE ROW LEVEL SECURITY;
+
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_policies WHERE tablename = 'friendships' AND policyname = 'friendships_isolation_policy'
+                ) THEN
+                    CREATE POLICY friendships_isolation_policy ON friendships
+                        FOR ALL
+                        USING (
+                            auth.uid()::text = user_id_1::text OR auth.uid()::text = user_id_2::text
+                        )
+                        WITH CHECK (
+                            auth.uid()::text = user_id_1::text OR auth.uid()::text = user_id_2::text
+                        );
+                END IF;
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_policies WHERE tablename = 'direct_messages' AND policyname = 'dm_isolation_policy'
+                ) THEN
+                    CREATE POLICY dm_isolation_policy ON direct_messages
+                        FOR ALL
+                        USING (
+                            auth.uid()::text = sender_id::text OR auth.uid()::text = receiver_id::text
+                        )
+                        WITH CHECK (
+                            auth.uid()::text = sender_id::text
+                        );
+                END IF;
+            END $$;
+        `);
+
         // Criação de índices para performance
         await pool.query(`
             CREATE INDEX IF NOT EXISTS idx_messages_channel_id ON messages(channel_id);
@@ -169,6 +228,12 @@ export async function initDb() {
             CREATE INDEX IF NOT EXISTS idx_server_roles_server ON server_roles(server_id);
             CREATE INDEX IF NOT EXISTS idx_server_members_server ON server_members(server_id);
             CREATE INDEX IF NOT EXISTS idx_member_roles_user_server ON member_roles(user_id, server_id);
+            CREATE INDEX IF NOT EXISTS idx_friendships_user1 ON friendships(user_id_1);
+            CREATE INDEX IF NOT EXISTS idx_friendships_user2 ON friendships(user_id_2);
+            CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
+            CREATE INDEX IF NOT EXISTS idx_dm_sender ON direct_messages(sender_id);
+            CREATE INDEX IF NOT EXISTS idx_dm_receiver ON direct_messages(receiver_id);
+            CREATE INDEX IF NOT EXISTS idx_dm_created_at ON direct_messages(created_at);
         `);
 
         // 9. Cria um servidor padrão de comunidade se nenhum existir
@@ -535,4 +600,242 @@ export async function getMessagesByChannel(channelId: string, limit = 50) {
         [safeChannelId, safeLimit]
     );
     return res.rows;
+}
+
+// ==========================================
+// Hub Social: Sistema de Amigos & DMs (Sprint 3)
+// ==========================================
+
+export interface FriendUser {
+    id: number;
+    username: string;
+    display_name?: string | null;
+    avatar_url?: string | null;
+    created_at?: string;
+    friendship_id: number;
+    status: 'pending' | 'accepted' | 'blocked';
+    direction?: 'incoming' | 'outgoing';
+    friendship_created_at: string;
+}
+
+export async function getFriendships(userId: number | string) {
+    const numericId = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
+    if (isNaN(numericId)) return { accepted: [], pending_incoming: [], pending_outgoing: [], blocked: [] };
+
+    const query = `
+        SELECT 
+            f.id AS friendship_id,
+            f.status,
+            f.created_at AS friendship_created_at,
+            f.user_id_1,
+            f.user_id_2,
+            u.id AS friend_id,
+            u.username,
+            u.display_name,
+            u.avatar_url,
+            u.created_at AS user_created_at
+        FROM friendships f
+        JOIN users u ON (
+            CASE 
+                WHEN f.user_id_1 = $1 THEN u.id = f.user_id_2
+                ELSE u.id = f.user_id_1
+            END
+        )
+        WHERE f.user_id_1 = $1 OR f.user_id_2 = $1
+        ORDER BY f.created_at DESC
+    `;
+
+    const res = await pool.query(query, [numericId]);
+
+    const accepted: FriendUser[] = [];
+    const pending_incoming: FriendUser[] = [];
+    const pending_outgoing: FriendUser[] = [];
+    const blocked: FriendUser[] = [];
+
+    for (const row of res.rows) {
+        const item: FriendUser = {
+            id: row.friend_id,
+            username: row.username,
+            display_name: row.display_name,
+            avatar_url: row.avatar_url,
+            created_at: row.user_created_at,
+            friendship_id: row.friendship_id,
+            status: row.status,
+            friendship_created_at: row.friendship_created_at
+        };
+
+        if (row.status === 'accepted') {
+            accepted.push(item);
+        } else if (row.status === 'pending') {
+            if (row.user_id_1 === numericId) {
+                item.direction = 'outgoing';
+                pending_outgoing.push(item);
+            } else {
+                item.direction = 'incoming';
+                pending_incoming.push(item);
+            }
+        } else if (row.status === 'blocked') {
+            blocked.push(item);
+        }
+    }
+
+    return { accepted, pending_incoming, pending_outgoing, blocked };
+}
+
+export async function sendFriendRequest(userId: number | string, targetUsername: string) {
+    const numericId = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
+    if (isNaN(numericId)) throw new Error('ID de usuário inválido');
+
+    const cleanUsername = String(targetUsername || '').trim();
+    if (!cleanUsername) throw new Error('Nome de usuário obrigatório');
+
+    const targetUser = await findUserByUsername(cleanUsername);
+    if (!targetUser) throw new Error(`Usuário "${cleanUsername}" não encontrado`);
+
+    if (targetUser.id === numericId) {
+        throw new Error('Você não pode adicionar a si mesmo como amigo');
+    }
+
+    // Verifica relacionamento existente em ambas as ordens
+    const existing = await pool.query(
+        `SELECT id, user_id_1, user_id_2, status 
+         FROM friendships 
+         WHERE (user_id_1 = $1 AND user_id_2 = $2) OR (user_id_1 = $2 AND user_id_2 = $1)
+         LIMIT 1`,
+        [numericId, targetUser.id]
+    );
+
+    if (existing.rows.length > 0) {
+        const rel = existing.rows[0];
+        if (rel.status === 'accepted') {
+            throw new Error(`Você e ${targetUser.username} já são amigos`);
+        }
+        if (rel.status === 'blocked') {
+            throw new Error('Não é possível enviar pedido de amizade para este usuário');
+        }
+        if (rel.status === 'pending') {
+            if (rel.user_id_1 === numericId) {
+                throw new Error('Pedido de amizade já enviado anteriormente');
+            } else {
+                // Se o outro usuário já enviou pedido pendente, auto-aceita!
+                const updated = await pool.query(
+                    `UPDATE friendships SET status = 'accepted' WHERE id = $1 RETURNING id, status, created_at`,
+                    [rel.id]
+                );
+                return {
+                    friendship: updated.rows[0],
+                    targetUser: { id: targetUser.id, username: targetUser.username, display_name: targetUser.display_name, avatar_url: targetUser.avatar_url },
+                    autoAccepted: true
+                };
+            }
+        }
+    }
+
+    const inserted = await pool.query(
+        `INSERT INTO friendships (user_id_1, user_id_2, status) 
+         VALUES ($1, $2, 'pending') 
+         RETURNING id, status, created_at`,
+        [numericId, targetUser.id]
+    );
+
+    return {
+        friendship: inserted.rows[0],
+        targetUser: { id: targetUser.id, username: targetUser.username, display_name: targetUser.display_name, avatar_url: targetUser.avatar_url },
+        autoAccepted: false
+    };
+}
+
+export async function respondFriendRequest(userId: number | string, friendshipId: number | string, action: 'accept' | 'decline' | 'block') {
+    const numericUserId = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
+    const numericFriendshipId = typeof friendshipId === 'number' ? friendshipId : parseInt(String(friendshipId), 10);
+
+    if (isNaN(numericUserId) || isNaN(numericFriendshipId)) throw new Error('Parâmetros inválidos');
+
+    const check = await pool.query(
+        `SELECT id, user_id_1, user_id_2, status FROM friendships WHERE id = $1 LIMIT 1`,
+        [numericFriendshipId]
+    );
+
+    if (check.rows.length === 0) {
+        throw new Error('Solicitação de amizade não encontrada');
+    }
+
+    const rel = check.rows[0];
+    if (rel.user_id_1 !== numericUserId && rel.user_id_2 !== numericUserId) {
+        throw new Error('Você não tem permissão para responder a esta solicitação');
+    }
+
+    if (action === 'accept') {
+        const res = await pool.query(
+            `UPDATE friendships SET status = 'accepted' WHERE id = $1 RETURNING id, status, created_at`,
+            [numericFriendshipId]
+        );
+        return { success: true, action: 'accepted', friendship: res.rows[0], otherUserId: rel.user_id_1 === numericUserId ? rel.user_id_2 : rel.user_id_1 };
+    } else if (action === 'decline') {
+        await pool.query(`DELETE FROM friendships WHERE id = $1`, [numericFriendshipId]);
+        return { success: true, action: 'declined', otherUserId: rel.user_id_1 === numericUserId ? rel.user_id_2 : rel.user_id_1 };
+    } else if (action === 'block') {
+        const res = await pool.query(
+            `UPDATE friendships SET status = 'blocked' WHERE id = $1 RETURNING id, status, created_at`,
+            [numericFriendshipId]
+        );
+        return { success: true, action: 'blocked', friendship: res.rows[0], otherUserId: rel.user_id_1 === numericUserId ? rel.user_id_2 : rel.user_id_1 };
+    } else {
+        throw new Error('Ação inválida. Use "accept", "decline" ou "block"');
+    }
+}
+
+export async function getDirectMessages(userId1: number | string, userId2: number | string, limit = 50) {
+    const num1 = typeof userId1 === 'number' ? userId1 : parseInt(String(userId1), 10);
+    const num2 = typeof userId2 === 'number' ? userId2 : parseInt(String(userId2), 10);
+    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
+
+    if (isNaN(num1) || isNaN(num2)) return [];
+
+    const res = await pool.query(
+        `SELECT 
+            dm.id,
+            dm.sender_id,
+            dm.receiver_id,
+            dm.content AS text,
+            dm.created_at AS timestamp,
+            u.username AS sender_username,
+            u.display_name AS sender_display_name,
+            u.avatar_url AS sender_avatar_url
+         FROM direct_messages dm
+         JOIN users u ON u.id = dm.sender_id
+         WHERE (dm.sender_id = $1 AND dm.receiver_id = $2)
+            OR (dm.sender_id = $2 AND dm.receiver_id = $1)
+         ORDER BY dm.created_at ASC
+         LIMIT $3`,
+        [num1, num2, safeLimit]
+    );
+
+    return res.rows;
+}
+
+export async function saveDirectMessage(senderId: number | string, receiverId: number | string, content: string) {
+    const numSender = typeof senderId === 'number' ? senderId : parseInt(String(senderId), 10);
+    const numReceiver = typeof receiverId === 'number' ? receiverId : parseInt(String(receiverId), 10);
+    const safeContent = String(content || '').trim();
+
+    if (isNaN(numSender) || isNaN(numReceiver)) throw new Error('IDs de remetente ou destinatário inválidos');
+    if (!safeContent) throw new Error('Conteúdo da mensagem não pode ser vazio');
+
+    const res = await pool.query(
+        `INSERT INTO direct_messages (sender_id, receiver_id, content, created_at)
+         VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+         RETURNING id, sender_id, receiver_id, content AS text, created_at AS timestamp`,
+        [numSender, numReceiver, safeContent]
+    );
+
+    const msg = res.rows[0];
+    const sender = await findUserById(numSender);
+
+    return {
+        ...msg,
+        sender_username: sender?.username || 'Usuário',
+        sender_display_name: sender?.display_name || sender?.username || 'Usuário',
+        sender_avatar_url: sender?.avatar_url || null
+    };
 }
