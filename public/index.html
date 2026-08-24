@@ -2374,6 +2374,124 @@
             max-width: 440px;
         }
 
+        /* Botão de Anexo de Mídia no Chat e Preview (Sprint 4) */
+        .btn-chat-attach {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            flex-shrink: 0;
+        }
+
+        .btn-chat-attach:hover {
+            background: rgba(99, 102, 241, 0.4);
+            border-color: rgba(99, 102, 241, 0.8);
+            color: #ffffff;
+            transform: scale(1.08);
+            box-shadow: 0 0 14px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Container de Preview de Mídia antes do Envio */
+        .chat-media-preview-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 14px;
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 14px;
+            backdrop-filter: blur(16px);
+            animation: fadeInScale 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            max-width: fit-content;
+        }
+
+        .chat-media-preview-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .chat-media-preview-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            max-width: 220px;
+        }
+
+        .chat-media-preview-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #ffffff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .chat-media-preview-size {
+            font-size: 0.72rem;
+            color: var(--text-dark-muted);
+        }
+
+        .chat-media-preview-close {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #f87171;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-left: 6px;
+        }
+
+        .chat-media-preview-close:hover {
+            background: #ef4444;
+            color: #ffffff;
+            transform: scale(1.1);
+        }
+
+        /* Renderização da Imagem na Bolha da Mensagem */
+        .chat-message-image-wrapper {
+            margin-top: 6px;
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+        }
+
+        .chat-message-image {
+            max-width: 380px;
+            max-height: 280px;
+            width: auto;
+            height: auto;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, filter 0.25s ease;
+            display: block;
+        }
+
+        .chat-message-image:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.35);
+            filter: brightness(1.05);
+        }
+
         /* Overlay de Configurações de Usuário */
         .user-settings-overlay {
             position: fixed;
@@ -2945,14 +3063,36 @@
                             </div>
                         </div>
 
-                        <!-- Form de Envio de DM -->
-                        <form id="formDmChat" class="dm-chat-input-bar">
-                            <input type="text" id="inputDmMessage" placeholder="Conversar em Mensagens Diretas..." autocomplete="off" required />
-                            <button type="submit" id="btnSendDmMessage" class="btn-primary" style="padding: 10px 18px; border-radius: 10px;">
-                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                </svg>
-                            </button>
+                        <!-- Form de Envio de DM com Anexo de Mídia (Sprint 4) -->
+                        <form id="formDmChat" class="dm-chat-input-bar" style="display: flex; flex-direction: column; gap: 8px; align-items: stretch;">
+                            <!-- Preview de Imagem Anexada DM -->
+                            <div id="dmMediaPreview" class="chat-media-preview-bar hidden">
+                                <img id="dmMediaPreviewImg" src="" alt="Preview" class="chat-media-preview-thumb" />
+                                <div class="chat-media-preview-info">
+                                    <span id="dmMediaPreviewName" class="chat-media-preview-name">imagem.png</span>
+                                    <span id="dmMediaPreviewSize" class="chat-media-preview-size">0 KB</span>
+                                </div>
+                                <button type="button" id="btnRemoveDmMedia" class="chat-media-preview-close" title="Remover imagem">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                                <input type="file" id="inputAttachDm" accept="image/png, image/jpeg, image/jpg, image/gif, image/webp" class="hidden" />
+                                <button type="button" id="btnAttachDm" class="btn-chat-attach" title="Anexar Imagem (PNG, JPG, GIF)">
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                </button>
+                                <input type="text" id="inputDmMessage" placeholder="Conversar em Mensagens Diretas..." autocomplete="off" />
+                                <button type="submit" id="btnSendDmMessage" class="btn-primary" style="padding: 10px 18px; border-radius: 10px;">
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -3340,13 +3480,35 @@
                     </div>
                 </div>
 
-                <form id="mainChatExpandedForm" class="main-chat-input-area">
-                    <input type="text" id="mainChatExpandedInput" class="main-chat-input" placeholder="Conversar no canal..." autocomplete="off" />
-                    <button type="submit" class="chat-send-btn" title="Enviar Mensagem">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
-                    </button>
+                <form id="mainChatExpandedForm" class="main-chat-input-area" style="position: relative; display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Preview de Imagem Anexada Canal -->
+                    <div id="mainChatMediaPreview" class="chat-media-preview-bar hidden">
+                        <img id="mainChatMediaPreviewImg" src="" alt="Preview" class="chat-media-preview-thumb" />
+                        <div class="chat-media-preview-info">
+                            <span id="mainChatMediaPreviewName" class="chat-media-preview-name">imagem.png</span>
+                            <span id="mainChatMediaPreviewSize" class="chat-media-preview-size">0 KB</span>
+                        </div>
+                        <button type="button" id="btnRemoveMainChatMedia" class="chat-media-preview-close" title="Remover imagem">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                        <input type="file" id="inputAttachMainChat" accept="image/png, image/jpeg, image/jpg, image/gif, image/webp" class="hidden" />
+                        <button type="button" id="btnAttachMainChat" class="btn-chat-attach" title="Anexar Imagem (PNG, JPG, GIF)">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </button>
+                        <input type="text" id="mainChatExpandedInput" class="main-chat-input" placeholder="Conversar no canal..." autocomplete="off" />
+                        <button type="submit" class="chat-send-btn" title="Enviar Mensagem">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                        </button>
+                    </div>
                 </form>
             </div>
 
@@ -3445,13 +3607,35 @@
                 </div>
             </div>
 
-            <form id="chatForm" class="chat-input-area">
-                <input type="text" id="chatInput" class="chat-input" placeholder="Mensagem na chamada..." autocomplete="off" />
-                <button type="submit" id="btnSendChat" class="chat-send-btn" title="Enviar">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                </button>
+            <form id="chatForm" class="chat-input-area" style="display: flex; flex-direction: column; gap: 6px;">
+                <!-- Preview de Imagem Anexada Lateral -->
+                <div id="sideMediaPreview" class="chat-media-preview-bar hidden">
+                    <img id="sideMediaPreviewImg" src="" alt="Preview" class="chat-media-preview-thumb" />
+                    <div class="chat-media-preview-info">
+                        <span id="sideMediaPreviewName" class="chat-media-preview-name">imagem.png</span>
+                        <span id="sideMediaPreviewSize" class="chat-media-preview-size">0 KB</span>
+                    </div>
+                    <button type="button" id="btnRemoveSideMedia" class="chat-media-preview-close" title="Remover imagem">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                    <input type="file" id="inputAttachSide" accept="image/png, image/jpeg, image/jpg, image/gif, image/webp" class="hidden" />
+                    <button type="button" id="btnAttachSide" class="btn-chat-attach" style="width: 32px; height: 32px;" title="Anexar Imagem">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </button>
+                    <input type="text" id="chatInput" class="chat-input" placeholder="Mensagem na chamada..." autocomplete="off" />
+                    <button type="submit" id="btnSendChat" class="chat-send-btn" title="Enviar">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                    </button>
+                </div>
             </form>
         </aside>
 
@@ -3519,6 +3703,35 @@
         const mainChatMessagesList = document.getElementById('mainChatMessagesList');
         const mainChatExpandedForm = document.getElementById('mainChatExpandedForm');
         const mainChatExpandedInput = document.getElementById('mainChatExpandedInput');
+
+        // Elementos de Anexo de Mídia (Sprint 4)
+        const inputAttachMainChat = document.getElementById('inputAttachMainChat');
+        const btnAttachMainChat = document.getElementById('btnAttachMainChat');
+        const mainChatMediaPreview = document.getElementById('mainChatMediaPreview');
+        const mainChatMediaPreviewImg = document.getElementById('mainChatMediaPreviewImg');
+        const mainChatMediaPreviewName = document.getElementById('mainChatMediaPreviewName');
+        const mainChatMediaPreviewSize = document.getElementById('mainChatMediaPreviewSize');
+        const btnRemoveMainChatMedia = document.getElementById('btnRemoveMainChatMedia');
+
+        const inputAttachDm = document.getElementById('inputAttachDm');
+        const btnAttachDm = document.getElementById('btnAttachDm');
+        const dmMediaPreview = document.getElementById('dmMediaPreview');
+        const dmMediaPreviewImg = document.getElementById('dmMediaPreviewImg');
+        const dmMediaPreviewName = document.getElementById('dmMediaPreviewName');
+        const dmMediaPreviewSize = document.getElementById('dmMediaPreviewSize');
+        const btnRemoveDmMedia = document.getElementById('btnRemoveDmMedia');
+
+        const inputAttachSide = document.getElementById('inputAttachSide');
+        const btnAttachSide = document.getElementById('btnAttachSide');
+        const sideMediaPreview = document.getElementById('sideMediaPreview');
+        const sideMediaPreviewImg = document.getElementById('sideMediaPreviewImg');
+        const sideMediaPreviewName = document.getElementById('sideMediaPreviewName');
+        const sideMediaPreviewSize = document.getElementById('sideMediaPreviewSize');
+        const btnRemoveSideMedia = document.getElementById('btnRemoveSideMedia');
+
+        let pendingMainChatMedia = null; // { file, base64, name, size }
+        let pendingDmMedia = null;
+        let pendingSideMedia = null;
 
         const voiceStageView = document.getElementById('voiceStageView');
         const voiceChannelHeading = document.getElementById('voiceChannelHeading');
@@ -5211,13 +5424,33 @@
 
             header.appendChild(authorSpan);
             header.appendChild(timeSpan);
-
-            const textDiv = document.createElement('div');
-            textDiv.className = 'dm-message-text';
-            textDiv.textContent = msg.text || msg.content || '';
-
             wrap.appendChild(header);
-            wrap.appendChild(textDiv);
+
+            // Texto da Mensagem
+            const textContent = msg.text || msg.content || '';
+            if (textContent) {
+                const textDiv = document.createElement('div');
+                textDiv.className = 'dm-message-text';
+                textDiv.textContent = textContent;
+                wrap.appendChild(textDiv);
+            }
+
+            // Anexo de Imagem na DM (Sprint 4)
+            if (msg.media_url) {
+                const imgWrap = document.createElement('div');
+                imgWrap.className = 'chat-message-image-wrapper';
+                const mediaImg = document.createElement('img');
+                mediaImg.className = 'chat-message-image';
+                mediaImg.src = msg.media_url;
+                mediaImg.alt = 'Imagem anexada';
+                mediaImg.loading = 'lazy';
+                mediaImg.title = 'Clique para ver em tamanho real';
+                mediaImg.addEventListener('click', () => {
+                    window.open(msg.media_url, '_blank');
+                });
+                imgWrap.appendChild(mediaImg);
+                wrap.appendChild(imgWrap);
+            }
 
             bubble.appendChild(avatar);
             bubble.appendChild(wrap);
@@ -5237,13 +5470,30 @@
 
         async function sendDmAction(content) {
             const safeContent = (content || '').trim();
-            if (!safeContent || !activeDmUserId) return;
+            const hasMedia = Boolean(pendingDmMedia);
+            if (!safeContent && !hasMedia) return;
+            if (!activeDmUserId) return;
+
+            let uploadedMediaUrl = null;
+            if (hasMedia) {
+                try {
+                    uploadedMediaUrl = await uploadChatMedia(pendingDmMedia.file, pendingDmMedia.base64);
+                } catch (upErr) {
+                    console.error('Erro no upload de mídia DM:', upErr);
+                    alert('Erro ao enviar imagem: ' + (upErr.message || 'Falha no upload'));
+                    return;
+                }
+                clearDmMediaPreview();
+            }
+
+            const dmPayload = {
+                receiverId: activeDmUserId,
+                content: safeContent,
+                media_url: uploadedMediaUrl
+            };
 
             if (socket.connected) {
-                socket.emit('send-dm', {
-                    receiverId: activeDmUserId,
-                    content: safeContent
-                });
+                socket.emit('send-dm', dmPayload);
             } else {
                 try {
                     const res = await fetch(`/dms/${activeDmUserId}`, {
@@ -5252,7 +5502,7 @@
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${authToken}`
                         },
-                        body: JSON.stringify({ content: safeContent })
+                        body: JSON.stringify(dmPayload)
                     });
                     const data = await res.json();
                     if (data?.message) {
@@ -6145,6 +6395,170 @@
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
+        function formatBytes(bytes, decimals = 1) {
+            if (!+bytes) return '0 B';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        }
+
+        async function uploadChatMedia(file, base64) {
+            if (!authToken) throw new Error('Não autenticado para upload');
+            const res = await fetch('/upload/media', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    fileName: file.name,
+                    fileData: base64
+                })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || 'Falha ao fazer upload da imagem.');
+            }
+
+            const data = await res.json();
+            return data.url;
+        }
+
+        function clearMainChatMediaPreview() {
+            pendingMainChatMedia = null;
+            if (inputAttachMainChat) inputAttachMainChat.value = '';
+            if (mainChatMediaPreview) mainChatMediaPreview.classList.add('hidden');
+            if (mainChatMediaPreviewImg) mainChatMediaPreviewImg.src = '';
+        }
+
+        function clearDmMediaPreview() {
+            pendingDmMedia = null;
+            if (inputAttachDm) inputAttachDm.value = '';
+            if (dmMediaPreview) dmMediaPreview.classList.add('hidden');
+            if (dmMediaPreviewImg) dmMediaPreviewImg.src = '';
+        }
+
+        function clearSideMediaPreview() {
+            pendingSideMedia = null;
+            if (inputAttachSide) inputAttachSide.value = '';
+            if (sideMediaPreview) sideMediaPreview.classList.add('hidden');
+            if (sideMediaPreviewImg) sideMediaPreviewImg.src = '';
+        }
+
+        // Setup Anexos de Mídia no Chat Central (Canal - Sprint 4)
+        if (btnAttachMainChat && inputAttachMainChat) {
+            btnAttachMainChat.addEventListener('click', () => {
+                inputAttachMainChat.click();
+            });
+
+            inputAttachMainChat.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                if (!file.type.startsWith('image/')) {
+                    alert('Por favor, selecione apenas arquivos de imagem (PNG, JPG, GIF, WebP).');
+                    return;
+                }
+
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('A imagem selecionada excede o limite máximo de 10 MB.');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (re) => {
+                    const base64 = re.target.result;
+                    pendingMainChatMedia = { file, base64, name: file.name, size: file.size };
+                    if (mainChatMediaPreviewImg) mainChatMediaPreviewImg.src = base64;
+                    if (mainChatMediaPreviewName) mainChatMediaPreviewName.textContent = file.name;
+                    if (mainChatMediaPreviewSize) mainChatMediaPreviewSize.textContent = formatBytes(file.size);
+                    if (mainChatMediaPreview) mainChatMediaPreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        if (btnRemoveMainChatMedia) {
+            btnRemoveMainChatMedia.addEventListener('click', clearMainChatMediaPreview);
+        }
+
+        // Setup Anexos de Mídia no Chat de DMs (Sprint 4)
+        if (btnAttachDm && inputAttachDm) {
+            btnAttachDm.addEventListener('click', () => {
+                inputAttachDm.click();
+            });
+
+            inputAttachDm.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                if (!file.type.startsWith('image/')) {
+                    alert('Por favor, selecione apenas arquivos de imagem (PNG, JPG, GIF, WebP).');
+                    return;
+                }
+
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('A imagem selecionada excede o limite máximo de 10 MB.');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (re) => {
+                    const base64 = re.target.result;
+                    pendingDmMedia = { file, base64, name: file.name, size: file.size };
+                    if (dmMediaPreviewImg) dmMediaPreviewImg.src = base64;
+                    if (dmMediaPreviewName) dmMediaPreviewName.textContent = file.name;
+                    if (dmMediaPreviewSize) dmMediaPreviewSize.textContent = formatBytes(file.size);
+                    if (dmMediaPreview) dmMediaPreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        if (btnRemoveDmMedia) {
+            btnRemoveDmMedia.addEventListener('click', clearDmMediaPreview);
+        }
+
+        // Setup Anexos de Mídia no Chat Lateral da Chamada (Sprint 4)
+        if (btnAttachSide && inputAttachSide) {
+            btnAttachSide.addEventListener('click', () => {
+                inputAttachSide.click();
+            });
+
+            inputAttachSide.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                if (!file.type.startsWith('image/')) {
+                    alert('Por favor, selecione apenas arquivos de imagem (PNG, JPG, GIF, WebP).');
+                    return;
+                }
+
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('A imagem selecionada excede o limite máximo de 10 MB.');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (re) => {
+                    const base64 = re.target.result;
+                    pendingSideMedia = { file, base64, name: file.name, size: file.size };
+                    if (sideMediaPreviewImg) sideMediaPreviewImg.src = base64;
+                    if (sideMediaPreviewName) sideMediaPreviewName.textContent = file.name;
+                    if (sideMediaPreviewSize) sideMediaPreviewSize.textContent = formatBytes(file.size);
+                    if (sideMediaPreview) sideMediaPreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        if (btnRemoveSideMedia) {
+            btnRemoveSideMedia.addEventListener('click', clearSideMediaPreview);
+        }
+
         function escapeHtml(str) {
             if (str === null || str === undefined) return '';
             return String(str)
@@ -6155,7 +6569,7 @@
                 .replace(/'/g, '&#039;');
         }
 
-        function createChatMessageGroup({ text, sender, timestamp, isMine }) {
+        function createChatMessageGroup({ text, media_url, sender, timestamp, isMine }) {
             const group = document.createElement('div');
             group.className = `message-group ${isMine ? 'mine' : 'other'}`;
 
@@ -6170,40 +6584,75 @@
 
             metaDiv.appendChild(strong);
             metaDiv.appendChild(timeSpan);
-
-            const bubbleDiv = document.createElement('div');
-            bubbleDiv.className = 'message-bubble';
-            bubbleDiv.textContent = text;
-
             group.appendChild(metaDiv);
-            group.appendChild(bubbleDiv);
+
+            if (text) {
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = 'message-bubble';
+                bubbleDiv.textContent = text;
+                group.appendChild(bubbleDiv);
+            }
+
+            if (media_url) {
+                const imgWrap = document.createElement('div');
+                imgWrap.className = 'chat-message-image-wrapper';
+                const img = document.createElement('img');
+                img.className = 'chat-message-image';
+                img.src = media_url;
+                img.alt = 'Imagem anexada';
+                img.loading = 'lazy';
+                img.title = 'Clique para ver em tamanho real';
+                img.addEventListener('click', () => {
+                    window.open(media_url, '_blank');
+                });
+                imgWrap.appendChild(img);
+                group.appendChild(imgWrap);
+            }
 
             return group;
         }
 
-        function appendChatMessage({ text, sender, timestamp, isMine }) {
+        function appendChatMessage({ text, media_url, sender, timestamp, isMine }) {
             if (mainChatMessagesList) {
-                const groupMain = createChatMessageGroup({ text, sender, timestamp, isMine });
+                const groupMain = createChatMessageGroup({ text, media_url, sender, timestamp, isMine });
                 mainChatMessagesList.appendChild(groupMain);
                 mainChatMessagesList.scrollTop = mainChatMessagesList.scrollHeight;
             }
 
             if (chatMessages) {
-                const groupSide = createChatMessageGroup({ text, sender, timestamp, isMine });
+                const groupSide = createChatMessageGroup({ text, media_url, sender, timestamp, isMine });
                 chatMessages.appendChild(groupSide);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         }
 
-        function sendChatMessage(text) {
-            const cleanText = text.trim();
-            if (!cleanText || !currentRoom) return;
+        async function sendChatMessage(text, targetType = 'main') {
+            const cleanText = (text || '').trim();
+            const hasMedia = targetType === 'main' ? Boolean(pendingMainChatMedia) : Boolean(pendingSideMedia);
+            if (!cleanText && !hasMedia) return;
+            if (!currentRoom) return;
+
+            let uploadedMediaUrl = null;
+            if (hasMedia) {
+                const pendingObj = targetType === 'main' ? pendingMainChatMedia : pendingSideMedia;
+                try {
+                    uploadedMediaUrl = await uploadChatMedia(pendingObj.file, pendingObj.base64);
+                } catch (upErr) {
+                    console.error('Erro no upload de mídia de chat:', upErr);
+                    alert('Erro ao enviar imagem: ' + (upErr.message || 'Falha no upload'));
+                    return;
+                }
+
+                if (targetType === 'main') clearMainChatMediaPreview();
+                else clearSideMediaPreview();
+            }
 
             const myUsername = currentUser?.username || 'Você';
             const timestamp = Date.now();
             const messageData = {
                 room: currentRoom,
                 text: cleanText,
+                media_url: uploadedMediaUrl,
                 sender: myUsername,
                 timestamp: timestamp
             };
@@ -6211,6 +6660,7 @@
             // Renderiza imediatamente na UI do remetente
             appendChatMessage({
                 text: cleanText,
+                media_url: uploadedMediaUrl,
                 sender: myUsername,
                 timestamp: timestamp,
                 isMine: true
@@ -6232,14 +6682,14 @@
         if (mainChatExpandedForm) {
             mainChatExpandedForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                if (mainChatExpandedInput) sendChatMessage(mainChatExpandedInput.value);
+                if (mainChatExpandedInput) sendChatMessage(mainChatExpandedInput.value, 'main');
             });
         }
 
         if (chatForm) {
             chatForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                if (chatInput) sendChatMessage(chatInput.value);
+                if (chatInput) sendChatMessage(chatInput.value, 'side');
             });
         }
 
@@ -6249,6 +6699,7 @@
             const isMine = Boolean(myUsername && data.sender && data.sender === myUsername);
             appendChatMessage({
                 text: data.text,
+                media_url: data.media_url,
                 sender: data.sender || 'Participante',
                 timestamp: data.timestamp || Date.now(),
                 isMine: isMine
@@ -6303,6 +6754,7 @@
                     const isMine = Boolean(currentAuthUser && msg.sender && msg.sender === currentAuthUser);
                     appendChatMessage({
                         text: msg.text,
+                        media_url: msg.media_url,
                         sender: msg.sender || 'Participante',
                         timestamp: new Date(msg.timestamp).getTime(),
                         isMine: isMine

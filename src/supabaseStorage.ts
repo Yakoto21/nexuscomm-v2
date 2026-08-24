@@ -32,12 +32,14 @@ if (supabaseUrl && supabaseKey) {
 
 const BUCKET_NAME = 'server_media';
 const USER_AVATARS_BUCKET = 'user_avatars';
+const CHAT_MEDIA_BUCKET = 'chat_media';
 
 // Garante pastas locais para fallback seguro se os buckets não estiverem acessíveis
 const localUploadsDir = path.join(__dirname, '../public/uploads/server_media');
 const localUserAvatarsDir = path.join(__dirname, '../public/uploads/user_avatars');
+const localChatMediaDir = path.join(__dirname, '../public/uploads/chat_media');
 
-[localUploadsDir, localUserAvatarsDir].forEach(dir => {
+[localUploadsDir, localUserAvatarsDir, localChatMediaDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
         try {
             fs.mkdirSync(dir, { recursive: true });
@@ -48,7 +50,7 @@ const localUserAvatarsDir = path.join(__dirname, '../public/uploads/user_avatars
 });
 
 /**
- * Inicializa e garante que os buckets públicos 'server_media' e 'user_avatars' existam no Supabase Storage
+ * Inicializa e garante que os buckets públicos 'server_media', 'user_avatars' e 'chat_media' existam no Supabase Storage
  */
 export async function initSupabaseBucket() {
     if (!supabase) {
@@ -63,7 +65,7 @@ export async function initSupabaseBucket() {
             return;
         }
 
-        const requiredBuckets = [BUCKET_NAME, USER_AVATARS_BUCKET];
+        const requiredBuckets = [BUCKET_NAME, USER_AVATARS_BUCKET, CHAT_MEDIA_BUCKET];
 
         for (const bName of requiredBuckets) {
             const bucketExists = buckets?.some(b => b.name === bName);
@@ -224,6 +226,78 @@ export async function uploadUserAvatar(
         return localPublicUrl;
     } catch (localErr) {
         console.warn('⚠️ Erro no armazenamento local de avatar, retornando Data URI:', localErr);
+        return base64DataOrUrl;
+    }
+}
+
+/**
+ * Faz upload de anexo de imagem de chat (Canais ou DMs) para o bucket 'chat_media' no Supabase Storage
+ */
+export async function uploadChatMediaFile(
+    originalFileName: string,
+    base64DataOrUrl: string
+): Promise<string> {
+    if (!base64DataOrUrl) return '';
+
+    // Se já for uma URL HTTP válida, retorna direto
+    if (base64DataOrUrl.startsWith('http://') || base64DataOrUrl.startsWith('https://')) {
+        return base64DataOrUrl;
+    }
+
+    // Processa Base64
+    const matches = base64DataOrUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    let mimeType = 'image/png';
+    let buffer: Buffer;
+
+    if (matches && matches.length === 3) {
+        mimeType = matches[1];
+        buffer = Buffer.from(matches[2], 'base64');
+    } else {
+        buffer = Buffer.from(base64DataOrUrl, 'base64');
+    }
+
+    const cleanOriginalName = (originalFileName || 'image.png')
+        .replace(/[^a-zA-Z0-9._-]/g, '_')
+        .substring(0, 50);
+    const ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
+    const fileName = `${Date.now()}_${cleanOriginalName.endsWith(`.${ext}`) ? cleanOriginalName : `${cleanOriginalName}.${ext}`}`;
+
+    // 1. Tenta upload direto para o bucket chat_media do Supabase Storage
+    if (supabase) {
+        try {
+            const { data, error } = await supabase.storage
+                .from(CHAT_MEDIA_BUCKET)
+                .upload(fileName, buffer, {
+                    contentType: mimeType,
+                    upsert: true
+                });
+
+            if (!error && data) {
+                const { data: publicUrlData } = supabase.storage
+                    .from(CHAT_MEDIA_BUCKET)
+                    .getPublicUrl(fileName);
+
+                if (publicUrlData && publicUrlData.publicUrl) {
+                    console.log(`☁️ [Supabase chat_media] Upload concluído para ${fileName}: ${publicUrlData.publicUrl}`);
+                    return publicUrlData.publicUrl;
+                }
+            } else if (error) {
+                console.warn(`⚠️ Erro no upload chat_media no Supabase (${error.message}). Tentando fallback...`);
+            }
+        } catch (err) {
+            console.warn('⚠️ Falha ao tentar upload no Supabase Storage chat_media:', err);
+        }
+    }
+
+    // 2. Fallback: Salva na pasta pública estática local
+    try {
+        const localFilePath = path.join(localChatMediaDir, fileName);
+        fs.writeFileSync(localFilePath, buffer);
+        const localPublicUrl = `/uploads/chat_media/${fileName}`;
+        console.log(`💾 [Local Chat Media Storage] Arquivo salvo em: ${localPublicUrl}`);
+        return localPublicUrl;
+    } catch (localErr) {
+        console.warn('⚠️ Erro no armazenamento local de chat_media, retornando Data URI:', localErr);
         return base64DataOrUrl;
     }
 }

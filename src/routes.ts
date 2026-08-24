@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { ensureAuthenticated } from './middlewares/ensureAuthenticated';
-import { uploadServerMediaFile, uploadUserAvatar } from './supabaseStorage';
+import { uploadServerMediaFile, uploadUserAvatar, uploadChatMediaFile } from './supabaseStorage';
 import {
     findUserByUsername,
     findUserById,
@@ -644,23 +644,44 @@ routes.get('/dms/:otherUserId', ensureAuthenticated, async (req: Request, res: R
     }
 });
 
+// Upload de Anexos de Mídia para o Chat (POST /upload/media - Sprint 4)
+routes.post('/upload/media', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const { fileName, fileData } = req.body;
+        if (!fileData || typeof fileData !== 'string') {
+            return res.status(400).json({ error: 'Arquivo de mídia inválido ou não fornecido.' });
+        }
+
+        const publicUrl = await uploadChatMediaFile(fileName || 'imagem.png', fileData);
+        return res.status(200).json({
+            message: 'Mídia enviada com sucesso!',
+            url: publicUrl
+        });
+    } catch (error: any) {
+        console.error('Erro ao realizar upload de mídia do chat:', error);
+        return res.status(500).json({ error: error?.message || 'Falha ao processar upload de mídia.' });
+    }
+});
+
 // Enviar mensagem direta (POST /dms/:otherUserId)
 routes.post('/dms/:otherUserId', ensureAuthenticated, async (req: Request, res: Response) => {
     try {
         const senderId = Number(req.userId);
         const receiverId = Number(req.params.otherUserId);
-        const { content } = req.body;
+        const { content, media_url, mediaUrl } = req.body;
 
         if (!senderId || isNaN(receiverId)) {
             return res.status(400).json({ error: 'IDs de usuário inválidos.' });
         }
 
         const sanitizedContent = sanitizePlainText(content);
-        if (!sanitizedContent) {
-            return res.status(400).json({ error: 'Conteúdo da mensagem é obrigatório.' });
+        const targetMediaUrl = media_url || mediaUrl || null;
+
+        if (!sanitizedContent && !targetMediaUrl) {
+            return res.status(400).json({ error: 'A mensagem deve conter texto ou uma mídia em anexo.' });
         }
 
-        const message = await saveDirectMessage(senderId, receiverId, sanitizedContent);
+        const message = await saveDirectMessage(senderId, receiverId, sanitizedContent, targetMediaUrl);
         return res.status(201).json({ message });
     } catch (error: any) {
         console.error('Erro ao enviar mensagem direta:', error);

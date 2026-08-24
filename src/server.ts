@@ -230,16 +230,17 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 5. Chat de Texto Persistido no PostgreSQL antes do Broadcast
+    // Handler de Mensagens do Chat com Persistência no PostgreSQL e Anexos de Mídia (Sprint 4)
     socket.on('chat-message', async (data) => {
-        if (!data.text || !data.room) return;
+        if (!data || !data.room) return;
 
         const roomName = String(data.room).trim();
-        const messageText = String(data.text).trim();
+        const messageText = String(data.text || data.message || '').trim();
+        const mediaUrl = data.media_url || data.mediaUrl || null;
         // Extrai o username real autenticado do socket
         const senderUsername = socket.data.user?.username || username || String(data.sender || 'Anônimo').trim();
 
-        if (!roomName || !messageText) return;
+        if (!roomName || (!messageText && !mediaUrl)) return;
 
         try {
             // Salva a mensagem no banco de dados PostgreSQL antes do broadcast
@@ -247,15 +248,17 @@ io.on('connection', (socket) => {
                 roomName,
                 userId,
                 senderUsername,
-                messageText
+                messageText,
+                mediaUrl
             );
 
-            console.log(`💬 [${roomName}] ${senderUsername}: ${messageText} (ID: ${savedMsg.id})`);
+            console.log(`💬 [${roomName}] ${senderUsername}: ${messageText} ${mediaUrl ? `[Mídia: ${mediaUrl}]` : ''} (ID: ${savedMsg.id})`);
 
             // Envia a mensagem persistida com o nome real do remetente para todos os outros participantes da sala
             socket.to(roomName).emit('chat-message', {
                 id: savedMsg.id,
                 text: savedMsg.text,
+                media_url: savedMsg.media_url,
                 sender: savedMsg.sender,
                 senderId: socket.id,
                 timestamp: savedMsg.timestamp
@@ -266,6 +269,7 @@ io.on('connection', (socket) => {
             socket.to(roomName).emit('chat-message', {
                 id: `fallback-${Date.now()}`,
                 text: messageText,
+                media_url: mediaUrl,
                 sender: senderUsername,
                 senderId: socket.id,
                 timestamp: data.timestamp || Date.now()
@@ -299,17 +303,18 @@ io.on('connection', (socket) => {
     const handleSendDm = async (data: any) => {
         const receiverId = Number(data.receiverId || data.targetUserId);
         const content = String(data.content || data.text || '').trim();
-        if (!userId || !receiverId || !content) return;
+        const mediaUrl = data.media_url || data.mediaUrl || null;
+        if (!userId || !receiverId || (!content && !mediaUrl)) return;
 
         try {
-            const savedMsg = await saveDirectMessage(userId, receiverId, content);
+            const savedMsg = await saveDirectMessage(userId, receiverId, content, mediaUrl);
             // Envia confirmação de volta para o remetente
             socket.emit('receive-dm', savedMsg);
             socket.emit('direct-message-received', savedMsg);
             // Emite para o destinatário na sua sala pessoal isolada
             io.to(`user_${receiverId}`).emit('receive-dm', savedMsg);
             io.to(`user_${receiverId}`).emit('direct-message-received', savedMsg);
-            console.log(`✉️ [DM] ${username} -> User ${receiverId}: ${content.substring(0, 30)}`);
+            console.log(`✉️ [DM] ${username} -> User ${receiverId}: ${content.substring(0, 30)} ${mediaUrl ? '[Mídia anexada]' : ''}`);
         } catch (dmErr) {
             console.error('Erro ao processar DM via socket:', dmErr);
         }

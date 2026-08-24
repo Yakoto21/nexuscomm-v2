@@ -105,6 +105,7 @@ export async function initDb() {
                 user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
                 sender_name VARCHAR(255) NOT NULL,
                 conteudo TEXT NOT NULL,
+                media_url TEXT DEFAULT NULL,
                 data_envio TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
         `);
@@ -166,6 +167,7 @@ export async function initDb() {
                 sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 content TEXT NOT NULL,
+                media_url TEXT DEFAULT NULL,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
         `);
@@ -234,6 +236,26 @@ export async function initDb() {
             CREATE INDEX IF NOT EXISTS idx_dm_sender ON direct_messages(sender_id);
             CREATE INDEX IF NOT EXISTS idx_dm_receiver ON direct_messages(receiver_id);
             CREATE INDEX IF NOT EXISTS idx_dm_created_at ON direct_messages(created_at);
+        `);
+
+        // 12. Migração automática: garante que a coluna media_url exista nas tabelas messages e direct_messages (Sprint 4)
+        await pool.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'messages' AND column_name = 'media_url'
+                ) THEN
+                    ALTER TABLE messages ADD COLUMN media_url TEXT DEFAULT NULL;
+                END IF;
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'direct_messages' AND column_name = 'media_url'
+                ) THEN
+                    ALTER TABLE direct_messages ADD COLUMN media_url TEXT DEFAULT NULL;
+                END IF;
+            END $$;
         `);
 
         // 9. Cria um servidor padrão de comunidade se nenhum existir
@@ -564,7 +586,13 @@ export async function createUser(username: string, passwordHash: string) {
     return res.rows[0];
 }
 
-export async function saveMessage(channelId: string, userId: number | string | null | undefined, senderName: string, conteudo: string) {
+export async function saveMessage(
+    channelId: string,
+    userId: number | string | null | undefined,
+    senderName: string,
+    conteudo: string,
+    mediaUrl?: string | null
+) {
     const safeChannelId = String(channelId || 'geral');
 
     let safeUserId: number | null = null;
@@ -577,12 +605,13 @@ export async function saveMessage(channelId: string, userId: number | string | n
 
     const safeSenderName = String(senderName || 'Anônimo');
     const safeContent = String(conteudo || '');
+    const safeMediaUrl = mediaUrl ? String(mediaUrl) : null;
 
     const res = await pool.query(
-        `INSERT INTO messages (channel_id, user_id, sender_name, conteudo, data_envio)
-         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-         RETURNING id, channel_id, user_id, sender_name AS sender, conteudo AS text, data_envio AS timestamp`,
-        [safeChannelId, safeUserId, safeSenderName, safeContent]
+        `INSERT INTO messages (channel_id, user_id, sender_name, conteudo, media_url, data_envio)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+         RETURNING id, channel_id, user_id, sender_name AS sender, conteudo AS text, media_url, data_envio AS timestamp`,
+        [safeChannelId, safeUserId, safeSenderName, safeContent, safeMediaUrl]
     );
     return res.rows[0];
 }
@@ -592,7 +621,7 @@ export async function getMessagesByChannel(channelId: string, limit = 50) {
     const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
 
     const res = await pool.query(
-        `SELECT id, channel_id, user_id, sender_name AS sender, conteudo AS text, data_envio AS timestamp
+        `SELECT id, channel_id, user_id, sender_name AS sender, conteudo AS text, media_url, data_envio AS timestamp
          FROM messages
          WHERE channel_id = $1
          ORDER BY data_envio ASC
@@ -785,9 +814,9 @@ export async function respondFriendRequest(userId: number | string, friendshipId
     }
 }
 
-export async function getDirectMessages(userId1: number | string, userId2: number | string, limit = 50) {
-    const num1 = typeof userId1 === 'number' ? userId1 : parseInt(String(userId1), 10);
-    const num2 = typeof userId2 === 'number' ? userId2 : parseInt(String(userId2), 10);
+export async function getDirectMessages(user1Id: number | string, user2Id: number | string, limit = 50) {
+    const num1 = typeof user1Id === 'number' ? user1Id : parseInt(String(user1Id), 10);
+    const num2 = typeof user2Id === 'number' ? user2Id : parseInt(String(user2Id), 10);
     const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
 
     if (isNaN(num1) || isNaN(num2)) return [];
@@ -798,6 +827,7 @@ export async function getDirectMessages(userId1: number | string, userId2: numbe
             dm.sender_id,
             dm.receiver_id,
             dm.content AS text,
+            dm.media_url,
             dm.created_at AS timestamp,
             u.username AS sender_username,
             u.display_name AS sender_display_name,
@@ -814,19 +844,25 @@ export async function getDirectMessages(userId1: number | string, userId2: numbe
     return res.rows;
 }
 
-export async function saveDirectMessage(senderId: number | string, receiverId: number | string, content: string) {
+export async function saveDirectMessage(
+    senderId: number | string,
+    receiverId: number | string,
+    content: string,
+    mediaUrl?: string | null
+) {
     const numSender = typeof senderId === 'number' ? senderId : parseInt(String(senderId), 10);
     const numReceiver = typeof receiverId === 'number' ? receiverId : parseInt(String(receiverId), 10);
     const safeContent = String(content || '').trim();
+    const safeMediaUrl = mediaUrl ? String(mediaUrl) : null;
 
     if (isNaN(numSender) || isNaN(numReceiver)) throw new Error('IDs de remetente ou destinatário inválidos');
-    if (!safeContent) throw new Error('Conteúdo da mensagem não pode ser vazio');
+    if (!safeContent && !safeMediaUrl) throw new Error('A mensagem deve conter texto ou uma mídia em anexo');
 
     const res = await pool.query(
-        `INSERT INTO direct_messages (sender_id, receiver_id, content, created_at)
-         VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-         RETURNING id, sender_id, receiver_id, content AS text, created_at AS timestamp`,
-        [numSender, numReceiver, safeContent]
+        `INSERT INTO direct_messages (sender_id, receiver_id, content, media_url, created_at)
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+         RETURNING id, sender_id, receiver_id, content AS text, media_url, created_at AS timestamp`,
+        [numSender, numReceiver, safeContent, safeMediaUrl]
     );
 
     const msg = res.rows[0];
