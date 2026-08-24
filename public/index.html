@@ -971,6 +971,110 @@
             transform: translateY(0);
         }
 
+        /* ==========================================
+           ESTILIZAÇÃO DE SLIDERS & CONTROLE DE VOLUME (Sprint 5)
+           ========================================== */
+        .nexus-range-slider,
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 9999px;
+            height: 6px;
+            outline: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .nexus-range-slider:hover,
+        input[type="range"]:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .nexus-range-slider::-webkit-slider-thumb,
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1 0%, #38bdf8 100%);
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.6);
+            border: 2px solid #ffffff;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .nexus-range-slider::-moz-range-thumb,
+        input[type="range"]::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1 0%, #38bdf8 100%);
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.6);
+            border: 2px solid #ffffff;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .nexus-range-slider::-webkit-slider-thumb:hover,
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+            box-shadow: 0 0 16px rgba(99, 102, 241, 0.9);
+        }
+
+        .peer-volume-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 9999px;
+            padding: 4px 10px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            flex-shrink: 0;
+        }
+
+        .peer-volume-slider {
+            width: 75px !important;
+            height: 5px !important;
+        }
+
+        .peer-volume-icon {
+            color: #a5b4fc;
+            flex-shrink: 0;
+        }
+
+        .peer-volume-percent {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #cbd5e1;
+            min-width: 32px;
+            text-align: right;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Opções de Resolução e FPS no Modal de Screen Share */
+        .screen-option-card,
+        .screen-fps-card {
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .screen-option-card:hover,
+        .screen-fps-card:hover {
+            background: rgba(49, 65, 88, 0.7) !important;
+            border-color: rgba(99, 102, 241, 0.5) !important;
+            transform: translateY(-2px);
+        }
+
+        .screen-option-card.selected,
+        .screen-fps-card.selected {
+            border-color: #6366f1 !important;
+            background: rgba(99, 102, 241, 0.25) !important;
+            box-shadow: 0 0 16px rgba(99, 102, 241, 0.35);
+        }
+
         .video-placeholder {
             position: absolute;
             display: flex;
@@ -3409,6 +3513,13 @@
                                     </div>
                                     <div class="card-overlay">
                                         <span class="user-badge" id="dmRemoteUserBadge">Amigo</span>
+                                        <div class="peer-volume-control" title="Volume individual deste usuário">
+                                            <svg class="peer-volume-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                                            </svg>
+                                            <input type="range" min="0" max="2" step="0.05" value="1" class="nexus-range-slider peer-volume-slider" id="dmRemoteVolumeSlider" data-peer-id="dm-remote" />
+                                            <span class="peer-volume-percent" id="dmRemoteVolumePercent">100%</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -3684,6 +3795,29 @@
                         <input type="text" id="inputUserUsernameDisplay" class="room-input" style="width: 100%; margin-top: 6px; opacity: 0.65; cursor: not-allowed;" readonly />
                     </div>
 
+                    <!-- Sensibilidade do Microfone (Sprint 5 - GainNode) -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label for="sliderMicSensitivity" style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1; display: flex; align-items: center; gap: 6px;">
+                                <svg width="15" height="15" fill="none" stroke="#6366f1" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
+                                <span>Sensibilidade do Microfone (Ganho WebRTC)</span>
+                            </label>
+                            <span id="labelMicSensitivity" style="font-size: 0.85rem; font-weight: 700; color: #a5b4fc;">100%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(30, 41, 59, 0.45); padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-muted); flex-shrink: 0;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                            <input type="range" id="sliderMicSensitivity" min="0" max="2" step="0.05" value="1" class="nexus-range-slider" style="flex: 1;" />
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #6366f1; flex-shrink: 0;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                        </div>
+                        <p style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px; margin-bottom: 0;">Ajuste o ganho do seu áudio antes de ser transmitido para os outros membros da chamada.</p>
+                    </div>
+
                     <div id="userSettingsAlert" class="auth-alert"></div>
 
                     <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
@@ -3766,6 +3900,83 @@
                     <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
                         <button type="button" id="btnCancelChannelModal" class="btn-room-action" style="padding: 10px 18px;">Cancelar</button>
                         <button type="submit" id="btnSubmitChannelModal" class="btn-primary" style="padding: 10px 24px;">Criar Canal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Configurações de Transmissão de Tela (Sprint 5) -->
+        <div id="modalScreenShareSettings" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center; z-index: 2100;">
+            <div style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 24px; padding: 28px; width: 100%; max-width: 480px; box-shadow: 0 24px 60px rgba(0,0,0,0.75); display: flex; flex-direction: column; gap: 20px; animation: fadeInScale 0.25s ease-out;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(14, 165, 233, 0.2); border: 1px solid rgba(14, 165, 233, 0.4); display: flex; align-items: center; justify-content: center; color: #38bdf8;">
+                            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin: 0;">Transmissão de Tela</h3>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Selecione a qualidade de vídeo e taxa de quadros (FPS)</p>
+                        </div>
+                    </div>
+                    <button type="button" id="btnCloseScreenModal" class="chat-close-btn" title="Fechar">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="formScreenShareSettings" style="display: flex; flex-direction: column; gap: 16px;">
+                    <!-- Qualidade / Resolução -->
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Resolução de Vídeo</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px;">
+                            <div class="screen-option-card selected" id="optRes720" data-res="720" style="background: rgba(30, 41, 59, 0.6); border: 1px solid #6366f1; border-radius: 12px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 2px;">
+                                <strong style="color: #fff; font-size: 0.95rem;">720p HD</strong>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">1280x720 • Econômico</span>
+                            </div>
+                            <div class="screen-option-card" id="optRes1080" data-res="1080" style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 2px;">
+                                <strong style="color: #fff; font-size: 0.95rem;">1080p FHD</strong>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">1920x1080 • Alta Definição</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Taxa de Quadros (FPS) -->
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Taxa de Quadros (FPS)</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 6px;">
+                            <div class="screen-fps-card" id="optFps15" data-fps="15" style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; cursor: pointer; text-align: center;">
+                                <strong style="color: #fff; font-size: 0.9rem;">15 FPS</strong>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">Apresentações</div>
+                            </div>
+                            <div class="screen-fps-card selected" id="optFps30" data-fps="30" style="background: rgba(30, 41, 59, 0.6); border: 1px solid #6366f1; border-radius: 10px; padding: 10px; cursor: pointer; text-align: center;">
+                                <strong style="color: #fff; font-size: 0.9rem;">30 FPS</strong>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">Padrão</div>
+                            </div>
+                            <div class="screen-fps-card" id="optFps60" data-fps="60" style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; cursor: pointer; text-align: center;">
+                                <strong style="color: #fff; font-size: 0.9rem;">60 FPS</strong>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">Jogos / Vídeos</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Compartilhar Áudio do Sistema -->
+                    <div style="display: flex; align-items: center; gap: 10px; background: rgba(30, 41, 59, 0.4); padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+                        <input type="checkbox" id="checkScreenAudio" checked style="width: 18px; height: 18px; accent-color: #6366f1; cursor: pointer;" />
+                        <label for="checkScreenAudio" style="font-size: 0.85rem; color: #e2e8f0; cursor: pointer; user-select: none;">Compartilhar áudio do sistema / guia</label>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
+                        <button type="button" id="btnCancelScreenModal" class="btn-room-action" style="padding: 10px 18px;">Cancelar</button>
+                        <button type="submit" id="btnStartScreenShareConfirm" class="btn-primary" style="padding: 10px 22px; display: inline-flex; align-items: center; gap: 8px;">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Iniciar Transmissão</span>
+                        </button>
                     </div>
                 </form>
             </div>
@@ -4046,6 +4257,20 @@
         const btnMute = document.getElementById('btnMute');
         const micIcon = document.getElementById('micIcon');
         const btnLeaveRoom = document.getElementById('btnLeaveRoom');
+
+        // Modal de Screen Share & Slider de Sensibilidade de Microfone (Sprint 5)
+        const modalScreenShareSettings = document.getElementById('modalScreenShareSettings');
+        const btnCloseScreenModal = document.getElementById('btnCloseScreenModal');
+        const btnCancelScreenModal = document.getElementById('btnCancelScreenModal');
+        const formScreenShareSettings = document.getElementById('formScreenShareSettings');
+        const optRes720 = document.getElementById('optRes720');
+        const optRes1080 = document.getElementById('optRes1080');
+        const optFps15 = document.getElementById('optFps15');
+        const optFps30 = document.getElementById('optFps30');
+        const optFps60 = document.getElementById('optFps60');
+        const checkScreenAudio = document.getElementById('checkScreenAudio');
+        const sliderMicSensitivity = document.getElementById('sliderMicSensitivity');
+        const labelMicSensitivity = document.getElementById('labelMicSensitivity');
 
         const chatSidebar = document.getElementById('chatSidebar');
         const chatPanelTitle = document.getElementById('chatPanelTitle');
@@ -4480,6 +4705,8 @@
             if (userSettingsOverlay) {
                 if (inputUserDisplayName) inputUserDisplayName.value = currentUser.display_name || currentUser.username || '';
                 if (inputUserUsernameDisplay) inputUserUsernameDisplay.value = `@${currentUser.username || ''}`;
+                if (sliderMicSensitivity) sliderMicSensitivity.value = userMicGainPreference.toString();
+                if (labelMicSensitivity) labelMicSensitivity.textContent = `${Math.round(userMicGainPreference * 100)}%`;
                 if (userSettingsAlert) userSettingsAlert.style.display = 'none';
                 renderUserSettingsAvatarPreview(currentUser.avatar_url, currentUser.display_name || currentUser.username);
                 userSettingsOverlay.classList.add('open');
@@ -4511,6 +4738,12 @@
         if (btnOpenUserSettings) btnOpenUserSettings.addEventListener('click', openUserSettings);
         if (btnCloseUserSettings) btnCloseUserSettings.addEventListener('click', closeUserSettings);
         if (btnCancelUserSettings) btnCancelUserSettings.addEventListener('click', closeUserSettings);
+
+        if (sliderMicSensitivity) {
+            sliderMicSensitivity.addEventListener('input', (e) => {
+                setLocalMicSensitivity(e.target.value);
+            });
+        }
 
         if (btnUploadUserAvatar) btnUploadUserAvatar.addEventListener('click', () => inputUserAvatarFile?.click());
         if (inputUserAvatarFile) {
@@ -6901,8 +7134,160 @@
         });
 
         // ==========================================
-        // 8. Gerenciador de Cards Remotos no Grid & Fullscreen
+        // 8. Web Audio API & GainNode Engine (Sprint 5)
         // ==========================================
+        let globalAudioContext = null;
+        const peerAudioNodes = {}; // { [peerId]: { sourceNode, gainNode, stream } }
+        const peerVolumeSettings = {}; // { [peerId]: number }
+        let localMicAudioContext = null;
+        let localMicSource = null;
+        let localMicGainNode = null;
+        let localMicDestination = null;
+        let userMicGainPreference = parseFloat(localStorage.getItem('nexuscomm_mic_gain') || '1.0');
+
+        function getOrCreateAudioContext() {
+            if (!globalAudioContext) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    globalAudioContext = new AudioContextClass();
+                }
+            }
+            if (globalAudioContext && globalAudioContext.state === 'suspended') {
+                globalAudioContext.resume().catch(e => console.warn('AudioContext resume aguardando gesto:', e));
+            }
+            return globalAudioContext;
+        }
+
+        function setupRemotePeerAudioGain(peerId, stream) {
+            if (!stream) return;
+            const audioTracks = stream.getAudioTracks();
+            if (audioTracks.length === 0) return;
+
+            try {
+                const ctx = getOrCreateAudioContext();
+                if (!ctx) return;
+
+                if (peerAudioNodes[peerId]) {
+                    try {
+                        peerAudioNodes[peerId].sourceNode.disconnect();
+                        peerAudioNodes[peerId].gainNode.disconnect();
+                    } catch(e) {}
+                }
+
+                const sourceNode = ctx.createMediaStreamSource(stream);
+                const gainNode = ctx.createGain();
+                const currentGain = peerVolumeSettings[peerId] ?? 1.0;
+                gainNode.gain.value = currentGain;
+
+                sourceNode.connect(gainNode);
+                gainNode.connect(ctx.destination);
+
+                peerAudioNodes[peerId] = { sourceNode, gainNode, stream };
+
+                // Muta o elemento <video> HTML correspondente para não haver reprodução duplicada
+                const videoEl = document.getElementById(`video-${peerId}`) || (peerId === 'dm-remote' ? dmRemoteVideo : null);
+                if (videoEl) {
+                    videoEl.muted = true;
+                }
+                console.log(`🔊 [Web Audio API] GainNode configurado com sucesso para o peer [${peerId}] com ganho ${currentGain}`);
+            } catch(audioErr) {
+                console.warn(`Aviso ao configurar GainNode para peer [${peerId}]:`, audioErr);
+            }
+        }
+
+        function setPeerVolume(peerId, volumeVal) {
+            const val = Math.max(0, Math.min(2, Number(volumeVal)));
+            peerVolumeSettings[peerId] = val;
+
+            if (peerAudioNodes[peerId]?.gainNode) {
+                peerAudioNodes[peerId].gainNode.gain.value = val;
+            }
+
+            // Atualiza o texto de porcentagem correspondente
+            const percentLabel = document.getElementById(`vol-percent-${peerId}`) || (peerId === 'dm-remote' ? document.getElementById('dmRemoteVolumePercent') : null);
+            if (percentLabel) {
+                percentLabel.textContent = `${Math.round(val * 100)}%`;
+            }
+        }
+
+        function setLocalMicSensitivity(gainVal) {
+            const val = Math.max(0, Math.min(2, Number(gainVal)));
+            userMicGainPreference = val;
+            localStorage.setItem('nexuscomm_mic_gain', val.toString());
+
+            if (localMicGainNode) {
+                localMicGainNode.gain.value = val;
+            }
+
+            if (labelMicSensitivity) {
+                labelMicSensitivity.textContent = `${Math.round(val * 100)}%`;
+            }
+        }
+
+        // Listener global para inputs de volume de peers
+        document.addEventListener('input', (e) => {
+            if (e.target && e.target.classList.contains('peer-volume-slider')) {
+                const peerId = e.target.getAttribute('data-peer-id');
+                if (peerId) {
+                    setPeerVolume(peerId, e.target.value);
+                }
+            }
+        });
+
+        // Configurações e Seletor de Tela Compartilhada (Sprint 5)
+        let selectedScreenRes = 720;
+        let selectedScreenFps = 30;
+
+        function openScreenShareSettingsModal() {
+            if (modalScreenShareSettings) {
+                modalScreenShareSettings.style.display = 'flex';
+            }
+        }
+
+        function closeScreenShareSettingsModal() {
+            if (modalScreenShareSettings) {
+                modalScreenShareSettings.style.display = 'none';
+            }
+        }
+
+        if (optRes720) {
+            optRes720.addEventListener('click', () => {
+                selectedScreenRes = 720;
+                optRes720.classList.add('selected');
+                if (optRes1080) optRes1080.classList.remove('selected');
+            });
+        }
+        if (optRes1080) {
+            optRes1080.addEventListener('click', () => {
+                selectedScreenRes = 1080;
+                optRes1080.classList.add('selected');
+                if (optRes720) optRes720.classList.remove('selected');
+            });
+        }
+
+        const screenFpsCards = [optFps15, optFps30, optFps60];
+        screenFpsCards.forEach(card => {
+            if (card) {
+                card.addEventListener('click', () => {
+                    screenFpsCards.forEach(c => c?.classList.remove('selected'));
+                    card.classList.add('selected');
+                    selectedScreenFps = Number(card.getAttribute('data-fps') || '30');
+                });
+            }
+        });
+
+        if (btnCloseScreenModal) btnCloseScreenModal.addEventListener('click', closeScreenShareSettingsModal);
+        if (btnCancelScreenModal) btnCancelScreenModal.addEventListener('click', closeScreenShareSettingsModal);
+
+        if (formScreenShareSettings) {
+            formScreenShareSettings.addEventListener('submit', (e) => {
+                e.preventDefault();
+                closeScreenShareSettingsModal();
+                const shareAudio = Boolean(checkScreenAudio?.checked);
+                startScreenShareWithOptions(selectedScreenRes, selectedScreenFps, shareAudio);
+            });
+        }
+
         function toggleElementFullscreen(element) {
             if (!element) return;
             try {
@@ -6970,9 +7355,18 @@
                         </svg>
                         <span id="name-${socketId}"></span>
                     </span>
-                    <span id="status-${socketId}" class="badge-status badge-connecting">
-                        <span class="spinner-small"></span> Conectando...
-                    </span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="peer-volume-control" title="Volume individual deste usuário">
+                            <svg class="peer-volume-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                            </svg>
+                            <input type="range" min="0" max="2" step="0.05" value="1" class="nexus-range-slider peer-volume-slider" data-peer-id="${socketId}" />
+                            <span class="peer-volume-percent" id="vol-percent-${socketId}">100%</span>
+                        </div>
+                        <span id="status-${socketId}" class="badge-status badge-connecting">
+                            <span class="spinner-small"></span> Conectando...
+                        </span>
+                    </div>
                 </div>
                 <div class="video-wrapper" title="Clique duplo para alternar Tela Cheia">
                     <div class="fullscreen-hint-badge">
@@ -7054,10 +7448,18 @@
                 });
                 stream.addTrack(event.track);
 
+                // Configura GainNode para controle de volume individual do peer
+                if (event.track.kind === 'audio') {
+                    setupRemotePeerAudioGain(targetSocketId, stream);
+                }
+
                 // Se estiver em Chamada Privada DM
                 if (isPrivateCallActive) {
                     if (dmRemoteVideo && dmRemoteVideo.srcObject !== stream) {
                         dmRemoteVideo.srcObject = stream;
+                    }
+                    if (event.track.kind === 'audio') {
+                        setupRemotePeerAudioGain('dm-remote', stream);
                     }
                     if (event.track.kind === 'video') {
                         if (dmRemotePlaceholder) dmRemotePlaceholder.style.opacity = '0';
@@ -7233,6 +7635,13 @@
                 remoteStreams[targetSocketId].getTracks().forEach(t => t.stop());
                 delete remoteStreams[targetSocketId];
             }
+            if (peerAudioNodes[targetSocketId]) {
+                try {
+                    peerAudioNodes[targetSocketId].sourceNode.disconnect();
+                    peerAudioNodes[targetSocketId].gainNode.disconnect();
+                } catch(e) {}
+                delete peerAudioNodes[targetSocketId];
+            }
             delete iceCandidateQueues[targetSocketId];
             delete peerUsernames[targetSocketId];
 
@@ -7283,11 +7692,34 @@
                 return micStream;
             }
             try {
-                micStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                const rawMicStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false }
                 });
+
+                // Roteamento Web Audio API GainNode para ganho de sensibilidade local
+                try {
+                    const ctx = getOrCreateAudioContext();
+                    if (ctx) {
+                        localMicAudioContext = ctx;
+                        localMicSource = ctx.createMediaStreamSource(rawMicStream);
+                        localMicGainNode = ctx.createGain();
+                        localMicGainNode.gain.value = userMicGainPreference;
+
+                        localMicDestination = ctx.createMediaStreamDestination();
+                        localMicSource.connect(localMicGainNode);
+                        localMicGainNode.connect(localMicDestination);
+
+                        micStream = localMicDestination.stream;
+                    } else {
+                        micStream = rawMicStream;
+                    }
+                } catch(localAudioErr) {
+                    console.warn('Fallback: usando stream direta de microfone:', localAudioErr);
+                    micStream = rawMicStream;
+                }
+
                 const audioTrack = micStream.getAudioTracks()[0];
-                audioTrack.enabled = !isMicMuted;
+                if (audioTrack) audioTrack.enabled = !isMicMuted;
                 updateAllPeersAudioTrack(audioTrack);
                 updateLocalStatus();
                 return micStream;
@@ -7589,17 +8021,7 @@
             }
         }
 
-        async function toggleScreenShare() {
-            if (activeVideoType === 'screen') {
-                stopScreenShareTracks();
-                activeVideoType = 'none';
-                updateAllPeersVideoTrack(null);
-                if (localVideo) localVideo.srcObject = null;
-                if (localPlaceholder) localPlaceholder.style.opacity = '1';
-                updateLocalStatus();
-                return;
-            }
-
+        async function startScreenShareWithOptions(res, fps, shareAudio) {
             if (activeVideoType === 'camera') {
                 if (cameraStream) {
                     cameraStream.getTracks().forEach((t) => t.stop());
@@ -7607,9 +8029,21 @@
                 }
             }
 
+            const width = res === 1080 ? 1920 : 1280;
+            const height = res === 1080 ? 1080 : 720;
+
+            const videoConstraints = {
+                width: { ideal: width, max: width },
+                height: { ideal: height, max: height },
+                frameRate: { ideal: fps, max: fps }
+            };
+
             try {
                 await getOrCreateMicrophone();
-                screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                screenStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: videoConstraints,
+                    audio: shareAudio
+                });
 
                 activeVideoType = 'screen';
                 if (localVideo) {
@@ -7630,6 +8064,20 @@
             } catch (err) {
                 console.error('Erro ao compartilhar tela:', err);
             }
+        }
+
+        async function toggleScreenShare() {
+            if (activeVideoType === 'screen') {
+                stopScreenShareTracks();
+                activeVideoType = 'none';
+                updateAllPeersVideoTrack(null);
+                if (localVideo) localVideo.srcObject = null;
+                if (localPlaceholder) localPlaceholder.style.opacity = '1';
+                updateLocalStatus();
+                return;
+            }
+
+            openScreenShareSettingsModal();
         }
 
         async function toggleMute() {
