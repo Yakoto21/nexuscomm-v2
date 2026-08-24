@@ -797,10 +797,10 @@
         }
 
         .video-card {
-            background: var(--bg-glass-card);
+            background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
-            border-radius: 24px;
+            border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.08);
             overflow: hidden;
             box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
@@ -818,23 +818,36 @@
         }
 
         .video-card-header {
-            padding: 14px 20px;
+            padding: 12px 18px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             background: rgba(255, 255, 255, 0.02);
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            gap: 10px;
+            min-height: 48px;
         }
 
         .video-card-title {
             font-size: 0.9rem;
             font-weight: 600;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
             color: #e2e8f0;
+            max-width: calc(100% - 130px);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
+        .video-card-title span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .card-video-wrapper,
         .video-wrapper {
             position: relative;
             width: 100%;
@@ -844,6 +857,7 @@
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            cursor: pointer;
         }
 
         video {
@@ -852,10 +866,109 @@
             object-fit: cover;
             background: #03060c;
             transition: opacity 0.3s ease;
+            cursor: pointer;
         }
 
-        #localVideo {
+        #localVideo,
+        #dmLocalVideo {
             transform: scaleX(-1);
+        }
+
+        /* Overlay inferior dos cards de vídeo */
+        .card-overlay {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(10, 14, 26, 0.85);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            gap: 10px;
+            min-height: 46px;
+            width: 100%;
+            z-index: 10;
+        }
+
+        /* Etiqueta de Nome Elegante sem Cortar */
+        .user-badge,
+        .video-user-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 9999px;
+            padding: 5px 14px;
+            max-width: calc(100% - 60px);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.4;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .status-indicators {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .mic-dot,
+        .cam-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .mic-dot.muted,
+        .cam-dot.off {
+            background-color: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+        }
+
+        /* Badge Indicador de Fullscreen no Canto Superior Direito */
+        .fullscreen-hint-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #e2e8f0;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+            z-index: 20;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+            user-select: none;
+        }
+
+        .video-card:hover .fullscreen-hint-badge,
+        .card-video-wrapper:hover .fullscreen-hint-badge,
+        .video-wrapper:hover .fullscreen-hint-badge {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .video-placeholder {
@@ -2928,7 +3041,13 @@
                     <div id="videoGrid" class="video-grid">
                         <!-- Participante Local -->
                         <div class="video-card local-card" id="localCard">
-                            <div class="card-video-wrapper">
+                            <div class="card-video-wrapper" title="Clique duplo para alternar Tela Cheia">
+                                <div class="fullscreen-hint-badge">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                    </svg>
+                                    <span>Duplo clique: Tela cheia</span>
+                                </div>
                                 <video id="localVideo" autoplay playsinline muted></video>
                                 <div class="video-placeholder" id="localPlaceholder">
                                     <div class="placeholder-avatar" id="localPlaceholderAvatar">VC</div>
@@ -3256,7 +3375,13 @@
                             <div class="dm-call-grid" id="dmCallGrid">
                                 <!-- Participante Local -->
                                 <div class="video-card local-card" id="dmLocalCard">
-                                    <div class="card-video-wrapper">
+                                    <div class="card-video-wrapper" title="Clique duplo para alternar Tela Cheia">
+                                        <div class="fullscreen-hint-badge">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                            </svg>
+                                            <span>Duplo clique: Tela cheia</span>
+                                        </div>
                                         <video id="dmLocalVideo" autoplay playsinline muted></video>
                                         <div class="video-placeholder" id="dmLocalPlaceholder">
                                             <div class="placeholder-avatar" id="dmLocalPlaceholderAvatar">VC</div>
@@ -3269,7 +3394,13 @@
                                 </div>
                                 <!-- Participante Remoto -->
                                 <div class="video-card" id="dmRemoteCard">
-                                    <div class="card-video-wrapper">
+                                    <div class="card-video-wrapper" title="Clique duplo para alternar Tela Cheia">
+                                        <div class="fullscreen-hint-badge">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                            </svg>
+                                            <span>Duplo clique: Tela cheia</span>
+                                        </div>
                                         <video id="dmRemoteVideo" autoplay playsinline></video>
                                         <div class="video-placeholder" id="dmRemotePlaceholder">
                                             <div class="placeholder-avatar" id="dmRemotePlaceholderAvatar">AM</div>
@@ -6770,8 +6901,57 @@
         });
 
         // ==========================================
-        // 8. Gerenciador de Cards Remotos no Grid
+        // 8. Gerenciador de Cards Remotos no Grid & Fullscreen
         // ==========================================
+        function toggleElementFullscreen(element) {
+            if (!element) return;
+            try {
+                const isFullscreen = document.fullscreenElement || 
+                                     document.webkitFullscreenElement || 
+                                     document.mozFullScreenElement || 
+                                     document.msFullscreenElement;
+                if (isFullscreen) {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.mozCancelFullScreen) {
+                        document.mozCancelFullScreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                } else {
+                    if (element.requestFullscreen) {
+                        element.requestFullscreen();
+                    } else if (element.webkitRequestFullscreen) {
+                        element.webkitRequestFullscreen();
+                    } else if (element.mozRequestFullScreen) {
+                        element.mozRequestFullScreen();
+                    } else if (element.msRequestFullscreen) {
+                        element.msRequestFullscreen();
+                    }
+                }
+            } catch (err) {
+                console.warn('Não foi possível alternar tela cheia:', err);
+            }
+        }
+
+        // Listener global para duplo clique em vídeos e wrappers de vídeo
+        document.addEventListener('dblclick', (e) => {
+            const videoTarget = e.target.closest('video');
+            if (videoTarget) {
+                toggleElementFullscreen(videoTarget);
+                return;
+            }
+            const wrapperTarget = e.target.closest('.card-video-wrapper, .video-wrapper');
+            if (wrapperTarget) {
+                const innerVideo = wrapperTarget.querySelector('video');
+                if (innerVideo) {
+                    toggleElementFullscreen(innerVideo);
+                }
+            }
+        });
+
         function getOrCreateRemoteCard(socketId, username) {
             let card = document.getElementById(`card-${socketId}`);
             if (card) return card;
@@ -6794,7 +6974,13 @@
                         <span class="spinner-small"></span> Conectando...
                     </span>
                 </div>
-                <div class="video-wrapper">
+                <div class="video-wrapper" title="Clique duplo para alternar Tela Cheia">
+                    <div class="fullscreen-hint-badge">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg>
+                        <span>Duplo clique: Tela cheia</span>
+                    </div>
                     <div id="placeholder-${socketId}" class="video-placeholder">
                         <div class="spinner-pulse" id="spinner-${socketId}"></div>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -6802,7 +6988,7 @@
                         </svg>
                         <span id="placeholderText-${socketId}">Conectando áudio/vídeo...</span>
                     </div>
-                    <video id="video-${socketId}" autoplay playsinline controls></video>
+                    <video id="video-${socketId}" autoplay playsinline></video>
                     <div class="floating-media-badges">
                         <span class="floating-badge active-green" id="floatMic-${socketId}" title="Microfone Ativo">
                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
