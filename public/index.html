@@ -4673,6 +4673,9 @@
             try {
                 if (authGateContainer) authGateContainer.classList.add('hidden');
                 if (appRoot) appRoot.classList.remove('hidden');
+
+                // Garante exclusividade mútua estrita na inicialização: exibe serverPanel e oculta homePanel
+                openServerPanel();
             } catch (domErr) {
                 console.error('Erro na transição visual do layout #appRoot:', domErr);
             }
@@ -4901,8 +4904,8 @@
                 if (data && Array.isArray(data.servers)) {
                     loadedServers = data.servers;
                     renderServersList(loadedServers);
-                    if (loadedServers.length > 0 && activeServerId) {
-                        const targetServer = loadedServers.find(s => s.id === activeServerId) || loadedServers[0];
+                    if (loadedServers.length > 0) {
+                        const targetServer = activeServerId ? (loadedServers.find(s => s.id === activeServerId) || loadedServers[0]) : loadedServers[0];
                         selectServer(targetServer);
                     } else {
                         openHomePanel();
@@ -4961,6 +4964,7 @@
             activeServerId = null;
             activeServerObj = null;
 
+            // Exclusividade Mútua Estrita: Oculta Servidores, Revela Home
             if (serverPanel) serverPanel.classList.add('hidden');
             if (homePanel) homePanel.classList.remove('hidden');
 
@@ -4971,6 +4975,7 @@
         }
 
         function openServerPanel() {
+            // Exclusividade Mútua Estrita: Oculta Home, Revela Servidores
             if (homePanel) homePanel.classList.add('hidden');
             if (serverPanel) serverPanel.classList.remove('hidden');
             if (btnServerHome) btnServerHome.classList.remove('active');
