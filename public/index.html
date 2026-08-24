@@ -2777,34 +2777,43 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), 0 0 16px rgba(99, 102, 241, 0.35);
         }
 
-        /* Overlay de Chamada Privada WebRTC */
+        /* Overlay Global de Chamada Privada WebRTC (Sprint 6 - Ininterrupto) */
         .dm-call-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(10, 14, 26, 0.96);
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            width: 520px;
+            max-width: calc(100vw - 48px);
+            background: rgba(10, 14, 26, 0.95);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(99, 102, 241, 0.25);
             backdrop-filter: blur(24px);
-            z-index: 50;
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 20px;
+            z-index: 2500;
             display: flex;
             flex-direction: column;
-            padding: 20px;
+            padding: 16px;
+            gap: 12px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: fadeInScale 0.3s ease-out;
         }
 
         .dm-call-top {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 16px;
+            padding: 2px 4px;
             flex-shrink: 0;
         }
 
         .dm-call-grid {
-            flex: 1;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 16px;
-            padding: 10px 0;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
             align-items: center;
             justify-content: center;
+            min-height: 180px;
         }
 
         /* Modal de Notificação de Chamada Recebida */
@@ -3643,66 +3652,6 @@
 
                     <!-- Corpo de Mensagens da DM -->
                     <div class="dm-chat-body">
-                        <!-- Overlay de Chamada Privada Ativa -->
-                        <div id="dmPrivateCallOverlay" class="dm-call-overlay hidden">
-                            <div class="dm-call-top">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span class="badge-status badge-live" id="dmCallStatusBadge">Chamada em Andamento</span>
-                                    <span id="dmCallTimer" style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">00:00</span>
-                                </div>
-                                <button type="button" id="btnDmEndCall" class="btn-primary" style="background: #ef4444; border-color: #dc2626; padding: 8px 16px; font-size: 0.85rem; border-radius: 10px;">
-                                    Encerrar Chamada
-                                </button>
-                            </div>
-                            <div class="dm-call-grid" id="dmCallGrid">
-                                <!-- Participante Local -->
-                                <div class="video-card local-card" id="dmLocalCard">
-                                    <div class="card-video-wrapper" title="Clique duplo para alternar Tela Cheia">
-                                        <div class="fullscreen-hint-badge">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                                            </svg>
-                                            <span>Duplo clique: Tela cheia</span>
-                                        </div>
-                                        <video id="dmLocalVideo" autoplay playsinline muted></video>
-                                        <div class="video-placeholder" id="dmLocalPlaceholder">
-                                            <div class="placeholder-avatar" id="dmLocalPlaceholderAvatar">VC</div>
-                                            <span class="placeholder-text">Câmera desligada</span>
-                                        </div>
-                                    </div>
-                                    <div class="card-overlay">
-                                        <span class="user-badge" id="dmLocalUserBadge">Você</span>
-                                    </div>
-                                </div>
-                                <!-- Participante Remoto -->
-                                <div class="video-card" id="dmRemoteCard">
-                                    <div class="card-video-wrapper" title="Clique duplo para alternar Tela Cheia">
-                                        <div class="fullscreen-hint-badge">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                                            </svg>
-                                            <span>Duplo clique: Tela cheia</span>
-                                        </div>
-                                        <video id="dmRemoteVideo" autoplay playsinline></video>
-                                        <div class="video-placeholder" id="dmRemotePlaceholder">
-                                            <div class="placeholder-avatar" id="dmRemotePlaceholderAvatar">AM</div>
-                                            <span class="placeholder-text" id="dmRemotePlaceholderText">Conectando áudio/vídeo...</span>
-                                        </div>
-                                    </div>
-                                    <div class="card-overlay">
-                                        <span class="user-badge" id="dmRemoteUserBadge">Amigo</span>
-                                        <div class="peer-volume-control" title="Volume individual deste usuário">
-                                            <svg class="peer-volume-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
-                                            </svg>
-                                            <input type="range" min="0" max="2" step="0.05" value="1" class="nexus-range-slider peer-volume-slider" id="dmRemoteVolumeSlider" data-peer-id="dm-remote" />
-                                            <span class="peer-volume-percent" id="dmRemoteVolumePercent">100%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Mensagens Roláveis -->
                         <div class="dm-messages-scroll" id="dmChatMessagesContainer">
                             <div class="dm-welcome-box" id="dmWelcomeBanner">
@@ -4166,6 +4115,78 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
             <span>Link copiado com sucesso!</span>
+        </div>
+
+        <!-- ==========================================
+             Overlay Global de Chamada Privada WebRTC (Sprint 6: Persistência Ininterrupta)
+             ========================================== -->
+        <div id="dmPrivateCallOverlay" class="dm-call-overlay hidden">
+            <div class="dm-call-top">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="badge-status badge-live" id="dmCallStatusBadge">Chamada em Andamento</span>
+                    <span id="dmCallTimer" style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600; font-family: 'JetBrains Mono', monospace;">00:00</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" id="btnDmReturnToChat" class="btn-voice-mini" title="Ir para o Chat DM deste amigo">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                    </button>
+                    <button type="button" id="btnDmEndCall" class="btn-primary" style="background: #ef4444; border-color: #dc2626; padding: 7px 14px; font-size: 0.82rem; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l4 4m0 0l-4 4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span>Encerrar</span>
+                    </button>
+                </div>
+            </div>
+            <div class="dm-call-grid" id="dmCallGrid">
+                <!-- Participante Remoto -->
+                <div class="video-card" id="dmRemoteCard">
+                    <div class="card-video-wrapper" title="Clique duplo para alternar Tela Cheia">
+                        <div class="fullscreen-hint-badge">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                            </svg>
+                            <span>Duplo clique: Tela cheia</span>
+                        </div>
+                        <video id="dmRemoteVideo" autoplay playsinline></video>
+                        <div class="video-placeholder" id="dmRemotePlaceholder">
+                            <div class="placeholder-avatar" id="dmRemotePlaceholderAvatar">AM</div>
+                            <span class="placeholder-text" id="dmRemotePlaceholderText">Conectando áudio/vídeo...</span>
+                        </div>
+                    </div>
+                    <div class="card-overlay">
+                        <span class="user-badge" id="dmRemoteUserBadge">Amigo</span>
+                        <div class="peer-volume-control" title="Volume individual deste usuário">
+                            <svg class="peer-volume-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                            </svg>
+                            <input type="range" min="0" max="2" step="0.05" value="1" class="nexus-range-slider peer-volume-slider" id="dmRemoteVolumeSlider" data-peer-id="dm-remote" />
+                            <span class="peer-volume-percent" id="dmRemoteVolumePercent">100%</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Participante Local -->
+                <div class="video-card local-card" id="dmLocalCard">
+                    <div class="card-video-wrapper" title="Clique duplo para alternar Tela Cheia">
+                        <div class="fullscreen-hint-badge">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                            </svg>
+                            <span>Duplo clique: Tela cheia</span>
+                        </div>
+                        <video id="dmLocalVideo" autoplay playsinline muted></video>
+                        <div class="video-placeholder" id="dmLocalPlaceholder">
+                            <div class="placeholder-avatar" id="dmLocalPlaceholderAvatar">VC</div>
+                            <span class="placeholder-text">Câmera desligada</span>
+                        </div>
+                    </div>
+                    <div class="card-overlay">
+                        <span class="user-badge" id="dmLocalUserBadge">Você</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </div> <!-- /appRoot -->
@@ -6513,6 +6534,16 @@
 
         if (btnDmEndCall) {
             btnDmEndCall.addEventListener('click', endPrivateCallAction);
+        }
+
+        const btnDmReturnToChat = document.getElementById('btnDmReturnToChat');
+        if (btnDmReturnToChat) {
+            btnDmReturnToChat.addEventListener('click', () => {
+                if (activeDmFriendObj) {
+                    openHomePanel();
+                    openDirectMessageChat(activeDmFriendObj);
+                }
+            });
         }
 
         if (btnAcceptIncomingCall) {
