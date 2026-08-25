@@ -1,0 +1,46 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts",
+    "build:frontend": "node ../scripts/build.js",
+    "build": "npm run build:frontend",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@prisma/client": "^5.21.1",
+    "@supabase/supabase-js": "^2.112.3",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.0",
+    "socket.io": "^4.8.3"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "prisma@5.22.0": true,
+    "@prisma/client@5.21.1": true,
+    "@prisma/engines@5.21.1": true
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.2.0",
+    "@types/pg": "^8.23.1",
+    "javascript-obfuscator": "^5.6.0",
+    "prisma": "^5.21.1",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2"
+  }
+}

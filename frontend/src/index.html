@@ -7,13 +7,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    
+    <!-- CSS Bundle injected during build -->
     <link rel="stylesheet" href="/dist/css/main.min.css">
 
 </head>
 <body>
 
-    
+    <!-- 0. O Portão de Autenticação (Auth Gate Front-end) -->
     <div id="authGateContainer" class="auth-gate-wrapper">
         <div class="auth-gate-card">
             <div class="auth-gate-brand">
@@ -36,7 +36,7 @@
 
             <div id="authGateAlert" class="auth-alert"></div>
 
-            
+            <!-- Formulário de Login -->
             <form id="formGateLogin" class="auth-gate-form">
                 <div>
                     <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Usuário</label>
@@ -51,7 +51,7 @@
                 </button>
             </form>
 
-            
+            <!-- Formulário de Cadastro -->
             <form id="formGateRegister" class="auth-gate-form" style="display: none;">
                 <div>
                     <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Novo Usuário</label>
@@ -66,7 +66,7 @@
                 </button>
             </form>
 
-            
+            <!-- Formulário de Token Direto -->
             <form id="formGateToken" class="auth-gate-form" style="display: none;">
                 <div>
                     <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Token JWT</label>
@@ -79,10 +79,10 @@
         </div>
     </div>
 
-    
+    <!-- ROOT DA APLICAÇÃO (Bloqueio Absoluto até Autenticação Válida) -->
     <div id="appRoot" class="app-root hidden">
 
-        
+        <!-- 1. Barra Lateral de Servidores (Server Sidebar) -->
         <nav id="server-sidebar" class="server-sidebar" aria-label="Menu de Servidores e Comunidades">
             <div class="server-icon-wrapper active" id="btnServerHome" data-tooltip="Início / Salas Rápidas">
                 <span class="server-pill"></span>
@@ -96,7 +96,7 @@
             <div class="server-divider"></div>
 
             <div id="serversList" class="servers-scroll-container">
-                
+                <!-- Renderizado dinamicamente via JS -->
             </div>
 
             <div class="server-divider"></div>
@@ -111,17 +111,17 @@
             </div>
         </nav>
 
-        
+        <!-- 2. PAINEL DE SERVIDORES / COMUNIDADES (#serverPanel) -->
         <div id="serverPanel" class="server-panel">
-            
+            <!-- Painel de Canais (Channels Sidebar) -->
             <aside id="channels-sidebar" class="channels-sidebar">
-                
+                <!-- Topo do Painel: Banner / Nome do Servidor Ativo + Configurações + Criar Canal -->
                 <div class="channels-header" id="channelsSidebarHeader">
                     <div class="channels-server-name" id="btnOpenServerHome">
                         <span id="selectedServerTitle">Comunidade Nexus</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        
+                        <!-- ⚙️ Gatilho de Acesso: Configurações do Servidor -->
                         <button type="button" id="btnOpenServerSettings" class="btn-header-action" title="Configurações do Servidor">
                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -136,7 +136,7 @@
                     </div>
                 </div>
 
-                
+                <!-- Botão de Destaque: Convidar Pessoas (Sprint de Convites) -->
                 <div class="channels-invite-bar">
                     <button type="button" id="btnOpenInviteModal" class="btn-invite-highlight" title="Convidar amigos para este servidor">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -146,14 +146,14 @@
                     </button>
                 </div>
 
-                
+                <!-- Lista Rolável de Categorias e Canais -->
                 <div class="channels-list-container">
                     <div class="channel-category">
                         <div class="category-header">
                             <span>CANAIS DE TEXTO</span>
                         </div>
                         <div id="textChannelsList" style="display: flex; flex-direction: column; gap: 3px;">
-                            
+                            <!-- Renderizado dinamicamente via JS -->
                         </div>
                     </div>
 
@@ -162,12 +162,12 @@
                             <span>CANAIS DE VOZ</span>
                         </div>
                         <div id="voiceChannelsList" style="display: flex; flex-direction: column; gap: 3px;">
-                            
+                            <!-- Renderizado dinamicamente via JS -->
                         </div>
                     </div>
                 </div>
 
-                
+                <!-- Mini Dock Persistente de Conexão de Voz em Segundo Plano (Sprint 6) -->
                 <div id="persistentVoiceDock" class="persistent-voice-dock" style="display: none;">
                     <div class="persistent-voice-info" id="btnReturnToVoiceStage" title="Clique para abrir tela da chamada de voz">
                         <div class="persistent-voice-ping">
@@ -192,7 +192,7 @@
                     </div>
                 </div>
 
-                
+                <!-- Base do Painel: Perfil do Usuário Autenticado + Engrenagem ⚙️ -->
                 <div class="channels-user-bar">
                     <div class="user-bar-info">
                         <div class="user-avatar-circle" id="userBarAvatar">NX</div>
@@ -210,7 +210,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                             </svg>
                         </button>
-                        
+                        <!-- ⚙️ Ícone de engrenagem para Configurações do Usuário -->
                         <button type="button" id="btnOpenUserSettings" class="btn-header-action" title="Configurações do Perfil">
                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -221,7 +221,7 @@
                 </div>
             </aside>
 
-            
+            <!-- Conteúdo Central: Palco Principal do Servidor -->
             <main class="container">
                 <header style="width: 100%; display: flex; flex-direction: column; align-items: center;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -238,7 +238,7 @@
                     </div>
                 </header>
 
-                
+                <!-- ESTÁGIO 1: Home da Comunidade (Welcome View) -->
                 <div id="communityWelcomeView" class="view-stage active">
                     <div class="community-welcome-card">
                         <div class="welcome-hero-avatar" id="welcomeServerAvatar">NX</div>
@@ -269,7 +269,7 @@
                     </div>
                 </div>
 
-                
+                <!-- ESTÁGIO 2: Modo Texto Expandido (Main Text Chat) -->
                 <div id="mainTextChatView" class="view-stage text-chat-stage">
                     <div class="text-chat-header">
                         <div class="text-chat-header-title">
@@ -294,7 +294,7 @@
                     </div>
 
                     <form id="mainChatExpandedForm" class="main-chat-input-area" style="position: relative; display: flex; flex-direction: column; gap: 8px;">
-                        
+                        <!-- Preview de Imagem Anexada Canal -->
                         <div id="mainChatMediaPreview" class="chat-media-preview-bar hidden">
                             <img id="mainChatMediaPreviewImg" src="" alt="Preview" class="chat-media-preview-thumb" />
                             <div class="chat-media-preview-info">
@@ -325,7 +325,7 @@
                     </form>
                 </div>
 
-                
+                <!-- ESTÁGIO 3: Modo Voz (WebRTC Video Grid) -->
                 <div id="voiceStageView" class="view-stage voice-stage">
                     <div class="room-section-header" style="width: 100%; margin-bottom: 4px;">
                         <span id="voiceChannelHeading" style="font-size: 1.1rem; font-weight: 700; color: #fff;">🔊 Canal de Voz WebRTC</span>
@@ -337,9 +337,9 @@
                         <span id="webrtcStatusText">Conectando ao canal de voz...</span>
                     </div>
 
-                    
+                    <!-- Grid de Vídeos / Participantes -->
                     <div id="videoGrid" class="video-grid">
-                        
+                        <!-- Participante Local -->
                         <div class="video-card local-card" id="localCard">
                             <div class="card-video-wrapper" title="Clique duplo para alternar Tela Cheia">
                                 <div class="fullscreen-hint-badge">
@@ -366,7 +366,7 @@
                 </div>
             </main>
 
-            
+            <!-- Dock de Controles de Chamada de Voz / Vídeo -->
             <div id="controlDock" class="control-dock">
                 <button id="btnMute" class="dock-btn" title="Ligar/Desligar Microfone">
                     <svg id="micIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -401,7 +401,7 @@
                 </button>
             </div>
 
-            
+            <!-- Painel Lateral Retrátil de Chat -->
             <aside id="chatSidebar" class="chat-sidebar">
                 <div class="chat-header">
                     <div class="chat-header-title">
@@ -427,7 +427,7 @@
                 </div>
 
                 <form id="chatForm" class="chat-input-area" style="display: flex; flex-direction: column; gap: 6px;">
-                    
+                    <!-- Preview de Imagem Anexada Lateral -->
                     <div id="sideMediaPreview" class="chat-media-preview-bar hidden">
                         <img id="sideMediaPreviewImg" src="" alt="Preview" class="chat-media-preview-thumb" />
                         <div class="chat-media-preview-info">
@@ -459,9 +459,11 @@
             </aside>
         </div>
 
-        
+        <!-- ==========================================
+             3. HUB SOCIAL: #homePanel (Sprint 3: Amigos & DMs)
+             ========================================== -->
         <div id="homePanel" class="home-panel hidden">
-            
+            <!-- 1. Barra Lateral de Mensagens Diretas & Amigos -->
             <aside id="homeDmsSidebar" class="channels-sidebar">
                 <div class="channels-header">
                     <div style="font-size: 0.9rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
@@ -473,7 +475,7 @@
                 </div>
 
                 <div class="channels-list-container">
-                    
+                    <!-- Botão Fixo de Amigos -->
                     <div class="channel-item active" id="btnHomeNavFriends" style="font-weight: 600; color: #ffffff;">
                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -487,7 +489,7 @@
                             <span>CONVERSAS DIRETAS</span>
                         </div>
                         <div id="homeDmsList" style="display: flex; flex-direction: column; gap: 3px;">
-                            
+                            <!-- Conversas de DM renderizadas dinamicamente -->
                             <div style="padding: 12px 10px; font-size: 0.8rem; color: var(--text-dark-muted); text-align: center;">
                                 Nenhuma conversa recente.
                             </div>
@@ -495,7 +497,7 @@
                     </div>
                 </div>
 
-                
+                <!-- Mini Dock Persistente de Conexão de Voz no Hub Social (Sprint 6) -->
                 <div id="persistentVoiceDockHome" class="persistent-voice-dock" style="display: none;">
                     <div class="persistent-voice-info" id="btnReturnToVoiceStageHome" title="Clique para voltar à chamada de voz">
                         <div class="persistent-voice-ping">
@@ -520,7 +522,7 @@
                     </div>
                 </div>
 
-                
+                <!-- Barra de Usuário no Home -->
                 <div class="channels-user-bar">
                     <div class="user-bar-info">
                         <div class="user-avatar-circle" id="userBarAvatarHome">NX</div>
@@ -548,9 +550,9 @@
                 </div>
             </aside>
 
-            
+            <!-- 2. Palco Social: Gestão de Amigos e DMs -->
             <main id="homeFriendsStage" class="home-stage">
-                
+                <!-- Topbar do Social Hub (Visível quando em Amigos) -->
                 <div class="home-stage-topbar" id="homeStageTopbar">
                     <div class="home-topbar-left">
                         <div class="home-topbar-title">
@@ -590,9 +592,9 @@
                     </div>
                 </div>
 
-                
+                <!-- Conteúdo do Palco de Amigos (Abas: Online / Todos / Pendentes / Adicionar) -->
                 <div class="home-stage-body" id="homeStageContent">
-                    
+                    <!-- ABA 1: Listagem de Amigos (Online / Todos / Pendentes) -->
                     <div id="viewFriendsList" style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
                         <div class="friends-search-box">
                             <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-dark-muted);">
@@ -606,11 +608,11 @@
                         </div>
 
                         <div class="friends-cards-list" id="friendsListContainer">
-                            
+                            <!-- Cards de amigos renderizados via JS -->
                         </div>
                     </div>
 
-                    
+                    <!-- ABA 2: Adicionar Amigo -->
                     <div id="viewFriendsAdd" class="hidden" style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
                         <div class="add-friend-panel-card">
                             <h2 style="font-size: 1.2rem; font-weight: 700; color: #ffffff; margin: 0;">ADICIONAR AMIGO</h2>
@@ -643,9 +645,9 @@
                     </div>
                 </div>
 
-                
+                <!-- VISTA 3: Chat de Mensagens Diretas (DM) - Sprint 3 (Parte 2) -->
                 <div id="viewDirectMessageChat" class="dm-chat-view hidden">
-                    
+                    <!-- Topbar do Chat DM -->
                     <div class="dm-chat-topbar">
                         <div class="dm-topbar-friend-info">
                             <button type="button" id="btnDmBackToFriends" class="btn-header-action" title="Voltar para a lista de amigos" style="margin-right: 4px;">
@@ -682,9 +684,9 @@
                         </div>
                     </div>
 
-                    
+                    <!-- Corpo de Mensagens da DM -->
                     <div class="dm-chat-body">
-                        
+                        <!-- Mensagens Roláveis -->
                         <div class="dm-messages-scroll" id="dmChatMessagesContainer">
                             <div class="dm-welcome-box" id="dmWelcomeBanner">
                                 <div class="dm-welcome-avatar" id="dmWelcomeAvatar">NX</div>
@@ -692,13 +694,13 @@
                                 <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0;" id="dmWelcomeDesc">Este é o começo do seu histórico de mensagens diretas e privadas.</p>
                             </div>
                             <div id="dmMessagesList" style="display: flex; flex-direction: column; gap: 10px;">
-                                
+                                <!-- Mensagens renderizadas dinamicamente via JS -->
                             </div>
                         </div>
 
-                        
+                        <!-- Form de Envio de DM com Anexo de Mídia (Sprint 4) -->
                         <form id="formDmChat" class="dm-chat-input-bar" style="display: flex; flex-direction: column; gap: 8px; align-items: stretch;">
-                            
+                            <!-- Preview de Imagem Anexada DM -->
                             <div id="dmMediaPreview" class="chat-media-preview-bar hidden">
                                 <img id="dmMediaPreviewImg" src="" alt="Preview" class="chat-media-preview-thumb" />
                                 <div class="chat-media-preview-info">
@@ -732,7 +734,7 @@
             </main>
         </div>
 
-        
+        <!-- Modal / Banner de Chamada Recebida (Sprint 3 - Parte 2) -->
         <div id="modalIncomingCall" class="incoming-call-modal-overlay hidden">
             <div class="user-avatar-circle" id="incomingCallAvatar" style="width: 44px; height: 44px; font-size: 1rem; border: 2px solid #6366f1;">NX</div>
             <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
@@ -753,9 +755,11 @@
             </div>
         </div>
 
-        
+        <!-- ==========================================
+             3. Interface de Administração do Servidor em Tela Cheia (Discord Style)
+             ========================================== -->
         <div id="serverSettingsOverlay" class="settings-overlay">
-            
+            <!-- Fechar no Topo Direito (X + ESC) -->
             <div class="settings-close-container" id="btnCloseServerSettings" title="Fechar Configurações (ESC)">
                 <div class="settings-close-btn">
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -765,7 +769,7 @@
                 <span class="settings-esc-badge">ESC</span>
             </div>
 
-            
+            <!-- Menu Lateral Esquerdo de Navegação -->
             <nav class="settings-sidebar">
                 <div class="settings-server-badge">
                     <span id="settingsServerNameNav">Comunidade Nexus</span>
@@ -799,9 +803,9 @@
                 </div>
             </nav>
 
-            
+            <!-- Palco Central/Direito de Conteúdo -->
             <main class="settings-content-stage">
-                
+                <!-- 1. Aba: Visão Geral (Nome, Ícone 1:1 e Banner Supabase Storage) -->
                 <div id="panelSettingsOverview" class="settings-panel active">
                     <div class="settings-panel-header">
                         <h2>Visão Geral do Servidor</h2>
@@ -809,7 +813,7 @@
                     </div>
 
                     <div class="settings-card">
-                        
+                        <!-- Linha 1: Ícone Personalizado do Servidor (1:1) -->
                         <div class="settings-avatar-row">
                             <div class="settings-avatar-large" id="settingsServerAvatar">NX</div>
                             <div class="settings-avatar-text">
@@ -827,7 +831,7 @@
                             </div>
                         </div>
 
-                        
+                        <!-- Linha 2: Banner de Fundo do Servidor -->
                         <div class="settings-banner-row">
                             <label class="settings-label">Banner de Fundo do Servidor</label>
                             <div class="settings-banner-preview-box" id="settingsServerBannerPreview">
@@ -850,7 +854,7 @@
                             </div>
                         </div>
 
-                        
+                        <!-- Linha 3: Formulário de Nome -->
                         <form id="formServerOverview">
                             <div class="settings-form-group">
                                 <label for="inputEditServerName" class="settings-label">Nome do Servidor</label>
@@ -868,7 +872,7 @@
                     </div>
                 </div>
 
-                
+                <!-- Nova Aba Unificada: Cargos e Membros (Sprint 7) -->
                 <div id="panelSettingsRolesMembers" class="settings-panel">
                     <div class="settings-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
@@ -884,7 +888,7 @@
                     </div>
                 </div>
 
-                
+                <!-- 2. Aba: Cargos -->
                 <div id="panelSettingsRoles" class="settings-panel">
                     <div class="settings-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
@@ -900,7 +904,7 @@
                     </div>
                 </div>
 
-                
+                <!-- 3. Aba: Membros -->
                 <div id="panelSettingsMembers" class="settings-panel">
                     <div class="settings-panel-header">
                         <h2>Membros da Comunidade</h2>
@@ -916,7 +920,9 @@
             </main>
         </div>
 
-        
+        <!-- ==========================================
+             4. Modal de Configurações de Usuário (User Profile Modal)
+             ========================================== -->
         <div id="userSettingsOverlay" class="user-settings-overlay">
             <div class="user-settings-modal">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -938,7 +944,7 @@
                     </button>
                 </div>
 
-                
+                <!-- Preview do Avatar -->
                 <div style="display: flex; align-items: center; gap: 18px; background: rgba(30, 41, 59, 0.45); padding: 18px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.08);">
                     <div class="user-avatar-circle" id="userSettingsAvatarPreview" style="width: 64px; height: 64px; font-size: 1.4rem;">
                         NX
@@ -960,7 +966,7 @@
                     </div>
                 </div>
 
-                
+                <!-- Formulário de Perfil -->
                 <form id="formUserSettings" style="display: flex; flex-direction: column; gap: 14px;">
                     <div>
                         <label for="inputUserDisplayName" style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Nome de Exibição</label>
@@ -972,7 +978,7 @@
                         <input type="text" id="inputUserUsernameDisplay" class="room-input" style="width: 100%; margin-top: 6px; opacity: 0.65; cursor: not-allowed;" readonly />
                     </div>
 
-                    
+                    <!-- Sensibilidade do Microfone (Sprint 5 - GainNode) -->
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                             <label for="sliderMicSensitivity" style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1; display: flex; align-items: center; gap: 6px;">
@@ -995,7 +1001,7 @@
                         <p style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px; margin-bottom: 0;">Ajuste o ganho do seu áudio antes de ser transmitido para os outros membros da chamada.</p>
                     </div>
 
-                    
+                    <!-- Efeitos Sonoros & Feedback Auditivo (Sprint de UI/UX) -->
                     <div style="background: rgba(30, 41, 59, 0.45); padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; gap: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -1013,7 +1019,7 @@
                             </label>
                         </div>
 
-                        
+                        <!-- Slider de Volume dos Efeitos -->
                         <div id="containerSoundVolume" style="display: flex; flex-direction: column; gap: 6px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #94a3b8;">Volume dos Efeitos Sonoros</span>
@@ -1024,7 +1030,7 @@
                             </div>
                         </div>
 
-                        
+                        <!-- Botões de Teste Rápido de Sons -->
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
                             <button type="button" id="btnTestSoundJoin" class="sound-test-btn">
                                 🔊 Testar Join
@@ -1051,7 +1057,7 @@
             </div>
         </div>
 
-        
+        <!-- Modal para Criar Novo Servidor -->
         <div id="modalAddServer" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center; z-index: 2000;">
             <div style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 24px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; gap: 16px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1078,7 +1084,7 @@
             </div>
         </div>
 
-        
+        <!-- Modal para Criar Novo Canal -->
         <div id="modalAddChannel" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center; z-index: 2000;">
             <div style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 24px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; gap: 16px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1128,7 +1134,7 @@
             </div>
         </div>
 
-        
+        <!-- Modal de Configurações de Transmissão de Tela (Sprint 5) -->
         <div id="modalScreenShareSettings" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center; z-index: 2100;">
             <div style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 24px; padding: 28px; width: 100%; max-width: 480px; box-shadow: 0 24px 60px rgba(0,0,0,0.75); display: flex; flex-direction: column; gap: 20px; animation: fadeInScale 0.25s ease-out;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1151,7 +1157,7 @@
                 </div>
 
                 <form id="formScreenShareSettings" style="display: flex; flex-direction: column; gap: 16px;">
-                    
+                    <!-- Qualidade / Resolução -->
                     <div>
                         <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Resolução de Vídeo</label>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px;">
@@ -1166,7 +1172,7 @@
                         </div>
                     </div>
 
-                    
+                    <!-- Taxa de Quadros (FPS) -->
                     <div>
                         <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #cbd5e1;">Taxa de Quadros (FPS)</label>
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 6px;">
@@ -1185,7 +1191,7 @@
                         </div>
                     </div>
 
-                    
+                    <!-- Compartilhar Áudio do Sistema -->
                     <div style="display: flex; align-items: center; gap: 10px; background: rgba(30, 41, 59, 0.4); padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
                         <input type="checkbox" id="checkScreenAudio" checked style="width: 18px; height: 18px; accent-color: #6366f1; cursor: pointer;" />
                         <label for="checkScreenAudio" style="font-size: 0.85rem; color: #e2e8f0; cursor: pointer; user-select: none;">Compartilhar áudio do sistema / guia</label>
@@ -1205,7 +1211,7 @@
             </div>
         </div>
 
-        
+        <!-- Toast de Notificação de Cópia -->
         <div id="toastCopied" class="toast-copied">
             <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -1213,7 +1219,9 @@
             <span>Link copiado com sucesso!</span>
         </div>
 
-        
+        <!-- ==========================================
+             Overlay Global de Chamada Privada WebRTC (Sprint 6: Persistência Ininterrupta)
+             ========================================== -->
         <div id="dmPrivateCallOverlay" class="dm-call-overlay hidden">
             <div class="dm-call-top">
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -1235,7 +1243,7 @@
                 </div>
             </div>
             <div class="dm-call-grid" id="dmCallGrid">
-                
+                <!-- Participante Remoto -->
                 <div class="video-card" id="dmRemoteCard">
                     <div class="card-video-wrapper" title="Clique duplo para alternar Tela Cheia">
                         <div class="fullscreen-hint-badge">
@@ -1261,7 +1269,7 @@
                         </div>
                     </div>
                 </div>
-                
+                <!-- Participante Local -->
                 <div class="video-card local-card" id="dmLocalCard">
                     <div class="card-video-wrapper" title="Clique duplo para alternar Tela Cheia">
                         <div class="fullscreen-hint-badge">
@@ -1283,7 +1291,9 @@
             </div>
         </div>
 
-        
+        <!-- ==========================================
+             5. Modal de Gerar Convite do Servidor (Sprint de Convites)
+             ========================================== -->
         <div id="modalInviteServer" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center; z-index: 2100;">
             <div class="invite-modal-card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1321,7 +1331,9 @@
             </div>
         </div>
 
-        
+        <!-- ==========================================
+             6. Modal de Aceitação de Convite (Preview & Entrar no Servidor)
+             ========================================== -->
         <div id="modalAcceptInvite" class="channel-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); display: none; align-items: center; justify-content: center; z-index: 2200;">
             <div class="accept-invite-card">
                 <div class="accept-invite-avatar" id="acceptInviteServerAvatar">NX</div>
@@ -1344,11 +1356,11 @@
             </div>
         </div>
 
-    </div> 
+    </div> <!-- /appRoot -->
 
-    
+    <!-- Client do Socket.IO -->
     <script src="/socket.io/socket.io.js"></script>
-    
+    <!-- Obfuscated & Minified JS Bundle injected during build -->
     <script src="/dist/js/app.bundle.js"></script>
 
 </body>

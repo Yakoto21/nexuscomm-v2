@@ -35,7 +35,11 @@ export function ensureAuthenticated(
     }
 
     try {
-        const jwtSecret = process.env.JWT_SECRET || 'nexuscomm_super_secret_jwt_key_2026';
+        const jwtSecret = process.env.JWT_SECRET;
+        if (!jwtSecret) {
+            console.error('ERRO CRÍTICO DE SEGURANÇA: JWT_SECRET não configurado nas variáveis de ambiente.');
+            return res.status(500).json({ error: 'Erro de configuração no servidor de autenticação.' });
+        }
         
         // Valida e decodifica o token JWT
         const decoded = jwt.verify(token, jwtSecret) as IPayload;

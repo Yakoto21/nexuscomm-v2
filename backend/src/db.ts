@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import { initSupabaseBucket } from './supabaseStorage';
@@ -6,15 +7,21 @@ dotenv.config();
 
 const connectionString = process.env.DATABASE_URL;
 
+// 🔒 SEC-05: Sanitizador Anti-XSS para mensagens e dados de texto puro
+export function sanitizePlainText(str: string): string {
+    return String(str || '').replace(/<[^>]*>?/gm, '').trim();
+}
+
 // Configuração do pool de conexões do PostgreSQL (Supabase / Render)
 const isProduction = process.env.NODE_ENV === 'production';
 const requiresSSL = connectionString && (connectionString.includes('supabase') || connectionString.includes('sslmode=require') || isProduction);
+const rejectUnauthorized = process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true' || (isProduction && process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false');
 
 export const pool = new Pool({
     connectionString: connectionString || 'postgresql://postgres:postgres@localhost:5432/nexuscomm',
     ssl: requiresSSL
         ? {
-              rejectUnauthorized: false
+              rejectUnauthorized: rejectUnauthorized
           }
         : undefined
 });
@@ -172,7 +179,21 @@ export async function initDb() {
             );
         `);
 
-        // 10. Migração automática: se a tabela messages foi criada previamente com channel_id INTEGER, converte para VARCHAR(255)
+        // 10. Tabela de Convites de Servidores (server_invites - Sprint de Convites)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS server_invites (
+                id SERIAL PRIMARY KEY,
+                code VARCHAR(12) NOT NULL UNIQUE,
+                server_id INTEGER NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+                created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                expires_at TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP + INTERVAL '7 days'),
+                max_uses INTEGER DEFAULT NULL,
+                uses INTEGER DEFAULT 0,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        // 11. Migração automática: se a tabela messages foi criada previamente com channel_id INTEGER, converte para VARCHAR(255)
         await pool.query(`
             DO $$
             BEGIN
@@ -188,7 +209,7 @@ export async function initDb() {
             END $$;
         `);
 
-        // 11. Habilitação de Segurança em Nível de Linha (RLS) para Friendships e DMs
+        // 12. Habilitação de Segurança em Nível de Linha (RLS) para Friendships e DMs
         await pool.query(`
             ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
             ALTER TABLE direct_messages ENABLE ROW LEVEL SECURITY;
@@ -236,6 +257,8 @@ export async function initDb() {
             CREATE INDEX IF NOT EXISTS idx_dm_sender ON direct_messages(sender_id);
             CREATE INDEX IF NOT EXISTS idx_dm_receiver ON direct_messages(receiver_id);
             CREATE INDEX IF NOT EXISTS idx_dm_created_at ON direct_messages(created_at);
+            CREATE INDEX IF NOT EXISTS idx_server_invites_code ON server_invites(code);
+            CREATE INDEX IF NOT EXISTS idx_server_invites_server ON server_invites(server_id);
         `);
 
         // 12. Migração automática: garante que a coluna media_url exista nas tabelas messages e direct_messages (Sprint 4)
@@ -254,6 +277,19 @@ export async function initDb() {
                     WHERE table_name = 'direct_messages' AND column_name = 'media_url'
                 ) THEN
                     ALTER TABLE direct_messages ADD COLUMN media_url TEXT DEFAULT NULL;
+                END IF;
+            END $$;
+        `);
+
+        // 13. Migração automática: garante que a coluna is_edited exista na tabela messages (Sprint 7)
+        await pool.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'messages' AND column_name = 'is_edited'
+                ) THEN
+                    ALTER TABLE messages ADD COLUMN is_edited BOOLEAN DEFAULT FALSE;
                 END IF;
             END $$;
         `);
@@ -310,7 +346,7 @@ export interface RolePermissions {
 }
 
 /**
- * Cria o cargo padrão @everyone e opcionalmente o cargo de Admin para o dono do servidor.
+ * Cria o cargo padrão @everyone, Moderador e Admin para o servidor.
  */
 export async function createDefaultServerRoles(serverId: number, ownerId?: number | null) {
     try {
@@ -325,24 +361,32 @@ export async function createDefaultServerRoles(serverId: number, ownerId?: numbe
             can_manage_roles: false
         };
 
-        const everyoneRes = await pool.query(
+        await pool.query(
             `INSERT INTO server_roles (server_id, nome, cor_hex, posicao, hoist, permissoes)
              VALUES ($1, '@everyone', '#94a3b8', 0, FALSE, $2)
-             ON CONFLICT DO NOTHING
-             RETURNING id`,
+             ON CONFLICT DO NOTHING`,
             [serverId, JSON.stringify(everyonePerms)]
         );
 
-        let everyoneRoleId = everyoneRes.rows[0]?.id;
-        if (!everyoneRoleId) {
-            const findEveryone = await pool.query(
-                `SELECT id FROM server_roles WHERE server_id = $1 AND nome = '@everyone' LIMIT 1`,
-                [serverId]
-            );
-            everyoneRoleId = findEveryone.rows[0]?.id;
-        }
+        // 2. Cargo padrão Moderador (posicao = 50)
+        const modPerms: RolePermissions = {
+            can_send_messages: true,
+            can_connect_voice: true,
+            can_delete_messages: true,
+            can_kick_users: true,
+            can_manage_channels: false,
+            can_manage_server: false,
+            can_manage_roles: false
+        };
 
-        // 2. Se houver dono/criador, adiciona como membro e cria cargo de Dono / Admin (posicao = 100)
+        await pool.query(
+            `INSERT INTO server_roles (server_id, nome, cor_hex, posicao, hoist, permissoes)
+             VALUES ($1, 'Moderador', '#38bdf8', 50, TRUE, $2)
+             ON CONFLICT DO NOTHING`,
+            [serverId, JSON.stringify(modPerms)]
+        );
+
+        // 3. Se houver dono/criador, adiciona como membro e cria cargo de Dono / Admin (posicao = 100)
         if (ownerId) {
             await addMemberToServer(ownerId, serverId);
 
@@ -359,11 +403,20 @@ export async function createDefaultServerRoles(serverId: number, ownerId?: numbe
             const adminRoleRes = await pool.query(
                 `INSERT INTO server_roles (server_id, nome, cor_hex, posicao, hoist, permissoes)
                  VALUES ($1, 'Admin', '#f59e0b', 100, TRUE, $2)
+                 ON CONFLICT DO NOTHING
                  RETURNING id`,
                 [serverId, JSON.stringify(adminPerms)]
             );
 
-            const adminRoleId = adminRoleRes.rows[0]?.id;
+            let adminRoleId = adminRoleRes.rows[0]?.id;
+            if (!adminRoleId) {
+                const findAdmin = await pool.query(
+                    `SELECT id FROM server_roles WHERE server_id = $1 AND nome = 'Admin' LIMIT 1`,
+                    [serverId]
+                );
+                adminRoleId = findAdmin.rows[0]?.id;
+            }
+
             if (adminRoleId) {
                 await assignRoleToMember(ownerId, serverId, adminRoleId);
             }
@@ -608,9 +661,9 @@ export async function saveMessage(
     const safeMediaUrl = mediaUrl ? String(mediaUrl) : null;
 
     const res = await pool.query(
-        `INSERT INTO messages (channel_id, user_id, sender_name, conteudo, media_url, data_envio)
-         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
-         RETURNING id, channel_id, user_id, sender_name AS sender, conteudo AS text, media_url, data_envio AS timestamp`,
+        `INSERT INTO messages (channel_id, user_id, sender_name, conteudo, media_url, is_edited, data_envio)
+         VALUES ($1, $2, $3, $4, $5, FALSE, CURRENT_TIMESTAMP)
+         RETURNING id, channel_id, user_id, sender_name AS sender, conteudo AS text, media_url, is_edited, data_envio AS timestamp`,
         [safeChannelId, safeUserId, safeSenderName, safeContent, safeMediaUrl]
     );
     return res.rows[0];
@@ -621,7 +674,7 @@ export async function getMessagesByChannel(channelId: string, limit = 50) {
     const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
 
     const res = await pool.query(
-        `SELECT id, channel_id, user_id, sender_name AS sender, conteudo AS text, media_url, data_envio AS timestamp
+        `SELECT id, channel_id, user_id, sender_name AS sender, conteudo AS text, media_url, is_edited, data_envio AS timestamp
          FROM messages
          WHERE channel_id = $1
          ORDER BY data_envio ASC
@@ -629,6 +682,90 @@ export async function getMessagesByChannel(channelId: string, limit = 50) {
         [safeChannelId, safeLimit]
     );
     return res.rows;
+}
+
+export async function getMessageById(messageId: number | string) {
+    const numericId = typeof messageId === 'number' ? messageId : parseInt(String(messageId), 10);
+    if (isNaN(numericId)) return null;
+
+    const res = await pool.query(
+        `SELECT id, channel_id, user_id, sender_name AS sender, conteudo AS text, media_url, is_edited, data_envio AS timestamp
+         FROM messages
+         WHERE id = $1
+         LIMIT 1`,
+        [numericId]
+    );
+    return res.rows[0] || null;
+}
+
+export async function updateMessage(messageId: number | string, userId: number | string, newContent: string) {
+    const numMsgId = typeof messageId === 'number' ? messageId : parseInt(String(messageId), 10);
+    const numUserId = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
+    const safeText = String(newContent || '').trim();
+
+    if (isNaN(numMsgId) || isNaN(numUserId) || !safeText) return null;
+
+    const res = await pool.query(
+        `UPDATE messages
+         SET conteudo = $1, is_edited = TRUE
+         WHERE id = $2 AND user_id = $3
+         RETURNING id, channel_id, user_id, sender_name AS sender, conteudo AS text, media_url, is_edited, data_envio AS timestamp`,
+        [safeText, numMsgId, numUserId]
+    );
+    return res.rows[0] || null;
+}
+
+export async function deleteMessage(messageId: number | string) {
+    const numMsgId = typeof messageId === 'number' ? messageId : parseInt(String(messageId), 10);
+    if (isNaN(numMsgId)) return null;
+
+    const res = await pool.query(
+        `DELETE FROM messages
+         WHERE id = $1
+         RETURNING id, channel_id, user_id`,
+        [numMsgId]
+    );
+    return res.rows[0] || null;
+}
+
+export async function canUserModerateMessage(userId: number | string, messageId: number | string): Promise<boolean> {
+    const numUserId = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
+    const numMsgId = typeof messageId === 'number' ? messageId : parseInt(String(messageId), 10);
+
+    if (isNaN(numUserId) || isNaN(numMsgId)) return false;
+
+    const msg = await getMessageById(numMsgId);
+    if (!msg) return false;
+
+    // Se o usuário for o autor da mensagem
+    if (msg.user_id === numUserId) return true;
+
+    // Se for canal de servidor, verifica se o usuário é dono ou tem permissão can_delete_messages
+    const channelStr = String(msg.channel_id || '');
+    const numChannelId = parseInt(channelStr.replace(/^channel_/, ''), 10);
+
+    let serverId: number | null = null;
+    let donoId: number | null = null;
+
+    if (!isNaN(numChannelId)) {
+        const cRes = await pool.query('SELECT server_id FROM channels WHERE id = $1', [numChannelId]);
+        if (cRes.rows.length > 0) serverId = cRes.rows[0].server_id;
+    } else {
+        const cRes = await pool.query('SELECT server_id FROM channels WHERE nome = $1', [channelStr]);
+        if (cRes.rows.length > 0) serverId = cRes.rows[0].server_id;
+    }
+
+    if (serverId) {
+        const sRes = await pool.query('SELECT dono_id FROM servers WHERE id = $1', [serverId]);
+        if (sRes.rows.length > 0) donoId = sRes.rows[0].dono_id;
+
+        if (donoId === numUserId) return true;
+
+        const roles = await getMemberRoles(numUserId, serverId);
+        return roles.some(r => r.permissoes?.can_delete_messages || r.permissoes?.can_manage_server);
+    }
+
+    return false;
 }
 
 // ==========================================
@@ -875,3 +1012,217 @@ export async function saveDirectMessage(
         sender_avatar_url: sender?.avatar_url || null
     };
 }
+
+/**
+ * Valida se um usuário possui acesso a um canal ou sala de servidor.
+ * Se o canal pertence a um servidor, verifica se o usuário é membro ou dono desse servidor.
+ */
+export async function canUserAccessChannel(userId: number | null | undefined, channelIdentifier: string | number): Promise<boolean> {
+    if (!userId) return false;
+    const channelStr = String(channelIdentifier || '').trim();
+    if (!channelStr) return false;
+
+    // Se for sala sandbox pública padrão sem servidor
+    if (channelStr === 'sala-publica' || channelStr === 'geral-publico') {
+        return true;
+    }
+
+    // Tenta identificar se o channelIdentifier é o ID numérico do canal
+    const numericChannelId = parseInt(channelStr.replace(/^channel_/, ''), 10);
+    
+    if (!isNaN(numericChannelId)) {
+        const res = await pool.query(
+            `SELECT c.server_id, s.dono_id, sm.user_id AS member_id
+             FROM channels c
+             LEFT JOIN servers s ON c.server_id = s.id
+             LEFT JOIN server_members sm ON (c.server_id = sm.server_id AND sm.user_id = $1)
+             WHERE c.id = $2`,
+            [userId, numericChannelId]
+        );
+
+        if (res.rows.length > 0) {
+            const row = res.rows[0];
+            // Se o canal pertence a um servidor, o usuário DEVE ser o dono ou membro
+            if (row.server_id !== null && row.server_id !== undefined) {
+                return row.dono_id === userId || row.member_id === userId;
+            }
+            return true;
+        }
+    }
+
+    // Se a sala for referenciada pelo nome e pertencer a servidores
+    const nameRes = await pool.query(
+        `SELECT c.server_id, s.dono_id, sm.user_id AS member_id
+         FROM channels c
+         LEFT JOIN servers s ON c.server_id = s.id
+         LEFT JOIN server_members sm ON (c.server_id = sm.server_id AND sm.user_id = $1)
+         WHERE c.nome = $2`,
+        [userId, channelStr]
+    );
+
+    if (nameRes.rows.length > 0) {
+        // Se encontrou canal com esse nome em um servidor
+        const allowedInAny = nameRes.rows.some(row => {
+            if (!row.server_id) return true;
+            return row.dono_id === userId || row.member_id === userId;
+        });
+        return allowedInAny;
+    }
+
+    // Para salas dinâmicas criadas em tempo de execução que não estão no banco (ex: dm_call_X_Y)
+    if (channelStr.startsWith('dm_call_')) {
+        const parts = channelStr.replace('dm_call_', '').split('_');
+        if (parts.length === 2) {
+            const u1 = parseInt(parts[0], 10);
+            const u2 = parseInt(parts[1], 10);
+            return userId === u1 || userId === u2;
+        }
+    }
+
+    return true;
+}
+
+// ==========================================
+// Helpers de Convites para Servidores (Server Invites Sprint)
+// ==========================================
+
+/**
+ * Gera um código alfanumérico único para convite (7 caracteres legíveis).
+ */
+export function generateInviteCode(): string {
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
+    const bytes = crypto.randomBytes(7);
+    let result = '';
+    for (let i = 0; i < 7; i++) {
+        result += chars[bytes[i] % chars.length];
+    }
+    return result;
+}
+
+/**
+ * Cria um convite para o servidor com código único e expiração configurável.
+ */
+export async function createServerInvite(
+    serverId: number,
+    createdBy: number,
+    expiresInDays = 7,
+    maxUses: number | null = null
+) {
+    let code = generateInviteCode();
+    // Tenta até encontrar um código único (caso raríssimo de colisão)
+    let attempts = 0;
+    while (attempts < 5) {
+        const existing = await pool.query('SELECT id FROM server_invites WHERE code = $1 LIMIT 1', [code]);
+        if (existing.rows.length === 0) break;
+        code = generateInviteCode();
+        attempts++;
+    }
+
+    const expiresAt = expiresInDays > 0 
+        ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
+        : null;
+
+    const res = await pool.query(
+        `INSERT INTO server_invites (code, server_id, created_by, expires_at, max_uses)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+        [code, serverId, createdBy, expiresAt, maxUses]
+    );
+
+    return res.rows[0];
+}
+
+/**
+ * Busca um convite pelo código e inclui metadados do servidor e contagem de membros.
+ */
+export async function getInviteByCode(code: string) {
+    const cleanCode = String(code || '').trim();
+    if (!cleanCode) return null;
+
+    const res = await pool.query(
+        `SELECT 
+            si.id AS invite_id,
+            si.code,
+            si.server_id,
+            si.created_by,
+            si.expires_at,
+            si.max_uses,
+            si.uses,
+            si.created_at AS invite_created_at,
+            s.nome AS server_nome,
+            s.icon_url AS server_icon_url,
+            s.banner_url AS server_banner_url,
+            u.username AS inviter_username,
+            u.display_name AS inviter_display_name,
+            (SELECT COUNT(*)::int FROM server_members sm WHERE sm.server_id = s.id) AS total_members
+         FROM server_invites si
+         JOIN servers s ON si.server_id = s.id
+         JOIN users u ON si.created_by = u.id
+         WHERE si.code = $1
+         LIMIT 1`,
+        [cleanCode]
+    );
+
+    if (res.rows.length === 0) return null;
+
+    const row = res.rows[0];
+
+    // Validação de expiração
+    const isExpired = row.expires_at && new Date(row.expires_at).getTime() < Date.now();
+    // Validação de limite de uso
+    const isMaxUsesReached = row.max_uses !== null && row.uses >= row.max_uses;
+
+    return {
+        ...row,
+        is_valid: !isExpired && !isMaxUsesReached,
+        is_expired: Boolean(isExpired),
+        is_max_uses_reached: Boolean(isMaxUsesReached)
+    };
+}
+
+/**
+ * Aceita o convite e insere o usuário no servidor de forma idempotente.
+ */
+export async function acceptServerInvite(code: string, userId: number) {
+    const invite = await getInviteByCode(code);
+    if (!invite) {
+        throw new Error('Convite não encontrado ou inválido.');
+    }
+
+    if (!invite.is_valid) {
+        if (invite.is_expired) throw new Error('Este convite expirou.');
+        if (invite.is_max_uses_reached) throw new Error('Este convite atingiu o limite máximo de utilizações.');
+        throw new Error('Este convite não é mais válido.');
+    }
+
+    // 1. Verifica se o usuário já é membro deste servidor
+    const checkMember = await pool.query(
+        `SELECT user_id FROM server_members WHERE server_id = $1 AND user_id = $2 LIMIT 1`,
+        [invite.server_id, userId]
+    );
+
+    const isAlreadyMember = checkMember.rows.length > 0;
+
+    if (!isAlreadyMember) {
+        // 2. Insere na tabela server_members e atribui cargo @everyone
+        await addMemberToServer(userId, invite.server_id);
+
+        // 3. Incrementa o contador de usos do convite
+        await pool.query(
+            `UPDATE server_invites SET uses = uses + 1 WHERE id = $1`,
+            [invite.invite_id]
+        );
+    }
+
+    // 4. Retorna informações completas do servidor e membro para o front-end
+    const serverRes = await pool.query(
+        `SELECT id, nome, dono_id, icon_url, banner_url, data_criacao FROM servers WHERE id = $1 LIMIT 1`,
+        [invite.server_id]
+    );
+
+    return {
+        alreadyMember: isAlreadyMember,
+        server: serverRes.rows[0]
+    };
+}
+

@@ -6,7 +6,7 @@ import path from 'path';
 import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { routes } from './routes';
-import { initDb, saveMessage, getMessagesByChannel, findUserById, saveDirectMessage } from './db';
+import { initDb, saveMessage, getMessagesByChannel, findUserById, saveDirectMessage, canUserAccessChannel, getMessageById, updateMessage, deleteMessage, canUserModerateMessage, sanitizePlainText } from './db';
 
 // Carrega as variáveis de ambiente
 dotenv.config();
@@ -68,8 +68,13 @@ io.use(async (socket, next) => {
     }
 
     try {
-        // 2. Valida o token JWT usando a chave secreta
-        const jwtSecret = process.env.JWT_SECRET || 'nexuscomm_super_secret_jwt_key_2026';
+        // 2. Valida o token JWT usando a chave secreta estrita das variáveis de ambiente
+        const jwtSecret = process.env.JWT_SECRET;
+        if (!jwtSecret) {
+            console.error('ERRO CRÍTICO DE SEGURANÇA: JWT_SECRET não configurado nas variáveis de ambiente.');
+            return next(new Error('Authentication error: Configuração de servidor inválida.'));
+        }
+
         const decoded = jwt.verify(token, jwtSecret) as any;
 
         let username = decoded.username;
@@ -129,6 +134,16 @@ io.on('connection', (socket) => {
     // Entrada na Sala (Room)
     socket.on('join-room', async (room) => {
         const roomName = String(room || 'sala-publica').trim();
+        if (!roomName) return;
+
+        // 🔒 SEC-04: Validação de autorização no banco antes de permitir entrada na sala
+        const hasAccess = await canUserAccessChannel(userId, roomName);
+        if (!hasAccess) {
+            console.warn(`⛔ [Bloqueio de Acesso] Usuário [${userId} - ${username}] tentou entrar na sala não autorizada: "${roomName}"`);
+            socket.emit('room-error', { error: 'Você não tem permissão para acessar esta sala ou canal.' });
+            return;
+        }
+
         socket.join(roomName);
         console.log(`🚪 Usuário ${socket.id} (${username}) entrou na sala: "${roomName}"`);
 
@@ -244,12 +259,22 @@ io.on('connection', (socket) => {
         if (!data || !data.room) return;
 
         const roomName = String(data.room).trim();
-        const messageText = String(data.text || data.message || '').trim();
+        // 🔒 SEC-05: Sanitização rigorosa Anti-XSS e truncamento para limite seguro
+        const rawText = String(data.text || data.message || '');
+        const messageText = rawText.replace(/<[^>]*>?/gm, '').trim().substring(0, 2000);
         const mediaUrl = data.media_url || data.mediaUrl || null;
         // Extrai o username real autenticado do socket
-        const senderUsername = socket.data.user?.username || username || String(data.sender || 'Anônimo').trim();
+        const senderUsername = socket.data.user?.username || username || 'Usuário';
 
         if (!roomName || (!messageText && !mediaUrl)) return;
+
+        // 🔒 SEC-04: Validação de autorização antes de salvar ou transmitir mensagem
+        const hasAccess = await canUserAccessChannel(userId, roomName);
+        if (!hasAccess) {
+            console.warn(`⛔ [Chat Bloqueado] Usuário [${userId}] tentou enviar mensagem para sala não autorizada: "${roomName}"`);
+            socket.emit('room-error', { error: 'Você não tem permissão para enviar mensagens nesta sala.' });
+            return;
+        }
 
         try {
             // Salva a mensagem no banco de dados PostgreSQL antes do broadcast
@@ -264,25 +289,92 @@ io.on('connection', (socket) => {
             console.log(`💬 [${roomName}] ${senderUsername}: ${messageText} ${mediaUrl ? `[Mídia: ${mediaUrl}]` : ''} (ID: ${savedMsg.id})`);
 
             // Envia a mensagem persistida com o nome real do remetente para todos os outros participantes da sala
-            socket.to(roomName).emit('chat-message', {
+            const payload = {
                 id: savedMsg.id,
+                channel_id: savedMsg.channel_id,
                 text: savedMsg.text,
                 media_url: savedMsg.media_url,
                 sender: savedMsg.sender,
                 senderId: socket.id,
+                is_edited: false,
+                timestamp: savedMsg.timestamp
+            };
+
+            // Confirma o ID oficial do banco para o remetente
+            socket.emit('chat-message-sent', {
+                tempId: data.tempId,
+                id: savedMsg.id,
+                channel_id: savedMsg.channel_id,
                 timestamp: savedMsg.timestamp
             });
+
+            socket.to(roomName).emit('chat-message', payload);
         } catch (err) {
             console.error('Erro ao persistir mensagem no banco de dados:', err);
             // Em caso de falha transitória no banco, realiza o broadcast
             socket.to(roomName).emit('chat-message', {
                 id: `fallback-${Date.now()}`,
+                channel_id: roomName,
                 text: messageText,
                 media_url: mediaUrl,
                 sender: senderUsername,
                 senderId: socket.id,
+                is_edited: false,
                 timestamp: data.timestamp || Date.now()
             });
+        }
+    });
+
+    // ✏️ Sprint 7: Edição de Mensagem em Tempo Real via Socket.IO
+    socket.on('edit-message', async (data: { id: number | string; text: string; room?: string }) => {
+        if (!userId || !data || !data.id || !data.text) return;
+        const cleanText = sanitizePlainText(String(data.text || '')).substring(0, 2000);
+        if (!cleanText) return;
+
+        try {
+            const existingMsg = await getMessageById(data.id);
+            if (!existingMsg || existingMsg.user_id !== userId) {
+                return;
+            }
+
+            const updated = await updateMessage(data.id, userId, cleanText);
+            if (updated) {
+                const targetRoom = updated.channel_id || data.room;
+                if (targetRoom) {
+                    io.to(targetRoom).emit('message-updated', updated);
+                }
+                socket.emit('message-updated', updated);
+            }
+        } catch (err) {
+            console.error('Erro ao processar socket edit-message:', err);
+        }
+    });
+
+    // 🗑️ Sprint 7: Exclusão de Mensagem em Tempo Real via Socket.IO
+    socket.on('delete-message', async (data: { id: number | string; room?: string }) => {
+        if (!userId || !data || !data.id) return;
+
+        try {
+            const existingMsg = await getMessageById(data.id);
+            if (!existingMsg) return;
+
+            const canDelete = await canUserModerateMessage(userId, data.id);
+            if (!canDelete) return;
+
+            await deleteMessage(data.id);
+            const targetRoom = existingMsg.channel_id || data.room;
+            if (targetRoom) {
+                io.to(targetRoom).emit('message-deleted', {
+                    id: Number(data.id),
+                    channel_id: existingMsg.channel_id
+                });
+            }
+            socket.emit('message-deleted', {
+                id: Number(data.id),
+                channel_id: existingMsg.channel_id
+            });
+        } catch (err) {
+            console.error('Erro ao processar socket delete-message:', err);
         }
     });
 

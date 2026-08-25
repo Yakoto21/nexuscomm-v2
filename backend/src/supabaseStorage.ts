@@ -89,8 +89,43 @@ export async function initSupabaseBucket() {
     }
 }
 
+// 🔒 SEC-07: Whitelist estrita de tipos MIME de imagem para prevenir Stored XSS
+export const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+export const MIME_TO_EXT: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif'
+};
+
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+
 /**
- * Faz upload de imagem (Base64 ou Buffer) para o Supabase Storage ou armazena localmente
+ * Valida estritamente os cabeçalhos Base64 e os tipos MIME permitidos
+ */
+function parseAndValidateBase64Image(base64Data: string): { mimeType: string; ext: string; buffer: Buffer } {
+    const matches = base64Data.match(/^data:([a-zA-Z0-9-+/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+        throw new Error('Formato Base64 inválido. O anexo deve seguir o padrão data:image/...;base64,...');
+    }
+
+    const mimeType = matches[1].toLowerCase().trim();
+    if (!ALLOWED_IMAGE_MIME_TYPES.includes(mimeType)) {
+        throw new Error('Tipo de arquivo não permitido. Apenas imagens seguras (JPG, PNG, WEBP e GIF) são aceitas.');
+    }
+
+    const buffer = Buffer.from(matches[2], 'base64');
+    if (buffer.byteLength > MAX_FILE_SIZE_BYTES) {
+        throw new Error('O arquivo excede o limite máximo permitido de 10MB.');
+    }
+
+    const ext = MIME_TO_EXT[mimeType] || 'png';
+    return { mimeType, ext, buffer };
+}
+
+/**
+ * Faz upload de imagem (Base64) para o Supabase Storage ou armazena localmente
  */
 export async function uploadServerMediaFile(
     serverId: number | string,
@@ -104,20 +139,8 @@ export async function uploadServerMediaFile(
         return base64DataOrUrl;
     }
 
-    // Processa Base64
-    const matches = base64DataOrUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-    let mimeType = 'image/png';
-    let buffer: Buffer;
-
-    if (matches && matches.length === 3) {
-        mimeType = matches[1];
-        buffer = Buffer.from(matches[2], 'base64');
-    } else {
-        // Se for string base64 pura
-        buffer = Buffer.from(base64DataOrUrl, 'base64');
-    }
-
-    const ext = mimeType.split('/')[1] || 'png';
+    // Processa e valida rigorosamente o Base64 contra XSS
+    const { mimeType, ext, buffer } = parseAndValidateBase64Image(base64DataOrUrl);
     const fileName = `${fileType}s/${serverId}_${Date.now()}.${ext}`;
 
     // 1. Tenta upload direto para o Supabase Storage
@@ -175,19 +198,8 @@ export async function uploadUserAvatar(
         return base64DataOrUrl;
     }
 
-    // Processa Base64
-    const matches = base64DataOrUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-    let mimeType = 'image/png';
-    let buffer: Buffer;
-
-    if (matches && matches.length === 3) {
-        mimeType = matches[1];
-        buffer = Buffer.from(matches[2], 'base64');
-    } else {
-        buffer = Buffer.from(base64DataOrUrl, 'base64');
-    }
-
-    const ext = mimeType.split('/')[1] || 'png';
+    // Processa e valida rigorosamente o Base64
+    const { mimeType, ext, buffer } = parseAndValidateBase64Image(base64DataOrUrl);
     const fileName = `avatar_${userId}_${Date.now()}.${ext}`;
 
     // 1. Tenta upload direto para o bucket user_avatars do Supabase Storage
@@ -244,22 +256,12 @@ export async function uploadChatMediaFile(
         return base64DataOrUrl;
     }
 
-    // Processa Base64
-    const matches = base64DataOrUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-    let mimeType = 'image/png';
-    let buffer: Buffer;
+    // Processa e valida rigorosamente o Base64
+    const { mimeType, ext, buffer } = parseAndValidateBase64Image(base64DataOrUrl);
 
-    if (matches && matches.length === 3) {
-        mimeType = matches[1];
-        buffer = Buffer.from(matches[2], 'base64');
-    } else {
-        buffer = Buffer.from(base64DataOrUrl, 'base64');
-    }
-
-    const cleanOriginalName = (originalFileName || 'image.png')
+    const cleanOriginalName = (originalFileName || 'image')
         .replace(/[^a-zA-Z0-9._-]/g, '_')
-        .substring(0, 50);
-    const ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
+        .substring(0, 40);
     const fileName = `${Date.now()}_${cleanOriginalName.endsWith(`.${ext}`) ? cleanOriginalName : `${cleanOriginalName}.${ext}`}`;
 
     // 1. Tenta upload direto para o bucket chat_media do Supabase Storage

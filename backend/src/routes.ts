@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { ensureAuthenticated } from './middlewares/ensureAuthenticated';
+import { ensureServerMember, ensureServerPermission } from './middlewares/serverPermissions';
 import { uploadServerMediaFile, uploadUserAvatar, uploadChatMediaFile } from './supabaseStorage';
 import {
     findUserByUsername,
@@ -9,6 +10,11 @@ import {
     updateUserProfile,
     createUser,
     getMessagesByChannel,
+    getMessageById,
+    updateMessage,
+    deleteMessage,
+    canUserModerateMessage,
+    canUserAccessChannel,
     createDefaultServerRoles,
     createServerRole,
     getServerRoles,
@@ -22,6 +28,9 @@ import {
     respondFriendRequest,
     getDirectMessages,
     saveDirectMessage,
+    createServerInvite,
+    getInviteByCode,
+    acceptServerInvite,
     pool
 } from './db';
 
@@ -106,7 +115,12 @@ routes.post('/login', async (req: Request, res: Response) => {
         }
 
         // 3. Gera o token JWT com o ID e Username do usuário
-        const jwtSecret = process.env.JWT_SECRET || 'nexuscomm_super_secret_jwt_key_2026';
+        const jwtSecret = process.env.JWT_SECRET;
+        if (!jwtSecret) {
+            console.error('ERRO CRÍTICO DE SEGURANÇA: JWT_SECRET não configurado nas variáveis de ambiente.');
+            return res.status(500).json({ error: 'Erro de configuração no servidor de autenticação.' });
+        }
+
         const token = jwt.sign(
             { id: user.id, username: user.username },
             jwtSecret,
@@ -205,14 +219,21 @@ routes.patch('/me', ensureAuthenticated, async (req: Request, res: Response) => 
 // ==========================================
 
 // Buscar histórico de mensagens de um canal ou sala WebRTC (GET /messages/:channelId)
-routes.get('/messages/:channelId', async (req: Request, res: Response) => {
+routes.get('/messages/:channelId', ensureAuthenticated, async (req: Request, res: Response) => {
     try {
+        const userId = Number(req.userId);
         const channelIdParam = req.params.channelId;
         const channelId = Array.isArray(channelIdParam) ? channelIdParam[0] : channelIdParam;
         const limitParam = req.query.limit ? Number(req.query.limit) : 50;
 
         if (!channelId) {
             return res.status(400).json({ error: 'ID do canal é obrigatório.' });
+        }
+
+        // Validação de autorização: o usuário precisa ter acesso a este canal/servidor
+        const hasAccess = await canUserAccessChannel(userId, channelId);
+        if (!hasAccess) {
+            return res.status(403).json({ error: 'Acesso negado ao histórico deste canal.' });
         }
 
         const messages = await getMessagesByChannel(channelId, limitParam);
@@ -225,6 +246,106 @@ routes.get('/messages/:channelId', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Erro ao buscar histórico de mensagens:', error);
         return res.status(500).json({ error: 'Erro ao buscar histórico de mensagens.' });
+    }
+});
+
+// Editar Mensagem do Chat (PATCH /messages/:messageId - Sprint 7)
+routes.patch('/messages/:messageId', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        const messageId = Number(req.params.messageId);
+        const { text, content } = req.body;
+
+        if (isNaN(messageId) || !userId) {
+            return res.status(400).json({ error: 'ID de mensagem ou usuário inválido.' });
+        }
+
+        const rawText = String(text || content || '');
+        const cleanText = sanitizePlainText(rawText).substring(0, 2000);
+
+        if (!cleanText) {
+            return res.status(400).json({ error: 'O conteúdo da mensagem não pode ficar vazio.' });
+        }
+
+        const existingMsg = await getMessageById(messageId);
+        if (!existingMsg) {
+            return res.status(404).json({ error: 'Mensagem não encontrada.' });
+        }
+
+        // Apenas o próprio autor pode editar sua mensagem
+        if (existingMsg.user_id !== userId) {
+            return res.status(403).json({ error: 'Você só pode editar suas próprias mensagens.' });
+        }
+
+        const updatedMsg = await updateMessage(messageId, userId, cleanText);
+        if (!updatedMsg) {
+            return res.status(500).json({ error: 'Falha ao atualizar mensagem.' });
+        }
+
+        // Emite broadcast via Socket.IO para atualizar em tempo real na tela de todos
+        try {
+            const { io } = require('./server');
+            if (io && updatedMsg.channel_id) {
+                io.to(updatedMsg.channel_id).emit('message-updated', updatedMsg);
+            }
+        } catch (sockErr) {
+            // Silencioso em caso de inicialização assíncrona
+        }
+
+        return res.status(200).json({
+            message: 'Mensagem editada com sucesso!',
+            updatedMessage: updatedMsg
+        });
+    } catch (error) {
+        console.error('Erro ao editar mensagem:', error);
+        return res.status(500).json({ error: 'Erro interno ao editar mensagem.' });
+    }
+});
+
+// Apagar Mensagem do Chat (DELETE /messages/:messageId - Sprint 7)
+routes.delete('/messages/:messageId', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        const messageId = Number(req.params.messageId);
+
+        if (isNaN(messageId) || !userId) {
+            return res.status(400).json({ error: 'ID de mensagem ou usuário inválido.' });
+        }
+
+        const existingMsg = await getMessageById(messageId);
+        if (!existingMsg) {
+            return res.status(404).json({ error: 'Mensagem não encontrada.' });
+        }
+
+        // Valida se o usuário é o autor ou se é moderador/administrador/dono do servidor
+        const canDelete = await canUserModerateMessage(userId, messageId);
+        if (!canDelete) {
+            return res.status(403).json({ error: 'Você não tem permissão para apagar esta mensagem.' });
+        }
+
+        const deleted = await deleteMessage(messageId);
+
+        // Emite broadcast via Socket.IO para remover em tempo real na tela de todos
+        try {
+            const { io } = require('./server');
+            if (io && existingMsg.channel_id) {
+                io.to(existingMsg.channel_id).emit('message-deleted', {
+                    id: messageId,
+                    channel_id: existingMsg.channel_id
+                });
+            }
+        } catch (sockErr) {
+            // Silencioso
+        }
+
+        return res.status(200).json({
+            message: 'Mensagem apagada com sucesso!',
+            id: messageId,
+            channel_id: existingMsg.channel_id
+        });
+    } catch (error) {
+        console.error('Erro ao apagar mensagem:', error);
+        return res.status(500).json({ error: 'Erro interno ao apagar mensagem.' });
     }
 });
 
@@ -298,7 +419,7 @@ routes.post('/servers', ensureAuthenticated, async (req: Request, res: Response)
 });
 
 // Atualizar Servidor / Comunidade (PATCH /servers/:serverId)
-routes.patch('/servers/:serverId', ensureAuthenticated, async (req: Request, res: Response) => {
+routes.patch('/servers/:serverId', ensureAuthenticated, ensureServerPermission('can_manage_server'), async (req: Request, res: Response) => {
     try {
         const serverId = Number(req.params.serverId);
         const { nome, icon, icon_url, banner, banner_url } = req.body;
@@ -351,7 +472,7 @@ routes.patch('/servers/:serverId', ensureAuthenticated, async (req: Request, res
 });
 
 // Listar Canais de um Servidor (GET /servers/:serverId/channels)
-routes.get('/servers/:serverId/channels', async (req: Request, res: Response) => {
+routes.get('/servers/:serverId/channels', ensureAuthenticated, ensureServerMember, async (req: Request, res: Response) => {
     try {
         const serverIdParam = req.params.serverId;
         const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
@@ -372,7 +493,7 @@ routes.get('/servers/:serverId/channels', async (req: Request, res: Response) =>
 });
 
 // Criar Canal em um Servidor (POST /servers/:serverId/channels)
-routes.post('/servers/:serverId/channels', ensureAuthenticated, async (req: Request, res: Response) => {
+routes.post('/servers/:serverId/channels', ensureAuthenticated, ensureServerPermission('can_manage_channels'), async (req: Request, res: Response) => {
     try {
         const serverIdParam = req.params.serverId;
         const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
@@ -411,7 +532,7 @@ routes.post('/servers/:serverId/channels', ensureAuthenticated, async (req: Requ
 // ==========================================
 
 // Listar todos os cargos de um servidor (GET /servers/:serverId/roles)
-routes.get('/servers/:serverId/roles', async (req: Request, res: Response) => {
+routes.get('/servers/:serverId/roles', ensureAuthenticated, ensureServerMember, async (req: Request, res: Response) => {
     try {
         const serverIdParam = req.params.serverId;
         const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
@@ -429,7 +550,7 @@ routes.get('/servers/:serverId/roles', async (req: Request, res: Response) => {
 });
 
 // Criar novo cargo em um servidor (POST /servers/:serverId/roles)
-routes.post('/servers/:serverId/roles', ensureAuthenticated, async (req: Request, res: Response) => {
+routes.post('/servers/:serverId/roles', ensureAuthenticated, ensureServerPermission('can_manage_roles'), async (req: Request, res: Response) => {
     try {
         const serverIdParam = req.params.serverId;
         const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
@@ -464,7 +585,7 @@ routes.post('/servers/:serverId/roles', ensureAuthenticated, async (req: Request
 });
 
 // Listar todos os membros de um servidor com seus cargos (GET /servers/:serverId/members)
-routes.get('/servers/:serverId/members', async (req: Request, res: Response) => {
+routes.get('/servers/:serverId/members', ensureAuthenticated, ensureServerMember, async (req: Request, res: Response) => {
     try {
         const serverIdParam = req.params.serverId;
         const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
@@ -506,7 +627,7 @@ routes.post('/servers/:serverId/join', ensureAuthenticated, async (req: Request,
 });
 
 // Atribuir cargo a um membro (POST /servers/:serverId/members/:targetUserId/roles/:roleId)
-routes.post('/servers/:serverId/members/:targetUserId/roles/:roleId', ensureAuthenticated, async (req: Request, res: Response) => {
+routes.post('/servers/:serverId/members/:targetUserId/roles/:roleId', ensureAuthenticated, ensureServerPermission('can_manage_roles'), async (req: Request, res: Response) => {
     try {
         const serverId = Number(req.params.serverId);
         const targetUserId = Number(req.params.targetUserId);
@@ -528,7 +649,7 @@ routes.post('/servers/:serverId/members/:targetUserId/roles/:roleId', ensureAuth
 });
 
 // Remover cargo de um membro (DELETE /servers/:serverId/members/:targetUserId/roles/:roleId)
-routes.delete('/servers/:serverId/members/:targetUserId/roles/:roleId', ensureAuthenticated, async (req: Request, res: Response) => {
+routes.delete('/servers/:serverId/members/:targetUserId/roles/:roleId', ensureAuthenticated, ensureServerPermission('can_manage_roles'), async (req: Request, res: Response) => {
     try {
         const serverId = Number(req.params.serverId);
         const targetUserId = Number(req.params.targetUserId);
@@ -686,6 +807,137 @@ routes.post('/dms/:otherUserId', ensureAuthenticated, async (req: Request, res: 
     } catch (error: any) {
         console.error('Erro ao enviar mensagem direta:', error);
         return res.status(500).json({ error: error?.message || 'Erro ao enviar mensagem direta.' });
+    }
+});
+
+// ==========================================
+// Rotas do Sistema de Convites (Server Invites Sprint)
+// ==========================================
+
+// Gerar novo convite para o servidor (POST /servers/:serverId/invites)
+routes.post('/servers/:serverId/invites', ensureAuthenticated, ensureServerMember, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        const serverIdParam = req.params.serverId;
+        const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
+        const { expires_in_days, max_uses } = req.body;
+
+        if (isNaN(serverId) || !userId) {
+            return res.status(400).json({ error: 'ID do servidor ou usuário inválido.' });
+        }
+
+        const expiresInDays = expires_in_days !== undefined ? Number(expires_in_days) : 7;
+        const maxUsesLimit = max_uses !== undefined && max_uses !== null ? Number(max_uses) : null;
+
+        const invite = await createServerInvite(serverId, userId, expiresInDays, maxUsesLimit);
+
+        const origin = req.get('origin') || `${req.protocol}://${req.get('host')}`;
+        const inviteUrl = `${origin}/?invite=${invite.code}`;
+
+        return res.status(201).json({
+            message: 'Convite gerado com sucesso!',
+            invite: {
+                id: invite.id,
+                code: invite.code,
+                server_id: invite.server_id,
+                created_by: invite.created_by,
+                expires_at: invite.expires_at,
+                max_uses: invite.max_uses,
+                uses: invite.uses,
+                created_at: invite.created_at,
+                inviteUrl
+            }
+        });
+    } catch (error: any) {
+        console.error('Erro ao gerar convite do servidor:', error);
+        return res.status(500).json({ error: error?.message || 'Erro interno ao gerar convite.' });
+    }
+});
+
+// Visualizar detalhes de um convite / Preview (GET /invites/:code)
+routes.get('/invites/:code', async (req: Request, res: Response) => {
+    try {
+        const codeParam = req.params.code;
+        const code = Array.isArray(codeParam) ? codeParam[0] : codeParam;
+
+        if (!code) {
+            return res.status(400).json({ error: 'Código de convite é obrigatório.' });
+        }
+
+        const invite = await getInviteByCode(code);
+        if (!invite) {
+            return res.status(404).json({ error: 'Convite não encontrado ou inválido.' });
+        }
+
+        return res.status(200).json({
+            valid: invite.is_valid,
+            code: invite.code,
+            expires_at: invite.expires_at,
+            is_expired: invite.is_expired,
+            is_max_uses_reached: invite.is_max_uses_reached,
+            server: {
+                id: invite.server_id,
+                nome: invite.server_nome,
+                icon_url: invite.server_icon_url,
+                banner_url: invite.server_banner_url,
+                total_members: invite.total_members
+            },
+            inviter: {
+                username: invite.inviter_username,
+                display_name: invite.inviter_display_name
+            }
+        });
+    } catch (error: any) {
+        console.error('Erro ao buscar detalhes do convite:', error);
+        return res.status(500).json({ error: error?.message || 'Erro ao consultar convite.' });
+    }
+});
+
+// Aceitar convite e entrar no servidor (POST /invites/:code)
+routes.post('/invites/:code', ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        const codeParam = req.params.code;
+        const code = Array.isArray(codeParam) ? codeParam[0] : codeParam;
+
+        if (!code || !userId) {
+            return res.status(400).json({ error: 'Código de convite e autenticação são obrigatórios.' });
+        }
+
+        const result = await acceptServerInvite(code, userId);
+
+        // Notifica via Socket.IO em tempo real (broadcast para atualização instantânea dos membros)
+        try {
+            const { io } = require('./server');
+            if (io && result.server) {
+                const joiningUser = await findUserById(userId);
+                io.emit('member-joined', {
+                    serverId: result.server.id,
+                    server: result.server,
+                    user: {
+                        user_id: userId,
+                        username: joiningUser?.username || 'Usuário',
+                        nickname: joiningUser?.display_name || joiningUser?.username || 'Usuário',
+                        avatar_url: joiningUser?.avatar_url || null,
+                        joined_at: new Date().toISOString(),
+                        roles: [{ nome: '@everyone', cor_hex: '#94a3b8' }]
+                    }
+                });
+            }
+        } catch (sockErr) {
+            console.warn('Aviso ao emitir evento Socket.IO member-joined:', sockErr);
+        }
+
+        return res.status(200).json({
+            message: result.alreadyMember 
+                ? 'Você já é membro deste servidor!' 
+                : 'Você entrou no servidor com sucesso!',
+            alreadyMember: result.alreadyMember,
+            server: result.server
+        });
+    } catch (error: any) {
+        console.error('Erro ao aceitar convite:', error);
+        return res.status(400).json({ error: error?.message || 'Falha ao processar convite.' });
     }
 });
 
