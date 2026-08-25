@@ -208,9 +208,9 @@ routes.patch('/me', ensureAuthenticated, async (req: Request, res: Response) => 
             message: 'Perfil atualizado com sucesso!',
             user: updatedUser
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erro ao atualizar perfil do usuário:', error);
-        return res.status(500).json({ error: 'Erro interno ao atualizar perfil.' });
+        return res.status(500).json({ error: error?.message || 'Erro interno ao atualizar perfil.' });
     }
 });
 
@@ -465,9 +465,9 @@ routes.patch('/servers/:serverId', ensureAuthenticated, ensureServerPermission('
             message: 'Servidor atualizado com sucesso!',
             server: result.rows[0]
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erro ao atualizar servidor:', error);
-        return res.status(500).json({ error: 'Erro ao atualizar servidor.' });
+        return res.status(500).json({ error: error?.message || 'Erro ao atualizar servidor.' });
     }
 });
 

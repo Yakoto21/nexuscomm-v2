@@ -1,12 +1,10 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-import fs from 'fs';
-import path from 'path';
 
 dotenv.config();
 
-// Extrai URL do Supabase do .env ou do DATABASE_URL se disponível
-let supabaseUrl = process.env.SUPABASE_URL;
+// 1. Extração e sanitização da URL do Supabase
+let supabaseUrl = process.env.SUPABASE_URL || '';
 if (!supabaseUrl && process.env.DATABASE_URL) {
     const match = process.env.DATABASE_URL.match(/postgres\.([a-z0-9]+):/i);
     if (match && match[1]) {
@@ -14,78 +12,113 @@ if (!supabaseUrl && process.env.DATABASE_URL) {
     }
 }
 
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 
-                    process.env.SUPABASE_SERVICE_KEY || 
-                    process.env.SUPABASE_ANON_KEY || 
-                    process.env.SUPABASE_KEY || 
-                    '';
-
-let supabase: SupabaseClient | null = null;
-if (supabaseUrl && supabaseKey) {
-    try {
-        supabase = createClient(supabaseUrl, supabaseKey);
-        console.log(`📦 Supabase Storage inicializado para: ${supabaseUrl}`);
-    } catch (err) {
-        console.warn('⚠️ Não foi possível inicializar o cliente Supabase:', err);
-    }
+// Sanitiza URL: remove espaços e barras finais duplicadas
+if (supabaseUrl) {
+    supabaseUrl = supabaseUrl.trim().replace(/\/+$/, '');
 }
 
-const BUCKET_NAME = 'server_media';
-const USER_AVATARS_BUCKET = 'user_avatars';
-const CHAT_MEDIA_BUCKET = 'chat_media';
+// 2. Extração da chave com prioridade estrita para permissões administrativas (service_role no backend)
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
 
-// Garante pastas locais para fallback seguro se os buckets não estiverem acessíveis
-const localUploadsDir = path.join(__dirname, '../public/uploads/server_media');
-const localUserAvatarsDir = path.join(__dirname, '../public/uploads/user_avatars');
-const localChatMediaDir = path.join(__dirname, '../public/uploads/chat_media');
+const supabaseKey = (serviceRoleKey || anonKey || '').trim();
+const keyType = serviceRoleKey ? 'service_role' : (anonKey ? 'anon_key' : 'none');
 
-[localUploadsDir, localUserAvatarsDir, localChatMediaDir].forEach(dir => {
-    if (!fs.existsSync(dir)) {
-        try {
-            fs.mkdirSync(dir, { recursive: true });
-        } catch (e) {
-            // Silêncio
+let supabase: SupabaseClient | null = null;
+
+if (supabaseUrl && supabaseKey) {
+    try {
+        const maskedKey = supabaseKey.length > 12 ? `${supabaseKey.substring(0, 12)}...` : '***';
+        console.log(`🔌 [Supabase Storage] Inicializando cliente... URL: [${supabaseUrl}] | Chave: [${keyType}] (${maskedKey})`);
+        
+        supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: {
+                persistSession: false,
+                autoRefreshToken: false
+            }
+        });
+        
+        console.log(`📦 [Supabase Storage] Cliente Supabase inicializado com sucesso para: ${supabaseUrl}`);
+
+        if (!serviceRoleKey) {
+            console.warn('⚠️ [Supabase Storage] ATENÇÃO: Nenhuma SUPABASE_SERVICE_ROLE_KEY foi configurada no backend. Operações de Storage podem ser bloqueadas por RLS (Row Level Security).');
         }
+    } catch (err: any) {
+        console.error('❌ [Supabase Storage] Falha crítica ao instanciar cliente Supabase:', {
+            message: err?.message,
+            name: err?.name,
+            code: err?.code,
+            cause: err?.cause,
+            stack: err?.stack
+        });
     }
-});
+} else {
+    console.warn(`⚠️ [Supabase Storage] Cliente não inicializado! SUPABASE_URL: [${supabaseUrl || 'NÃO DEFINIDA'}], SUPABASE_KEY: [${supabaseKey ? 'DEFINIDA' : 'NÃO DEFINIDA'}]`);
+}
+
+export const BUCKET_NAME = 'server_media';
+export const USER_AVATARS_BUCKET = 'user_avatars';
+export const CHAT_MEDIA_BUCKET = 'chat_media';
 
 /**
  * Inicializa e garante que os buckets públicos 'server_media', 'user_avatars' e 'chat_media' existam no Supabase Storage
  */
 export async function initSupabaseBucket() {
     if (!supabase) {
-        console.log('ℹ️ Supabase Storage operando em modo híbrido (URL / Storage local fallback).');
+        console.warn('⚠️ [Supabase Storage] Inicialização de buckets ignorada: cliente Supabase não está configurado.');
         return;
     }
+
+    console.log('🔄 [Supabase Storage] Verificando existência de buckets...');
 
     try {
         const { data: buckets, error } = await supabase.storage.listBuckets();
         if (error) {
-            console.warn('⚠️ Aviso ao listar buckets do Supabase Storage:', error.message);
+            console.error('❌ [Supabase Storage] Erro ao listar buckets:', {
+                message: error.message,
+                name: error.name,
+                cause: (error as any).cause,
+                details: error
+            });
             return;
         }
+
+        const bucketNames = buckets?.map(b => b.name) || [];
+        console.log(`📋 [Supabase Storage] Buckets existentes no Supabase: [${bucketNames.join(', ')}]`);
 
         const requiredBuckets = [BUCKET_NAME, USER_AVATARS_BUCKET, CHAT_MEDIA_BUCKET];
 
         for (const bName of requiredBuckets) {
             const bucketExists = buckets?.some(b => b.name === bName);
             if (!bucketExists) {
-                const { error: createError } = await supabase.storage.createBucket(bName, {
+                console.log(`⚙️ [Supabase Storage] Criando bucket público [${bName}]...`);
+                const { data: createData, error: createError } = await supabase.storage.createBucket(bName, {
                     public: true,
                     fileSizeLimit: 10485760 // 10MB
                 });
 
                 if (createError) {
-                    console.warn(`⚠️ Não foi possível criar bucket [${bName}] automaticamente no Supabase:`, createError.message);
+                    console.error(`❌ [Supabase Storage] Erro ao criar bucket [${bName}]:`, {
+                        message: createError.message,
+                        name: createError.name,
+                        cause: (createError as any).cause,
+                        details: createError
+                    });
                 } else {
-                    console.log(`🎉 Bucket público [${bName}] criado com sucesso no Supabase Storage!`);
+                    console.log(`🎉 [Supabase Storage] Bucket público [${bName}] criado com sucesso!`, createData);
                 }
             } else {
-                console.log(`✅ Bucket público [${bName}] verificado no Supabase Storage.`);
+                console.log(`✅ [Supabase Storage] Bucket público [${bName}] verificado e pronto.`);
             }
         }
-    } catch (err) {
-        console.warn('⚠️ Erro ao verificar buckets no Supabase:', err);
+    } catch (err: any) {
+        console.error('❌ [Supabase Storage] Exceção capturada ao verificar/criar buckets:', {
+            message: err?.message,
+            name: err?.name,
+            code: err?.code,
+            cause: err?.cause,
+            stack: err?.stack
+        });
     }
 }
 
@@ -125,7 +158,66 @@ function parseAndValidateBase64Image(base64Data: string): { mimeType: string; ex
 }
 
 /**
- * Faz upload de imagem (Base64) para o Supabase Storage ou armazena localmente
+ * Realiza o upload direto de um arquivo para um bucket do Supabase Storage sem fallback local silencioso
+ */
+async function uploadToBucket(
+    bucketName: string,
+    fileName: string,
+    buffer: Buffer,
+    mimeType: string
+): Promise<string> {
+    if (!supabase) {
+        throw new Error('Supabase Storage não está inicializado. Verifique as credenciais SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no backend.');
+    }
+
+    try {
+        console.log(`📤 [Supabase Storage] Enviando arquivo [${fileName}] para o bucket [${bucketName}] (${buffer.byteLength} bytes)...`);
+        
+        const { data, error } = await supabase.storage
+            .from(bucketName)
+            .upload(fileName, buffer, {
+                contentType: mimeType,
+                upsert: true
+            });
+
+        if (error) {
+            console.error(`❌ [Supabase Storage] Erro no upload para [${bucketName}/${fileName}]:`, {
+                message: error.message,
+                name: error.name,
+                details: error
+            });
+            throw new Error(`Falha no upload do Supabase Storage (${bucketName}): ${error.message}`);
+        }
+
+        if (!data) {
+            throw new Error(`Falha no upload do Supabase Storage (${bucketName}): Nenhum dado retornado.`);
+        }
+
+        const { data: publicUrlData } = supabase.storage
+            .from(bucketName)
+            .getPublicUrl(fileName);
+
+        if (!publicUrlData || !publicUrlData.publicUrl) {
+            throw new Error(`Falha ao obter URL pública para o arquivo [${bucketName}/${fileName}].`);
+        }
+
+        console.log(`☁️ [Supabase Storage] Upload concluído com sucesso para [${bucketName}/${fileName}]: ${publicUrlData.publicUrl}`);
+        return publicUrlData.publicUrl;
+    } catch (err: any) {
+        console.error(`❌ [Supabase Storage] Exceção durante upload para [${bucketName}/${fileName}]:`, {
+            message: err?.message,
+            name: err?.name,
+            code: err?.code,
+            cause: err?.cause,
+            stack: err?.stack,
+            error: err
+        });
+        throw (err instanceof Error ? err : new Error(`Falha na comunicação com o Supabase Storage: ${String(err)}`));
+    }
+}
+
+/**
+ * Faz upload de imagem de servidor (Ícone ou Banner) para o bucket 'server_media' no Supabase Storage
  */
 export async function uploadServerMediaFile(
     serverId: number | string,
@@ -143,45 +235,7 @@ export async function uploadServerMediaFile(
     const { mimeType, ext, buffer } = parseAndValidateBase64Image(base64DataOrUrl);
     const fileName = `${fileType}s/${serverId}_${Date.now()}.${ext}`;
 
-    // 1. Tenta upload direto para o Supabase Storage
-    if (supabase) {
-        try {
-            const { data, error } = await supabase.storage
-                .from(BUCKET_NAME)
-                .upload(fileName, buffer, {
-                    contentType: mimeType,
-                    upsert: true
-                });
-
-            if (!error && data) {
-                const { data: publicUrlData } = supabase.storage
-                    .from(BUCKET_NAME)
-                    .getPublicUrl(fileName);
-
-                if (publicUrlData && publicUrlData.publicUrl) {
-                    console.log(`☁️ [Supabase Storage] Upload concluído para ${fileName}: ${publicUrlData.publicUrl}`);
-                    return publicUrlData.publicUrl;
-                }
-            } else if (error) {
-                console.warn(`⚠️ Erro no upload do Supabase Storage (${error.message}). Utilizando fallback...`);
-            }
-        } catch (err) {
-            console.warn('⚠️ Falha ao tentar upload no Supabase:', err);
-        }
-    }
-
-    // 2. Fallback: Salva na pasta pública estática
-    try {
-        const localFileName = `${fileType}_${serverId}_${Date.now()}.${ext}`;
-        const localFilePath = path.join(localUploadsDir, localFileName);
-        fs.writeFileSync(localFilePath, buffer);
-        const localPublicUrl = `/uploads/server_media/${localFileName}`;
-        console.log(`💾 [Local Media Storage] Arquivo salvo em: ${localPublicUrl}`);
-        return localPublicUrl;
-    } catch (localErr) {
-        console.warn('⚠️ Erro no armazenamento local, retornando Data URI como fallback:', localErr);
-        return base64DataOrUrl;
-    }
+    return await uploadToBucket(BUCKET_NAME, fileName, buffer, mimeType);
 }
 
 /**
@@ -202,44 +256,7 @@ export async function uploadUserAvatar(
     const { mimeType, ext, buffer } = parseAndValidateBase64Image(base64DataOrUrl);
     const fileName = `avatar_${userId}_${Date.now()}.${ext}`;
 
-    // 1. Tenta upload direto para o bucket user_avatars do Supabase Storage
-    if (supabase) {
-        try {
-            const { data, error } = await supabase.storage
-                .from(USER_AVATARS_BUCKET)
-                .upload(fileName, buffer, {
-                    contentType: mimeType,
-                    upsert: true
-                });
-
-            if (!error && data) {
-                const { data: publicUrlData } = supabase.storage
-                    .from(USER_AVATARS_BUCKET)
-                    .getPublicUrl(fileName);
-
-                if (publicUrlData && publicUrlData.publicUrl) {
-                    console.log(`☁️ [Supabase user_avatars] Upload concluído para ${fileName}: ${publicUrlData.publicUrl}`);
-                    return publicUrlData.publicUrl;
-                }
-            } else if (error) {
-                console.warn(`⚠️ Erro no upload user_avatars no Supabase (${error.message}). Utilizando fallback...`);
-            }
-        } catch (err) {
-            console.warn('⚠️ Falha ao tentar upload de avatar no Supabase:', err);
-        }
-    }
-
-    // 2. Fallback: Salva na pasta pública estática local
-    try {
-        const localFilePath = path.join(localUserAvatarsDir, fileName);
-        fs.writeFileSync(localFilePath, buffer);
-        const localPublicUrl = `/uploads/user_avatars/${fileName}`;
-        console.log(`💾 [Local User Avatar Storage] Arquivo salvo em: ${localPublicUrl}`);
-        return localPublicUrl;
-    } catch (localErr) {
-        console.warn('⚠️ Erro no armazenamento local de avatar, retornando Data URI:', localErr);
-        return base64DataOrUrl;
-    }
+    return await uploadToBucket(USER_AVATARS_BUCKET, fileName, buffer, mimeType);
 }
 
 /**
@@ -264,42 +281,5 @@ export async function uploadChatMediaFile(
         .substring(0, 40);
     const fileName = `${Date.now()}_${cleanOriginalName.endsWith(`.${ext}`) ? cleanOriginalName : `${cleanOriginalName}.${ext}`}`;
 
-    // 1. Tenta upload direto para o bucket chat_media do Supabase Storage
-    if (supabase) {
-        try {
-            const { data, error } = await supabase.storage
-                .from(CHAT_MEDIA_BUCKET)
-                .upload(fileName, buffer, {
-                    contentType: mimeType,
-                    upsert: true
-                });
-
-            if (!error && data) {
-                const { data: publicUrlData } = supabase.storage
-                    .from(CHAT_MEDIA_BUCKET)
-                    .getPublicUrl(fileName);
-
-                if (publicUrlData && publicUrlData.publicUrl) {
-                    console.log(`☁️ [Supabase chat_media] Upload concluído para ${fileName}: ${publicUrlData.publicUrl}`);
-                    return publicUrlData.publicUrl;
-                }
-            } else if (error) {
-                console.warn(`⚠️ Erro no upload chat_media no Supabase (${error.message}). Tentando fallback...`);
-            }
-        } catch (err) {
-            console.warn('⚠️ Falha ao tentar upload no Supabase Storage chat_media:', err);
-        }
-    }
-
-    // 2. Fallback: Salva na pasta pública estática local
-    try {
-        const localFilePath = path.join(localChatMediaDir, fileName);
-        fs.writeFileSync(localFilePath, buffer);
-        const localPublicUrl = `/uploads/chat_media/${fileName}`;
-        console.log(`💾 [Local Chat Media Storage] Arquivo salvo em: ${localPublicUrl}`);
-        return localPublicUrl;
-    } catch (localErr) {
-        console.warn('⚠️ Erro no armazenamento local de chat_media, retornando Data URI:', localErr);
-        return base64DataOrUrl;
-    }
+    return await uploadToBucket(CHAT_MEDIA_BUCKET, fileName, buffer, mimeType);
 }
