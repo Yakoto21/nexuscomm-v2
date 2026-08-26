@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { routes } from './routes';
@@ -19,13 +20,47 @@ app.use(cors()); // Permite que o nosso frontend converse com este backend
 app.use(express.json({ limit: '15mb' })); // Suporta upload de imagens em base64 até 15MB
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 
-// Rotas da aplicação
+// Rotas da API da aplicação
 app.use(routes);
 
-// Servir arquivos estáticos da pasta public (para renderizar index.html)
-app.use(express.static('public'));
-app.use(express.static(path.join(__dirname, '../public')));
-app.use(express.static(path.join(__dirname, '../../public')));
+// 1. Resolução dinâmica absoluta para pastas de arquivos estáticos usando path.join()
+const backendPublicDir = path.join(__dirname, '../public');
+const rootPublicDir = path.join(__dirname, '../../public');
+
+// Servir arquivos estáticos (CSS minificado, JS bundle ofuscado, assets)
+app.use(express.static(backendPublicDir));
+app.use(express.static(rootPublicDir));
+
+// 2. Rota raiz (/) servindo index.html com resolução absoluta via path.join()
+app.get('/', (_req, res) => {
+    const backendIndexPath = path.join(backendPublicDir, 'index.html');
+    const rootIndexPath = path.join(rootPublicDir, 'index.html');
+
+    if (fs.existsSync(backendIndexPath)) {
+        return res.sendFile(backendIndexPath);
+    }
+    if (fs.existsSync(rootIndexPath)) {
+        return res.sendFile(rootIndexPath);
+    }
+    return res.status(404).send('index.html não encontrado.');
+});
+
+// 3. Fallback de SPA para navegações diretas do front-end
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io') || req.path.includes('.')) {
+        return next();
+    }
+    const backendIndexPath = path.join(backendPublicDir, 'index.html');
+    const rootIndexPath = path.join(rootPublicDir, 'index.html');
+
+    if (fs.existsSync(backendIndexPath)) {
+        return res.sendFile(backendIndexPath);
+    }
+    if (fs.existsSync(rootIndexPath)) {
+        return res.sendFile(rootIndexPath);
+    }
+    return next();
+});
 
 // Rota de teste/status da API
 app.get('/api/status', (_req, res) => {
