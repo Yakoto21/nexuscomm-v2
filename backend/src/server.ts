@@ -467,9 +467,11 @@ io.on('connection', (socket) => {
         try {
             const savedMsg = await saveDirectMessage(userId, receiverId, content, mediaUrl);
             // Envia confirmação de volta para o remetente
+            socket.emit('dm-message', savedMsg);
             socket.emit('receive-dm', savedMsg);
             socket.emit('direct-message-received', savedMsg);
             // Emite para o destinatário na sua sala pessoal isolada
+            io.to(`user_${receiverId}`).emit('dm-message', savedMsg);
             io.to(`user_${receiverId}`).emit('receive-dm', savedMsg);
             io.to(`user_${receiverId}`).emit('direct-message-received', savedMsg);
             console.log(`✉️ [DM] ${username} -> User ${receiverId}: ${content.substring(0, 30)} ${mediaUrl ? '[Mídia anexada]' : ''}`);

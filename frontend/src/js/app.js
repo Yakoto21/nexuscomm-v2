@@ -457,7 +457,7 @@
             }
         }
 
-        socket.on('authenticated', (data) => {
+        socket.off('authenticated').on('authenticated', (data) => {
             console.log('✅ Identidade confirmada pelo servidor:', data);
             if (data.username && !currentUser) {
                 currentUser = { username: data.username, id: data.userId };
@@ -529,28 +529,29 @@
         // ==========================================
         // 1. Gestão de Visibilidade do Palco Central
         // ==========================================
-        function setViewMode(mode) {
-            currentViewMode = mode;
-            communityWelcomeView.classList.remove('active');
-            mainTextChatView.classList.remove('active');
-            voiceStageView.classList.remove('active');
-
-            if (mode === 'empty') {
-                communityWelcomeView.classList.add('active');
+        const viewModeHandlers = {
+            empty: () => {
+                communityWelcomeView?.classList.add('active');
                 if (controlDock) controlDock.style.display = 'none';
-                if (chatSidebar.classList.contains('open')) toggleChatSidebar(false);
-            } else if (mode === 'text') {
-                mainTextChatView.classList.add('active');
+                if (chatSidebar?.classList.contains('open')) toggleChatSidebar(false);
+            },
+            text: () => {
+                mainTextChatView?.classList.add('active');
                 if (controlDock) controlDock.style.display = 'none';
-                if (chatSidebar.classList.contains('open')) toggleChatSidebar(false);
+                if (chatSidebar?.classList.contains('open')) toggleChatSidebar(false);
                 setTimeout(() => mainChatExpandedInput?.focus(), 100);
-            } else if (mode === 'voice') {
-                voiceStageView.classList.add('active');
+            },
+            voice: () => {
+                voiceStageView?.classList.add('active');
                 if (controlDock) controlDock.style.display = 'flex';
                 updateGridLayout();
             }
+        };
 
-            // Gerencia os docks persistentes de voz em segundo plano (Sprint 6)
+        function setViewMode(mode) {
+            currentViewMode = mode;
+            [communityWelcomeView, mainTextChatView, voiceStageView].forEach(v => v?.classList.remove('active'));
+            viewModeHandlers[mode]?.();
             updatePersistentVoiceDocks();
         }
 
@@ -644,34 +645,26 @@
             }
         });
 
-        // Alternância de Abas nas Configurações
+        // Alternância de Abas nas Configurações (Object Mapping)
+        const settingsTabsConfig = {
+            'overview': { tab: tabSettingsOverview, panel: panelSettingsOverview },
+            'roles-members': { tab: tabSettingsRolesMembers, panel: panelSettingsRolesMembers, load: loadServerRolesAndMembersInSettings },
+            'roles': { tab: tabSettingsRoles, panel: panelSettingsRoles, load: loadServerRolesInSettings },
+            'members': { tab: tabSettingsMembers, panel: panelSettingsMembers, load: loadServerMembersInSettings }
+        };
+
         function switchSettingsTab(tabName) {
-            if (tabSettingsOverview) tabSettingsOverview.classList.remove('active');
-            if (tabSettingsRolesMembers) tabSettingsRolesMembers.classList.remove('active');
-            if (tabSettingsRoles) tabSettingsRoles.classList.remove('active');
-            if (tabSettingsMembers) tabSettingsMembers.classList.remove('active');
+            Object.values(settingsTabsConfig).forEach(({ tab, panel }) => {
+                tab?.classList.remove('active');
+                panel?.classList.remove('active');
+            });
 
-            if (panelSettingsOverview) panelSettingsOverview.classList.remove('active');
-            if (panelSettingsRolesMembers) panelSettingsRolesMembers.classList.remove('active');
-            if (panelSettingsRoles) panelSettingsRoles.classList.remove('active');
-            if (panelSettingsMembers) panelSettingsMembers.classList.remove('active');
+            const target = settingsTabsConfig[tabName];
+            if (!target) return;
 
-            if (tabName === 'overview') {
-                if (tabSettingsOverview) tabSettingsOverview.classList.add('active');
-                if (panelSettingsOverview) panelSettingsOverview.classList.add('active');
-            } else if (tabName === 'roles-members') {
-                if (tabSettingsRolesMembers) tabSettingsRolesMembers.classList.add('active');
-                if (panelSettingsRolesMembers) panelSettingsRolesMembers.classList.add('active');
-                loadServerRolesAndMembersInSettings();
-            } else if (tabName === 'roles') {
-                if (tabSettingsRoles) tabSettingsRoles.classList.add('active');
-                if (panelSettingsRoles) panelSettingsRoles.classList.add('active');
-                loadServerRolesInSettings();
-            } else if (tabName === 'members') {
-                if (tabSettingsMembers) tabSettingsMembers.classList.add('active');
-                if (panelSettingsMembers) panelSettingsMembers.classList.add('active');
-                loadServerMembersInSettings();
-            }
+            target.tab?.classList.add('active');
+            target.panel?.classList.add('active');
+            target.load?.();
         }
 
         if (tabSettingsOverview) tabSettingsOverview.addEventListener('click', () => switchSettingsTab('overview'));
@@ -1735,31 +1728,25 @@
             if (btnServerHome) btnServerHome.classList.remove('active');
         }
 
+        const socialTabsMap = {
+            online: { btn: tabFriendsOnline, showAdd: false },
+            all: { btn: tabFriendsAll, showAdd: false },
+            pending: { btn: tabFriendsPending, showAdd: false },
+            add: { btn: tabFriendsAdd, showAdd: true, focus: true }
+        };
+
         function switchSocialTab(tab) {
             currentSocialTab = tab;
-            [tabFriendsOnline, tabFriendsAll, tabFriendsPending, tabFriendsAdd].forEach(btn => {
-                if (btn) btn.classList.remove('active');
-            });
+            const target = socialTabsMap[tab];
+            if (!target) return;
 
-            if (tab === 'online') {
-                if (tabFriendsOnline) tabFriendsOnline.classList.add('active');
-                if (viewFriendsList) viewFriendsList.classList.remove('hidden');
-                if (viewFriendsAdd) viewFriendsAdd.classList.add('hidden');
-            } else if (tab === 'all') {
-                if (tabFriendsAll) tabFriendsAll.classList.add('active');
-                if (viewFriendsList) viewFriendsList.classList.remove('hidden');
-                if (viewFriendsAdd) viewFriendsAdd.classList.add('hidden');
-            } else if (tab === 'pending') {
-                if (tabFriendsPending) tabFriendsPending.classList.add('active');
-                if (viewFriendsList) viewFriendsList.classList.remove('hidden');
-                if (viewFriendsAdd) viewFriendsAdd.classList.add('hidden');
-            } else if (tab === 'add') {
-                if (tabFriendsAdd) tabFriendsAdd.classList.add('active');
-                if (viewFriendsList) viewFriendsList.classList.add('hidden');
-                if (viewFriendsAdd) viewFriendsAdd.classList.remove('hidden');
-                if (inputAddFriendUsername) inputAddFriendUsername.focus();
-            }
+            [tabFriendsOnline, tabFriendsAll, tabFriendsPending, tabFriendsAdd].forEach(btn => btn?.classList.remove('active'));
+            target.btn?.classList.add('active');
 
+            viewFriendsList?.classList.toggle('hidden', target.showAdd);
+            viewFriendsAdd?.classList.toggle('hidden', !target.showAdd);
+
+            if (target.focus) inputAddFriendUsername?.focus();
             renderFriendsList();
         }
 
@@ -2146,8 +2133,19 @@
         function renderDmMessageItem(msg, shouldScroll = true) {
             if (!dmMessagesList || !msg) return;
 
+            // Prevenção de Duplicação na DOM (Checagem estrita via ID)
+            const messageId = msg.id || msg.tempId;
+            if (messageId && (document.getElementById(String(messageId)) || document.getElementById(`dm-msg-${messageId}`))) {
+                console.log(`⚠️ [DM DOM] Mensagem ${messageId} já existe na tela. Ignorando renderização duplicada.`);
+                return;
+            }
+
             const bubble = document.createElement('div');
             bubble.className = 'dm-message-bubble';
+            if (messageId) {
+                bubble.id = String(messageId);
+                bubble.setAttribute('data-msg-id', String(messageId));
+            }
 
             // Avatar
             const avatar = document.createElement('div');
@@ -2322,11 +2320,27 @@
             }
         }
 
+        // Cache em memória para deduplicação rápida de eventos de DM concorrentes
+        const processedDmMessageIds = new Set();
+
         function handleIncomingDm(msg) {
             if (!msg) return;
+
+            const messageId = msg.id || msg.tempId;
+            if (messageId && processedDmMessageIds.has(String(messageId))) {
+                return;
+            }
+            if (messageId) {
+                processedDmMessageIds.add(String(messageId));
+                if (processedDmMessageIds.size > 500) {
+                    const firstKey = processedDmMessageIds.values().next().value;
+                    processedDmMessageIds.delete(firstKey);
+                }
+            }
+
             console.log('💬 Nova DM recebida:', msg);
 
-            if (activeDmUserId && (msg.sender_id === activeDmUserId || msg.receiver_id === activeDmUserId)) {
+            if (activeDmUserId && (Number(msg.sender_id) === Number(activeDmUserId) || Number(msg.receiver_id) === Number(activeDmUserId))) {
                 renderDmMessageItem(msg, true);
             }
 
@@ -2795,14 +2809,15 @@
             });
         }
 
-        // Socket listeners para Hub Social & DMs & Chamadas Privadas
-        socket.on('receive-dm', handleIncomingDm);
-        socket.on('direct-message-received', handleIncomingDm);
-        socket.on('dm-incoming-call', handleIncomingCall);
-        socket.on('dm-call-response', handlePrivateCallResponse);
-        socket.on('dm-call-ended', handlePrivateCallEnded);
-        socket.on('user-presence', handleUserPresence);
-        socket.on('online-users-list', (onlineList) => {
+        // Socket listeners para Hub Social & DMs & Chamadas Privadas (Deduplicação com socket.off)
+        socket.off('dm-message').on('dm-message', handleIncomingDm);
+        socket.off('receive-dm').on('receive-dm', handleIncomingDm);
+        socket.off('direct-message-received').on('direct-message-received', handleIncomingDm);
+        socket.off('dm-incoming-call').on('dm-incoming-call', handleIncomingCall);
+        socket.off('dm-call-response').on('dm-call-response', handlePrivateCallResponse);
+        socket.off('dm-call-ended').on('dm-call-ended', handlePrivateCallEnded);
+        socket.off('user-presence').on('user-presence', handleUserPresence);
+        socket.off('online-users-list').on('online-users-list', (onlineList) => {
             if (Array.isArray(onlineList)) {
                 onlineUserIdsSet = new Set(onlineList.map(Number));
                 updateFriendsBadges();
@@ -2814,12 +2829,12 @@
             }
         });
 
-        socket.on('friend-request-received', (data) => {
+        socket.off('friend-request-received').on('friend-request-received', (data) => {
             console.log('📬 Nova solicitação de amizade recebida:', data);
             fetchFriendsList();
         });
 
-        socket.on('friend-request-updated', (data) => {
+        socket.off('friend-request-updated').on('friend-request-updated', (data) => {
             console.log('🔄 Atualização de solicitação de amizade:', data);
             fetchFriendsList();
         });
@@ -3069,8 +3084,8 @@
         if (btnDeclineInviteModal) btnDeclineInviteModal.addEventListener('click', closeAcceptInviteModal);
         if (btnConfirmAcceptInvite) btnConfirmAcceptInvite.addEventListener('click', confirmAcceptInviteAction);
 
-        // Socket listener para novo membro entrando no servidor em tempo real
-        socket.on('member-joined', (data) => {
+        // Socket listener para novo membro entrando no servidor em tempo real (Deduplicação)
+        socket.off('member-joined').on('member-joined', (data) => {
             console.log('🎉 Evento member-joined recebido via Socket.IO:', data);
             if (!data) return;
 
@@ -3896,8 +3911,8 @@
         // 6. Eventos do Socket.IO & Fila de Mensagens
         // ==========================================
 
-        // 🔄 Sprint: Personalização de Canais - Eventos em Tempo Real
-        socket.on('channel-updated', (channel) => {
+        // 🔄 Sprint: Personalização de Canais - Eventos em Tempo Real (Deduplicação com socket.off)
+        socket.off('channel-updated').on('channel-updated', (channel) => {
             if (!channel || !activeServerId || Number(activeServerId) !== Number(channel.server_id)) return;
             console.log('🔄 Canal atualizado recebido via WebSocket:', channel);
 
@@ -3931,7 +3946,7 @@
             }
         });
 
-        socket.on('channel-deleted', (data) => {
+        socket.off('channel-deleted').on('channel-deleted', (data) => {
             if (!data || !activeServerId || Number(activeServerId) !== Number(data.server_id)) return;
             console.log('🗑️ Canal excluído recebido via WebSocket:', data);
 
@@ -3959,7 +3974,7 @@
                 }
             }
         });
-        socket.on('connect_error', (err) => {
+        socket.off('connect_error').on('connect_error', (err) => {
             console.warn('🔒 Conexão rejeitada pelo servidor Socket.IO:', err.message);
             if (socketDot) socketDot.classList.remove('connected');
             if (socketStatusText) socketStatusText.innerText = 'Socket: Acesso Negado (401)';
@@ -3967,7 +3982,7 @@
             logoutApp(`Erro de Autenticação no Socket: ${err.message}`);
         });
 
-        socket.on('connect', () => {
+        socket.off('connect').on('connect', () => {
             console.log('🟢 [Socket.IO Conectado] ID:', socket.id);
             if (socketDot) socketDot.classList.add('connected');
             if (socketStatusText) socketStatusText.innerText = `Socket: Conectado (${socket.id.substring(0, 6)}...)`;
@@ -3989,7 +4004,7 @@
             }
         });
 
-        socket.on('disconnect', (reason) => {
+        socket.off('disconnect').on('disconnect', (reason) => {
             console.log('🔴 [Socket.IO Desconectado] Motivo:', reason);
             if (socketDot) socketDot.classList.remove('connected');
             if (socketStatusText) socketStatusText.innerText = 'Socket: Desconectado (Reconectando...)';
@@ -4738,46 +4753,32 @@
                 const dotsHtml = `<span class="typing-dots"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></span>`;
                 if (names.length === 1) {
                     return `${dotsHtml} <span><strong>${escapeHtml(names[0])}</strong> está digitando...</span>`;
-                } else if (names.length === 2) {
-                    return `${dotsHtml} <span><strong>${escapeHtml(names[0])}</strong> e <strong>${escapeHtml(names[1])}</strong> estão digitando...</span>`;
-                } else {
-                    return `${dotsHtml} <span>Várias pessoas estão digitando...</span>`;
                 }
+                if (names.length === 2) {
+                    return `${dotsHtml} <span><strong>${escapeHtml(names[0])}</strong> e <strong>${escapeHtml(names[1])}</strong> estão digitando...</span>`;
+                }
+                return `${dotsHtml} <span>Várias pessoas estão digitando...</span>`;
             };
 
-            // 1. Canal de Texto Principal
-            if (channelTypingIndicator) {
-                if (currentRoom === room && typingUsers.length > 0) {
-                    channelTypingIndicator.innerHTML = renderHtml(typingUsers);
-                    channelTypingIndicator.classList.remove('hidden');
-                } else if (currentRoom === room) {
-                    channelTypingIndicator.innerHTML = '';
-                    channelTypingIndicator.classList.add('hidden');
-                }
-            }
+            const activeDmRoom = getActiveDmRoomName();
+            const typingTargets = [
+                { el: channelTypingIndicator, match: currentRoom === room },
+                { el: sideChatTypingIndicator, match: currentVoiceRoom === room },
+                { el: dmTypingIndicator, match: activeDmRoom === room }
+            ];
 
-            // 2. Chat Lateral da Chamada de Voz
-            if (sideChatTypingIndicator) {
-                if (currentVoiceRoom === room && typingUsers.length > 0) {
-                    sideChatTypingIndicator.innerHTML = renderHtml(typingUsers);
-                    sideChatTypingIndicator.classList.remove('hidden');
-                } else if (currentVoiceRoom === room) {
-                    sideChatTypingIndicator.innerHTML = '';
-                    sideChatTypingIndicator.classList.add('hidden');
-                }
-            }
+            const renderedContent = typingUsers.length > 0 ? renderHtml(typingUsers) : '';
 
-            // 3. Chat de DM
-            if (dmTypingIndicator) {
-                const activeDmRoom = getActiveDmRoomName();
-                if (activeDmRoom === room && typingUsers.length > 0) {
-                    dmTypingIndicator.innerHTML = renderHtml(typingUsers);
-                    dmTypingIndicator.classList.remove('hidden');
-                } else if (activeDmRoom === room) {
-                    dmTypingIndicator.innerHTML = '';
-                    dmTypingIndicator.classList.add('hidden');
+            typingTargets.forEach(({ el, match }) => {
+                if (!el || !match) return;
+                if (renderedContent) {
+                    el.innerHTML = renderedContent;
+                    el.classList.remove('hidden');
+                } else {
+                    el.innerHTML = '';
+                    el.classList.add('hidden');
                 }
-            }
+            });
         }
 
         // Input listeners para digitação em tempo real
@@ -4815,7 +4816,8 @@
             });
         }
 
-        socket.on('chat-message', (data) => {
+        // Deduplicação de Eventos de Chat Socket.io (socket.off antes de socket.on)
+        socket.off('chat-message').on('chat-message', (data) => {
             console.log('💬 Mensagem recebida no chat:', data);
             const myUsername = currentUser?.username;
             const isMine = Boolean(myUsername && data.sender && data.sender === myUsername);
@@ -4840,7 +4842,7 @@
         });
 
         // 🔄 Sprint 7: Sincronização em Tempo Real de Edição de Mensagem
-        socket.on('message-updated', (data) => {
+        socket.off('message-updated').on('message-updated', (data) => {
             if (!data || !data.id) return;
             console.log('✏️ Mensagem atualizada recebida:', data);
             document.querySelectorAll(`[data-msg-id="${data.id}"]`).forEach(group => {
@@ -4860,7 +4862,7 @@
         });
 
         // ✍️ Epic Sprint: Sincronização em Tempo Real de Usuário Digitando
-        socket.on('user-typing', (data) => {
+        socket.off('user-typing').on('user-typing', (data) => {
             if (!data || !data.room) return;
             if (currentUser && Number(data.userId) === Number(currentUser.id)) return;
 
@@ -4896,7 +4898,7 @@
         });
 
         // 🗑️ Sprint 7 & Epic Sprint: Sincronização em Tempo Real de Exclusão de Mensagem
-        socket.on('message-deleted', (data) => {
+        socket.off('message-deleted').on('message-deleted', (data) => {
             if (!data || !data.id) return;
             console.log('🗑️ Mensagem deletada recebida:', data);
             document.querySelectorAll(`[data-msg-id="${data.id}"]`).forEach(group => {
@@ -4908,7 +4910,7 @@
         });
 
         // Confirmação do ID persistido do Banco para o Remetente
-        socket.on('chat-message-sent', (data) => {
+        socket.off('chat-message-sent').on('chat-message-sent', (data) => {
             if (data && data.tempId && data.id) {
                 const tempGroup = document.getElementById(`msg-group-temp-${data.tempId}`) || document.querySelector(`[data-msg-id="${data.tempId}"]`);
                 if (tempGroup) {
@@ -4918,7 +4920,7 @@
             }
         });
 
-        socket.on('room-history', (data) => {
+        socket.off('room-history').on('room-history', (data) => {
             console.log(`📜 Histórico carregado do Supabase para [${data.room}]:`, data.messages);
 
             if (mainChatMessagesList) {
@@ -5816,92 +5818,65 @@
         }
 
         function updateLocalStatus() {
+            // Mapeamento de status principal
+            const currentStatusType = activeVideoType === 'camera' ? 'camera'
+                : activeVideoType === 'screen' ? 'screen'
+                : (micStream && !isMicMuted) ? 'mic'
+                : 'offline';
+
+            const statusMap = {
+                camera: { cls: 'badge-status badge-live', text: 'Câmera Ativa' },
+                screen: { cls: 'badge-status badge-live', text: 'Tela Compartilhada' },
+                mic: { cls: 'badge-status badge-live', text: 'Microfone Ativo' },
+                offline: { cls: 'badge-status badge-offline', text: 'Offline' }
+            };
+
             if (localStatusBadge) {
-                if (activeVideoType === 'camera') {
-                    localStatusBadge.className = 'badge-status badge-live';
-                    localStatusBadge.innerText = 'Câmera Ativa';
-                } else if (activeVideoType === 'screen') {
-                    localStatusBadge.className = 'badge-status badge-live';
-                    localStatusBadge.innerText = 'Tela Compartilhada';
-                } else if (micStream && !isMicMuted) {
-                    localStatusBadge.className = 'badge-status badge-live';
-                    localStatusBadge.innerText = 'Microfone Ativo';
-                } else {
-                    localStatusBadge.className = 'badge-status badge-offline';
-                    localStatusBadge.innerText = 'Offline';
-                }
+                const statusInfo = statusMap[currentStatusType];
+                localStatusBadge.className = statusInfo.cls;
+                localStatusBadge.innerText = statusInfo.text;
             }
 
+            // Status da Câmera Flutuante
+            const hasActiveVideo = activeVideoType === 'camera' || activeVideoType === 'screen';
             if (localFloatCam) {
-                if (activeVideoType === 'camera' || activeVideoType === 'screen') {
-                    localFloatCam.classList.add('active-green');
-                    localFloatCam.classList.remove('active-danger');
-                    localFloatCam.title = activeVideoType === 'camera' ? 'Câmera Ativa' : 'Tela Compartilhada';
-                } else {
-                    localFloatCam.classList.remove('active-green', 'active-danger');
-                    localFloatCam.title = 'Câmera Desligada';
-                }
+                localFloatCam.classList.toggle('active-green', hasActiveVideo);
+                localFloatCam.classList.remove('active-danger');
+                localFloatCam.title = activeVideoType === 'camera' ? 'Câmera Ativa' : (activeVideoType === 'screen' ? 'Tela Compartilhada' : 'Câmera Desligada');
             }
 
-            if (btnCamera) {
-                if (activeVideoType === 'camera') {
-                    btnCamera.classList.remove('btn-active-danger');
-                } else {
-                    btnCamera.classList.add('btn-active-danger');
-                }
-            }
+            // Toggles de Botões
+            btnCamera?.classList.toggle('btn-active-danger', activeVideoType !== 'camera');
+            btnScreen?.classList.toggle('btn-active-highlight', activeVideoType === 'screen');
+            btnMute?.classList.toggle('btn-active-danger', isMicMuted);
+            btnPersistentMute?.classList.toggle('active-danger', isMicMuted);
+            btnPersistentMuteHome?.classList.toggle('active-danger', isMicMuted);
+
+            // Badge do Microfone Local
+            const micBadgeSvg = isMicMuted
+                ? `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>`
+                : `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>`;
 
             if (localFloatMic) {
-                if (isMicMuted) {
-                    localFloatMic.className = 'floating-badge active-danger';
-                    localFloatMic.title = 'Microfone Mutado';
-                    localFloatMic.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>`;
-                } else {
-                    localFloatMic.className = 'floating-badge active-green';
-                    localFloatMic.title = 'Microfone Ativo';
-                    localFloatMic.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>`;
-                }
-            }
-
-            if (btnMute) {
-                if (isMicMuted) btnMute.classList.add('btn-active-danger');
-                else btnMute.classList.remove('btn-active-danger');
-            }
-
-            if (btnPersistentMute) {
-                if (isMicMuted) btnPersistentMute.classList.add('active-danger');
-                else btnPersistentMute.classList.remove('active-danger');
-            }
-
-            if (btnPersistentMuteHome) {
-                if (isMicMuted) btnPersistentMuteHome.classList.add('active-danger');
-                else btnPersistentMuteHome.classList.remove('active-danger');
+                localFloatMic.className = `floating-badge ${isMicMuted ? 'active-danger' : 'active-green'}`;
+                localFloatMic.title = isMicMuted ? 'Microfone Mutado' : 'Microfone Ativo';
+                localFloatMic.innerHTML = micBadgeSvg;
             }
 
             const myCard = document.getElementById('card-local');
             if (myCard) {
                 const myFloatMic = myCard.querySelector('.floating-badge');
                 if (myFloatMic) {
-                    if (isMicMuted) {
-                        myFloatMic.className = 'floating-badge active-danger';
-                        myFloatMic.title = 'Microfone Mutado';
-                    } else {
-                        myFloatMic.className = 'floating-badge active-green';
-                        myFloatMic.title = 'Microfone Ativo';
-                    }
+                    myFloatMic.className = `floating-badge ${isMicMuted ? 'active-danger' : 'active-green'}`;
+                    myFloatMic.title = isMicMuted ? 'Microfone Mutado' : 'Microfone Ativo';
                 }
-            }
-
-            if (btnScreen) {
-                if (activeVideoType === 'screen') btnScreen.classList.add('btn-active-highlight');
-                else btnScreen.classList.remove('btn-active-highlight');
             }
 
             emitMediaStateChange();
         }
 
-        // Eventos WebRTC
-        socket.on('room-users', async (data) => {
+        // Eventos WebRTC (Deduplicação com socket.off)
+        socket.off('room-users').on('room-users', async (data) => {
             console.log('👥 Participantes na sala:', data.users, '| Sala:', data.room);
             const isTargetVoice = (currentVoiceRoom && data.room === currentVoiceRoom) || (isPrivateCallActive && data.room === privateCallRoom);
             if (isTargetVoice || currentViewMode === 'voice') {
@@ -5913,7 +5888,7 @@
             }
         });
 
-        socket.on('user-joined', async (data) => {
+        socket.off('user-joined').on('user-joined', async (data) => {
             console.log('👤 Participante entrou:', data);
             const isTargetVoice = (currentVoiceRoom && (!data.room || data.room === currentVoiceRoom)) || isPrivateCallActive || (currentViewMode === 'voice');
             if (isTargetVoice) {
@@ -5926,7 +5901,7 @@
             }
         });
 
-        socket.on('offer', async (data) => {
+        socket.off('offer').on('offer', async (data) => {
             const offer = data.offer || data;
             const senderId = data.sender;
             if (!offer || !offer.type || !senderId) return;
@@ -5963,7 +5938,7 @@
             }
         });
 
-        socket.on('answer', async (data) => {
+        socket.off('answer').on('answer', async (data) => {
             const answer = data.answer || data;
             const senderId = data.sender;
             if (!answer || !answer.type || !senderId) return;
@@ -5986,7 +5961,7 @@
             }
         });
 
-        socket.on('ice-candidate', async (data) => {
+        socket.off('ice-candidate').on('ice-candidate', async (data) => {
             const candidateData = data.candidate;
             const senderId = data.sender;
             if (!candidateData || !senderId) return;
@@ -6005,7 +5980,7 @@
             }
         });
 
-        socket.on('user-media-state-changed', (data) => {
+        socket.off('user-media-state-changed').on('user-media-state-changed', (data) => {
             const senderId = data.sender;
             const floatMic = document.getElementById(`floatMic-${senderId}`);
             const floatCam = document.getElementById(`floatCam-${senderId}`);
@@ -6072,7 +6047,7 @@
             }
         });
 
-        socket.on('user-left', (data) => {
+        socket.off('user-left').on('user-left', (data) => {
             console.log('🚪 Participante saiu:', data);
             soundManager.play('leave');
             closePeerConnection(data.id);
