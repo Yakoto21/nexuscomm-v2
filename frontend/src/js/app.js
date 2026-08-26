@@ -5395,11 +5395,56 @@
             peerConnections[targetSocketId] = pc;
             iceCandidateQueues[targetSocketId] = [];
 
+            // Flags de controle para sinalização contínua e renegociação dinâmica
+            pc._isNegotiating = false;
+            pc._initialSetup = true;
+
             getOrCreateRemoteCard(targetSocketId, targetUsername);
 
             localStream.getTracks().forEach((track) => {
                 pc.addTrack(track, localStream);
             });
+
+            // 1. Evento onnegotiationneeded: Dispara Offer SDP dinâmica para novos tracks (ex: tela)
+            pc.onnegotiationneeded = async () => {
+                if (pc._initialSetup) {
+                    console.log(`⏳ [WebRTC onnegotiationneeded] Ignorando durante setup inicial para peer [${targetSocketId}]`);
+                    return;
+                }
+                if (pc.signalingState === 'closed') return;
+                if (pc._isNegotiating || pc.signalingState !== 'stable') {
+                    console.log(`⏳ [WebRTC onnegotiationneeded] Negociação postergada para [${targetSocketId}] (estado: ${pc.signalingState}, ocupado: ${pc._isNegotiating})`);
+                    return;
+                }
+
+                try {
+                    pc._isNegotiating = true;
+                    console.log(`🔄 [WebRTC onnegotiationneeded] Disparando renegociação SDP dinâmica para peer [${targetSocketId}]...`);
+                    const offer = await pc.createOffer();
+                    if (pc.signalingState !== 'stable') {
+                        console.warn(`⚠️ [WebRTC onnegotiationneeded] Estado alterado durante createOffer (${pc.signalingState}) para [${targetSocketId}]`);
+                        return;
+                    }
+
+                    await pc.setLocalDescription(offer);
+
+                    const targetRoom = isPrivateCallActive ? privateCallRoom : currentVoiceRoom;
+                    if (socket.connected && targetRoom) {
+                        console.log(`📡 [WebRTC Renegociação] Enviando Offer SDP dinâmica para peer [${targetSocketId}]`);
+                        socket.emit('offer', {
+                            target: targetSocketId,
+                            room: targetRoom,
+                            offer: pc.localDescription,
+                            isRenegotiation: true,
+                            username: currentUser?.username || 'Usuário'
+                        });
+                    }
+                } catch (err) {
+                    console.error(`❌ [WebRTC onnegotiationneeded] Erro ao renegociar com [${targetSocketId}]:`, err);
+                } finally {
+                    pc._isNegotiating = false;
+                }
+            };
 
             pc.onicecandidate = (event) => {
                 const targetRoom = isPrivateCallActive ? privateCallRoom : currentVoiceRoom;
@@ -5422,6 +5467,46 @@
                 });
                 stream.addTrack(event.track);
 
+                // Tratamento de lifecycle da track remota para UI responsiva
+                event.track.onended = () => {
+                    console.log(`⏹️ [Track Remota Finalizada] Peer [${targetSocketId}] (${event.track.kind})`);
+                    if (event.track.kind === 'video') {
+                        const placeholder = document.getElementById(`placeholder-${targetSocketId}`);
+                        const floatCam = document.getElementById(`floatCam-${targetSocketId}`);
+                        if (placeholder) placeholder.style.opacity = '1';
+                        if (floatCam) {
+                            floatCam.classList.remove('active-green');
+                            floatCam.title = 'Câmera Desligada';
+                        }
+                        if (isPrivateCallActive && dmRemotePlaceholder) {
+                            dmRemotePlaceholder.style.opacity = '1';
+                        }
+                    }
+                };
+
+                event.track.onmute = () => {
+                    if (event.track.kind === 'video') {
+                        const placeholder = document.getElementById(`placeholder-${targetSocketId}`);
+                        if (placeholder) placeholder.style.opacity = '1';
+                    }
+                };
+
+                event.track.onunmute = () => {
+                    if (event.track.kind === 'video') {
+                        const placeholder = document.getElementById(`placeholder-${targetSocketId}`);
+                        if (placeholder) placeholder.style.opacity = '0';
+                        const videoEl = document.getElementById(`video-${targetSocketId}`);
+                        if (videoEl) {
+                            videoEl.srcObject = stream;
+                            videoEl.play().catch(e => console.warn('Autoplay video remota (onunmute):', e));
+                        }
+                        if (isPrivateCallActive && dmRemoteVideo) {
+                            dmRemoteVideo.srcObject = stream;
+                            dmRemoteVideo.play().catch(e => console.warn('Autoplay DM remota (onunmute):', e));
+                        }
+                    }
+                };
+
                 // Configura GainNode para controle de volume individual do peer
                 if (event.track.kind === 'audio') {
                     setupRemotePeerAudioGain(targetSocketId, stream);
@@ -5429,8 +5514,9 @@
 
                 // Se estiver em Chamada Privada DM
                 if (isPrivateCallActive) {
-                    if (dmRemoteVideo && dmRemoteVideo.srcObject !== stream) {
+                    if (dmRemoteVideo) {
                         dmRemoteVideo.srcObject = stream;
+                        dmRemoteVideo.play().catch(e => console.warn('Autoplay DM aguardando interação:', e));
                     }
                     if (event.track.kind === 'audio') {
                         setupRemotePeerAudioGain('dm-remote', stream);
@@ -5441,13 +5527,13 @@
                     if (dmCallStatusBadge) {
                         dmCallStatusBadge.textContent = 'Conectado (Ao Vivo)';
                     }
-                    if (dmRemoteVideo) {
-                        dmRemoteVideo.play().catch(e => console.warn('Autoplay DM aguardando interação:', e));
-                    }
                 }
 
                 const videoEl = document.getElementById(`video-${targetSocketId}`);
-                if (videoEl && videoEl.srcObject !== stream) videoEl.srcObject = stream;
+                if (videoEl) {
+                    videoEl.srcObject = stream;
+                    videoEl.play().catch(e => console.warn('Autoplay aguardando interação:', e));
+                }
 
                 const placeholder = document.getElementById(`placeholder-${targetSocketId}`);
                 const floatCam = document.getElementById(`floatCam-${targetSocketId}`);
@@ -5456,12 +5542,8 @@
                     if (floatCam) {
                         floatCam.classList.add('active-green');
                         floatCam.classList.remove('active-danger');
-                        floatCam.title = 'Câmera Ativa';
+                        floatCam.title = 'Vídeo / Tela Ativa';
                     }
-                }
-
-                if (videoEl) {
-                    videoEl.play().catch(e => console.warn('Autoplay aguardando interação:', e));
                 }
             };
 
@@ -5475,6 +5557,7 @@
 
                 if (iceState === 'connected' || iceState === 'completed') {
                     console.log(`✅ [WebRTC Conectado] Malha P2P restabelecida com sucesso com o peer [${targetSocketId}]`);
+                    pc._initialSetup = false;
                     if (isPrivateCallActive && dmCallStatusBadge) {
                         dmCallStatusBadge.textContent = 'Conectado';
                     }
@@ -5515,6 +5598,7 @@
                     console.warn(`⚠️ [WebRTC ConnectionState] Estado '${connState}' com [${targetSocketId}]. Forçando ICE Restart...`);
                     triggerIceRestart(targetSocketId, pc);
                 } else if (connState === 'connected') {
+                    pc._initialSetup = false;
                     console.log(`🎉 [WebRTC P2P Conectado] Peer [${targetSocketId}] ativo na sessão de voz/vídeo.`);
                 }
             };
@@ -5611,6 +5695,7 @@
                 pc.onicecandidate = null;
                 pc.oniceconnectionstatechange = null;
                 pc.onconnectionstatechange = null;
+                pc.onnegotiationneeded = null;
                 pc.close();
                 delete peerConnections[targetSocketId];
             }
@@ -5640,10 +5725,14 @@
             localStream.addTrack(track);
 
             for (const [peerId, pc] of Object.entries(peerConnections)) {
+                if (!pc || pc.signalingState === 'closed') continue;
                 const senders = pc.getSenders();
                 const audioSender = senders.find(s => (s.track && s.track.kind === 'audio') || (!s.track && s.kind === 'audio'));
-                if (audioSender) audioSender.replaceTrack(track);
-                else pc.addTrack(track, localStream);
+                if (audioSender) {
+                    audioSender.replaceTrack(track);
+                } else {
+                    pc.addTrack(track, localStream);
+                }
             }
         }
 
@@ -5652,10 +5741,23 @@
             if (track) localStream.addTrack(track);
 
             for (const [peerId, pc] of Object.entries(peerConnections)) {
+                if (!pc || pc.signalingState === 'closed') continue;
+
                 const senders = pc.getSenders();
                 const videoSender = senders.find(s => (s.track && s.track.kind === 'video') || (!s.track && s.kind === 'video'));
-                if (videoSender) videoSender.replaceTrack(track || null);
-                else if (track) pc.addTrack(track, localStream);
+
+                if (videoSender) {
+                    console.log(`🔄 [WebRTC Sender] Substituindo track de vídeo via replaceTrack para peer [${peerId}]`);
+                    videoSender.replaceTrack(track || null).catch(err => {
+                        console.warn(`⚠️ [WebRTC Sender] Erro no replaceTrack para [${peerId}], tentando fallback addTrack:`, err);
+                        if (track) {
+                            try { pc.addTrack(track, localStream); } catch(e) {}
+                        }
+                    });
+                } else if (track) {
+                    console.log(`➕ [WebRTC Track] Adicionando nova track de vídeo via addTrack para peer [${peerId}] (disparará onnegotiationneeded)`);
+                    pc.addTrack(track, localStream);
+                }
             }
         }
 
@@ -5830,7 +5932,8 @@
             if (!offer || !offer.type || !senderId) return;
 
             try {
-                console.log(`📩 [WebRTC Oferta Recebida] Do peer [${senderId}] | isIceRestart: ${Boolean(data.isIceRestart)}`);
+                const isRenegotiation = Boolean(data.isRenegotiation);
+                console.log(`📩 [WebRTC Oferta Recebida] Do peer [${senderId}] | isRenegotiation: ${isRenegotiation} | isIceRestart: ${Boolean(data.isIceRestart)}`);
                 await getOrCreateMicrophone();
                 const pc = createPeerConnection(senderId, false, data.username);
 
@@ -5845,6 +5948,8 @@
 
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
+
+                pc._initialSetup = false;
 
                 const targetRoom = isPrivateCallActive ? privateCallRoom : currentVoiceRoom;
                 socket.emit('answer', {
@@ -5870,6 +5975,7 @@
                     if (pc.signalingState === 'have-local-offer') {
                         await pc.setRemoteDescription(new RTCSessionDescription(answer));
                         await processIceCandidateQueueForPeer(senderId);
+                        pc._initialSetup = false;
                         console.log(`✅ [WebRTC Negociação Concluída] Descrição remota aplicada para [${senderId}]`);
                     } else {
                         console.warn(`⚠️ [WebRTC Answer Ignorada] Peer [${senderId}] no estado '${pc.signalingState}'`);
@@ -5904,6 +6010,9 @@
             const floatMic = document.getElementById(`floatMic-${senderId}`);
             const floatCam = document.getElementById(`floatCam-${senderId}`);
             const placeholder = document.getElementById(`placeholder-${senderId}`);
+            const placeholderText = document.getElementById(`placeholderText-${senderId}`);
+            const videoEl = document.getElementById(`video-${senderId}`);
+            const stream = remoteStreams[senderId];
 
             if (floatMic) {
                 if (data.isMicMuted) {
@@ -5918,14 +6027,47 @@
             }
 
             if (floatCam) {
-                if (data.isCameraOff) {
+                if (data.isCameraOff || data.activeVideoType === 'none') {
                     floatCam.className = 'floating-badge';
                     floatCam.title = 'Câmera Desligada';
                     if (placeholder) placeholder.style.opacity = '1';
+                    if (placeholderText) placeholderText.innerText = 'Câmera desligada';
+                } else if (data.activeVideoType === 'screen') {
+                    floatCam.className = 'floating-badge active-green';
+                    floatCam.title = 'Tela Compartilhada';
+                    if (placeholder) placeholder.style.opacity = '0';
+                    if (videoEl) {
+                        videoEl.style.transform = 'none'; // Sem espelhamento em compartilhamento de tela
+                        if (stream) videoEl.srcObject = stream;
+                        videoEl.play().catch(e => console.warn('Play tela:', e));
+                    }
                 } else {
                     floatCam.className = 'floating-badge active-green';
                     floatCam.title = 'Câmera Ativa';
                     if (placeholder) placeholder.style.opacity = '0';
+                    if (videoEl) {
+                        videoEl.style.transform = 'scaleX(-1)'; // Espelhamento padrão de câmera
+                        if (stream) videoEl.srcObject = stream;
+                        videoEl.play().catch(e => console.warn('Play câmera:', e));
+                    }
+                }
+            }
+
+            // Atualização dinâmica da interface em chamadas privadas DM
+            if (isPrivateCallActive && (activePrivateCallPeer?.socket_id === senderId || senderId === 'dm-remote')) {
+                if (data.isCameraOff || data.activeVideoType === 'none') {
+                    if (dmRemotePlaceholder) dmRemotePlaceholder.style.opacity = '1';
+                } else {
+                    if (dmRemotePlaceholder) dmRemotePlaceholder.style.opacity = '0';
+                    if (dmRemoteVideo && stream) {
+                        dmRemoteVideo.srcObject = stream;
+                        if (data.activeVideoType === 'screen') {
+                            dmRemoteVideo.style.transform = 'none';
+                        } else {
+                            dmRemoteVideo.style.transform = 'scaleX(-1)';
+                        }
+                        dmRemoteVideo.play().catch(e => console.warn('Play DM:', e));
+                    }
                 }
             }
         });

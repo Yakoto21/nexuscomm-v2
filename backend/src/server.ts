@@ -236,14 +236,16 @@ io.on('connection', (socket) => {
             offer: data.offer || data,
             sender: socket.id,
             username: username,
-            room: data.room
+            room: data.room,
+            isRenegotiation: Boolean(data.isRenegotiation),
+            isIceRestart: Boolean(data.isIceRestart)
         };
 
         if (data.target) {
-            console.log(`📡 Repassando offer de ${socket.id} -> ${data.target}`);
+            console.log(`📡 Repassando offer (${payload.isRenegotiation ? 'Renegociação' : 'Inicial'}) de ${socket.id} -> ${data.target}`);
             io.to(data.target).emit('offer', payload);
         } else if (data.room) {
-            console.log(`📡 Repassando offer de ${socket.id} para a sala: "${data.room}"`);
+            console.log(`📡 Repassando offer (${payload.isRenegotiation ? 'Renegociação' : 'Inicial'}) de ${socket.id} para a sala: "${data.room}"`);
             socket.to(data.room).emit('offer', payload);
         }
     });
