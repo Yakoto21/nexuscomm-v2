@@ -471,6 +471,34 @@
             display: block;
         }
 
+        /* Botão de Configurações do Canal (Sprint: Personalização de Canais) */
+        .btn-channel-settings {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-left: auto;
+            flex-shrink: 0;
+            opacity: 0.75;
+        }
+
+        .channel-item:hover .btn-channel-settings {
+            display: flex;
+        }
+
+        .btn-channel-settings:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.15);
+            opacity: 1;
+            transform: scale(1.15) rotate(45deg);
+        }
+
         /* Barra de Perfil do Usuário na base do Channels Sidebar */
         .channels-user-bar {
             height: 58px;

@@ -116,6 +116,18 @@
         const userBarName = document.getElementById('userBarName');
         const userBarMuteBtn = document.getElementById('userBarMuteBtn');
 
+        // Elementos de Configurações de Canal (Sprint: Personalização de Canais)
+        const modalChannelSettings = document.getElementById('modalChannelSettings');
+        const channelSettingsSubtitle = document.getElementById('channelSettingsSubtitle');
+        const btnCloseChannelSettingsModal = document.getElementById('btnCloseChannelSettingsModal');
+        const formEditChannel = document.getElementById('formEditChannel');
+        const inputEditChannelName = document.getElementById('inputEditChannelName');
+        const channelSettingsAlert = document.getElementById('channelSettingsAlert');
+        const btnCancelEditChannel = document.getElementById('btnCancelEditChannel');
+        const btnSaveChannelName = document.getElementById('btnSaveChannelName');
+        const btnDeleteChannel = document.getElementById('btnDeleteChannel');
+        let editingChannelObj = null;
+
         // Elementos de Convite (Sprint de Convites)
         const btnOpenInviteModal = document.getElementById('btnOpenInviteModal');
         const modalInviteServer = document.getElementById('modalInviteServer');
@@ -3160,6 +3172,16 @@
             const textChannels = channels.filter(c => c.tipo === 'texto');
             const voiceChannels = channels.filter(c => c.tipo === 'voz');
 
+            // Verifica permissão do usuário atual para gerenciar canais
+            const isOwner = Boolean(activeServerObj && currentUser && Number(activeServerObj.dono_id) === Number(currentUser.id));
+            const currentMemberObj = (currentServerMembersList || []).find(m => Number(m.user_id) === Number(currentUser?.id));
+            const currentMemberRoles = Array.isArray(currentMemberObj?.roles) ? currentMemberObj.roles : [];
+            const canManageChannels = isOwner || currentMemberRoles.some(r => {
+                const name = (r.nome || '').toLowerCase();
+                return name === 'admin' || name === 'administrador' || name === 'moderador' ||
+                       r.permissoes?.can_manage_channels || r.permissoes?.can_manage_server;
+            });
+
             if (textChannels.length === 0) {
                 if (textChannelsList) {
                     const emptyDiv = document.createElement('div');
@@ -3183,6 +3205,26 @@
 
                     item.appendChild(iconSpan);
                     item.appendChild(nameSpan);
+
+                    // Ícone de engrenagem flutuante para personalização/moderação do canal (Sprint: Gestão de Canais)
+                    if (canManageChannels) {
+                        const btnGear = document.createElement('button');
+                        btnGear.type = 'button';
+                        btnGear.className = 'btn-channel-settings';
+                        btnGear.title = 'Configurações do Canal';
+                        btnGear.innerHTML = `
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        `;
+                        btnGear.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            openChannelSettingsModal(c);
+                        });
+                        item.appendChild(btnGear);
+                    }
+
                     item.addEventListener('click', () => selectTextChannel(c));
                     if (textChannelsList) textChannelsList.appendChild(item);
                 });
@@ -3215,6 +3257,26 @@
 
                     item.appendChild(iconSpan);
                     item.appendChild(nameSpan);
+
+                    // Ícone de engrenagem flutuante para personalização/moderação do canal (Sprint: Gestão de Canais)
+                    if (canManageChannels) {
+                        const btnGear = document.createElement('button');
+                        btnGear.type = 'button';
+                        btnGear.className = 'btn-channel-settings';
+                        btnGear.title = 'Configurações do Canal';
+                        btnGear.innerHTML = `
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        `;
+                        btnGear.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            openChannelSettingsModal(c);
+                        });
+                        item.appendChild(btnGear);
+                    }
+
                     item.addEventListener('click', () => selectVoiceChannel(c));
                     if (voiceChannelsList) voiceChannelsList.appendChild(item);
                 });
@@ -3716,11 +3778,187 @@
             });
         }
 
+        // ==========================================
+        // Gestão e Personalização de Canais (Sprint: Personalização de Canais)
+        // ==========================================
+        function openChannelSettingsModal(channel) {
+            if (!channel) return;
+            editingChannelObj = channel;
+            if (channelSettingsSubtitle) channelSettingsSubtitle.textContent = `#${channel.nome} (${channel.tipo === 'texto' ? 'Texto' : 'Voz'})`;
+            if (inputEditChannelName) inputEditChannelName.value = channel.nome;
+            if (channelSettingsAlert) channelSettingsAlert.style.display = 'none';
+            if (modalChannelSettings) modalChannelSettings.style.display = 'flex';
+            setTimeout(() => inputEditChannelName?.focus(), 100);
+        }
+
+        function closeChannelSettingsModal() {
+            editingChannelObj = null;
+            if (modalChannelSettings) modalChannelSettings.style.display = 'none';
+        }
+
+        if (btnCloseChannelSettingsModal) btnCloseChannelSettingsModal.addEventListener('click', closeChannelSettingsModal);
+        if (btnCancelEditChannel) btnCancelEditChannel.addEventListener('click', closeChannelSettingsModal);
+
+        if (formEditChannel) {
+            formEditChannel.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!editingChannelObj) return;
+
+                const newName = (inputEditChannelName?.value || '').trim();
+                if (!newName) return;
+
+                try {
+                    if (btnSaveChannelName) {
+                        btnSaveChannelName.disabled = true;
+                        btnSaveChannelName.innerText = 'Salvando...';
+                    }
+
+                    const res = await fetch(`/api/channels/${editingChannelObj.id}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({ nome: newName })
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao renomear canal');
+
+                    closeChannelSettingsModal();
+                    await fetchServerChannels(activeServerId);
+                } catch (err) {
+                    if (channelSettingsAlert) {
+                        channelSettingsAlert.className = 'auth-alert error';
+                        channelSettingsAlert.innerText = err.message;
+                        channelSettingsAlert.style.display = 'block';
+                    }
+                } finally {
+                    if (btnSaveChannelName) {
+                        btnSaveChannelName.disabled = false;
+                        btnSaveChannelName.innerText = 'Salvar Alterações';
+                    }
+                }
+            });
+        }
+
+        if (btnDeleteChannel) {
+            btnDeleteChannel.addEventListener('click', async () => {
+                if (!editingChannelObj) return;
+                if (!confirm(`Tem certeza que deseja excluir permanentemente o canal #${editingChannelObj.nome}? Esta ação não pode ser desfeita.`)) {
+                    return;
+                }
+
+                try {
+                    btnDeleteChannel.disabled = true;
+                    btnDeleteChannel.innerText = 'Excluindo...';
+
+                    const res = await fetch(`/api/channels/${editingChannelObj.id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao excluir canal');
+
+                    const deletedChannelId = editingChannelObj.id;
+                    closeChannelSettingsModal();
+                    await fetchServerChannels(activeServerId);
+
+                    // Se o canal excluído era o que estava ativo, seleciona o primeiro restante
+                    if (activeChannelId === deletedChannelId) {
+                        const remaining = loadedChannels.filter(c => c.id !== deletedChannelId);
+                        if (remaining.length > 0) {
+                            if (remaining[0].tipo === 'texto') selectTextChannel(remaining[0]);
+                            else selectVoiceChannel(remaining[0]);
+                        } else {
+                            setViewMode('empty');
+                        }
+                    }
+                } catch (err) {
+                    if (channelSettingsAlert) {
+                        channelSettingsAlert.className = 'auth-alert error';
+                        channelSettingsAlert.innerText = err.message;
+                        channelSettingsAlert.style.display = 'block';
+                    }
+                } finally {
+                    btnDeleteChannel.disabled = false;
+                    btnDeleteChannel.innerText = 'Excluir';
+                }
+            });
+        }
+
         if (userBarMuteBtn) userBarMuteBtn.addEventListener('click', () => toggleMute());
 
         // ==========================================
         // 6. Eventos do Socket.IO & Fila de Mensagens
         // ==========================================
+
+        // 🔄 Sprint: Personalização de Canais - Eventos em Tempo Real
+        socket.on('channel-updated', (channel) => {
+            if (!channel || !activeServerId || Number(activeServerId) !== Number(channel.server_id)) return;
+            console.log('🔄 Canal atualizado recebido via WebSocket:', channel);
+
+            // Atualiza lista local
+            const idx = loadedChannels.findIndex(c => c.id === channel.id);
+            if (idx !== -1) {
+                loadedChannels[idx] = { ...loadedChannels[idx], ...channel };
+            }
+
+            // Atualiza elemento na sidebar
+            const itemEl = document.getElementById(`channel-item-${channel.id}`);
+            if (itemEl) {
+                const nameSpan = itemEl.querySelector('.channel-name');
+                if (nameSpan) nameSpan.textContent = channel.nome;
+            }
+
+            // Se o canal atualizado for o canal ativo no momento, atualiza títulos e salas
+            if (activeChannelId === channel.id) {
+                if (channel.tipo === 'texto') {
+                    if (mainChatChannelName) mainChatChannelName.innerText = channel.nome;
+                    if (mainChatChannelTopic) mainChatChannelTopic.innerText = `Canal de texto da comunidade • #${channel.nome}`;
+                    if (channelWelcomeHeading) channelWelcomeHeading.innerText = `Bem-vindo ao #${channel.nome}!`;
+                    if (channelWelcomeDesc) channelWelcomeDesc.innerText = `Este é o início do canal #${channel.nome}. As mensagens são persistidas no PostgreSQL.`;
+                    if (mainChatExpandedInput) mainChatExpandedInput.placeholder = `Conversar em #${channel.nome}...`;
+                } else {
+                    if (voiceChannelHeading) voiceChannelHeading.innerText = `🔊 Canal de Voz: ${channel.nome}`;
+                    if (chatPanelTitle) chatPanelTitle.innerText = `Chat de Apoio • ${channel.nome}`;
+                    if (persistentVoiceChannelName) persistentVoiceChannelName.innerText = `#${channel.nome}`;
+                    if (persistentVoiceChannelNameHome) persistentVoiceChannelNameHome.innerText = `#${channel.nome}`;
+                }
+            }
+        });
+
+        socket.on('channel-deleted', (data) => {
+            if (!data || !activeServerId || Number(activeServerId) !== Number(data.server_id)) return;
+            console.log('🗑️ Canal excluído recebido via WebSocket:', data);
+
+            // Remove da lista local e da DOM
+            loadedChannels = loadedChannels.filter(c => c.id !== data.id);
+            const itemEl = document.getElementById(`channel-item-${data.id}`);
+            if (itemEl) {
+                itemEl.style.opacity = '0';
+                itemEl.style.transform = 'scale(0.95)';
+                itemEl.style.transition = 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)';
+                setTimeout(() => itemEl.remove(), 200);
+            }
+
+            // Se o canal ativo foi excluído, redireciona
+            if (activeChannelId === data.id) {
+                if (currentVoiceRoom && currentVoiceRoom.includes(data.nome || '')) {
+                    leaveVoiceChannel(true);
+                }
+                const firstRemaining = loadedChannels[0];
+                if (firstRemaining) {
+                    if (firstRemaining.tipo === 'texto') selectTextChannel(firstRemaining);
+                    else selectVoiceChannel(firstRemaining);
+                } else {
+                    setViewMode('empty');
+                }
+            }
+        });
         socket.on('connect_error', (err) => {
             console.warn('🔒 Conexão rejeitada pelo servidor Socket.IO:', err.message);
             if (socketDot) socketDot.classList.remove('connected');

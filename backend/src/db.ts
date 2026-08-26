@@ -1229,3 +1229,59 @@ export async function acceptServerInvite(code: string, userId: number) {
     };
 }
 
+// ==========================================
+// Gestão e Personalização de Canais (Channel Management Sprint)
+// ==========================================
+
+export async function getChannelById(channelId: number) {
+    const res = await pool.query('SELECT * FROM channels WHERE id = $1', [channelId]);
+    return res.rows[0] || null;
+}
+
+export async function updateChannel(channelId: number, nome: string) {
+    const res = await pool.query(
+        'UPDATE channels SET nome = $1 WHERE id = $2 RETURNING *',
+        [nome, channelId]
+    );
+    return res.rows[0] || null;
+}
+
+export async function deleteChannel(channelId: number) {
+    const channel = await getChannelById(channelId);
+    if (!channel) return null;
+
+    // Limpa mensagens associadas ao canal
+    await pool.query(
+        'DELETE FROM messages WHERE channel_id = $1 OR channel_id = $2',
+        [`channel_${channelId}`, channel.nome]
+    );
+
+    const res = await pool.query('DELETE FROM channels WHERE id = $1 RETURNING *', [channelId]);
+    return res.rows[0] || null;
+}
+
+export async function canUserManageChannel(userId: number, channelId: number): Promise<boolean> {
+    const channel = await getChannelById(channelId);
+    if (!channel || !channel.server_id) return false;
+
+    // 1. Verifica se o usuário é o dono do servidor
+    const serverRes = await pool.query('SELECT dono_id FROM servers WHERE id = $1', [channel.server_id]);
+    if (serverRes.rows.length > 0 && serverRes.rows[0].dono_id === userId) {
+        return true;
+    }
+
+    // 2. Verifica se o usuário possui cargo com permissão de can_manage_channels ou can_manage_server ou nome admin/moderador
+    const roles = await getMemberRoles(userId, channel.server_id);
+    if (!roles || roles.length === 0) return false;
+
+    return roles.some((role: any) => {
+        const name = (role.nome || '').toLowerCase();
+        const perms = role.permissoes || {};
+        return perms.can_manage_channels === true ||
+               perms.can_manage_server === true ||
+               name === 'admin' ||
+               name === 'administrador' ||
+               name === 'moderador';
+    });
+}
+

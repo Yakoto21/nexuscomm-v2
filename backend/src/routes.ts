@@ -31,6 +31,10 @@ import {
     createServerInvite,
     getInviteByCode,
     acceptServerInvite,
+    getChannelById,
+    updateChannel,
+    deleteChannel,
+    canUserManageChannel,
     pool
 } from './db';
 
@@ -524,6 +528,117 @@ routes.post('/servers/:serverId/channels', ensureAuthenticated, ensureServerPerm
     } catch (error) {
         console.error('Erro ao criar canal no servidor:', error);
         return res.status(500).json({ error: 'Erro ao criar canal.' });
+    }
+});
+
+// ==========================================
+// Gestão de Canais: Renomear e Excluir (PATCH & DELETE /api/channels/:id)
+// ==========================================
+
+// Renomear Canal (PATCH /api/channels/:id)
+routes.patch(['/api/channels/:id', '/channels/:id'], ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        const channelIdParam = req.params.id;
+        const channelId = Number(Array.isArray(channelIdParam) ? channelIdParam[0] : channelIdParam);
+        const { nome } = req.body;
+
+        if (isNaN(channelId) || isNaN(userId)) {
+            return res.status(400).json({ error: 'ID do canal ou usuário inválido.' });
+        }
+
+        if (!nome || typeof nome !== 'string') {
+            return res.status(400).json({ error: 'O novo nome do canal é obrigatório.' });
+        }
+
+        const cleanName = sanitizePlainText(nome).toLowerCase().replace(/\s+/g, '-').substring(0, 100);
+        if (!cleanName) {
+            return res.status(400).json({ error: 'O nome do canal é inválido.' });
+        }
+
+        const channel = await getChannelById(channelId);
+        if (!channel) {
+            return res.status(404).json({ error: 'Canal não encontrado.' });
+        }
+
+        const canManage = await canUserManageChannel(userId, channelId);
+        if (!canManage) {
+            return res.status(403).json({ error: 'Você não tem permissão para personalizar este canal.' });
+        }
+
+        const updated = await updateChannel(channelId, cleanName);
+
+        // Notifica via Socket.IO em tempo real
+        try {
+            const { io } = require('./server');
+            if (io && updated) {
+                io.emit('channel-updated', {
+                    id: updated.id,
+                    server_id: updated.server_id,
+                    nome: updated.nome,
+                    tipo: updated.tipo
+                });
+            }
+        } catch (sockErr) {
+            console.warn('Aviso ao emitir channel-updated via Socket.IO:', sockErr);
+        }
+
+        return res.status(200).json({
+            message: 'Canal renomeado com sucesso!',
+            channel: updated
+        });
+    } catch (error: any) {
+        console.error('Erro ao renomear canal:', error);
+        return res.status(500).json({ error: error?.message || 'Erro ao renomear canal.' });
+    }
+});
+
+// Excluir Canal (DELETE /api/channels/:id)
+routes.delete(['/api/channels/:id', '/channels/:id'], ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        const channelIdParam = req.params.id;
+        const channelId = Number(Array.isArray(channelIdParam) ? channelIdParam[0] : channelIdParam);
+
+        if (isNaN(channelId) || isNaN(userId)) {
+            return res.status(400).json({ error: 'ID do canal ou usuário inválido.' });
+        }
+
+        const channel = await getChannelById(channelId);
+        if (!channel) {
+            return res.status(404).json({ error: 'Canal não encontrado.' });
+        }
+
+        const canManage = await canUserManageChannel(userId, channelId);
+        if (!canManage) {
+            return res.status(403).json({ error: 'Você não tem permissão para excluir este canal.' });
+        }
+
+        const deleted = await deleteChannel(channelId);
+
+        // Notifica via Socket.IO em tempo real
+        try {
+            const { io } = require('./server');
+            if (io && deleted) {
+                io.emit('channel-deleted', {
+                    id: channelId,
+                    server_id: deleted.server_id,
+                    nome: deleted.nome,
+                    tipo: deleted.tipo
+                });
+            }
+        } catch (sockErr) {
+            console.warn('Aviso ao emitir channel-deleted via Socket.IO:', sockErr);
+        }
+
+        return res.status(200).json({
+            message: 'Canal excluído com sucesso!',
+            id: channelId,
+            server_id: deleted?.server_id
+        });
+    } catch (error: any) {
+        console.error('Erro ao excluir canal:', error);
+        return res.status(500).json({ error: error?.message || 'Erro ao excluir canal.' });
     }
 });
 
