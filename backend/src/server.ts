@@ -45,8 +45,11 @@ app.get('/', (_req, res) => {
     return res.status(404).send('index.html não encontrado.');
 });
 
-// 3. Fallback de SPA para navegações diretas do front-end
-app.get('*', (req, res, next) => {
+// 3. Fallback genérico para SPA (compatível com Express 5 / path-to-regexp)
+app.use((req, res, next) => {
+    if (req.method !== 'GET') {
+        return next();
+    }
     if (req.path.startsWith('/api') || req.path.startsWith('/socket.io') || req.path.includes('.')) {
         return next();
     }
