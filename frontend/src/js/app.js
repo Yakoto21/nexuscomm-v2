@@ -97,6 +97,19 @@
         const gifCacheMap = new Map();
         let gifSearchDebounceTimer = null;
 
+        // Elementos do Popout de Perfil / Menu de Contexto (Sprint: Expansão Global de Amizades)
+        const userProfilePopout = document.getElementById('userProfilePopout');
+        const btnCloseUserProfilePopout = document.getElementById('btnCloseUserProfilePopout');
+        const popoutUserAvatar = document.getElementById('popoutUserAvatar');
+        const popoutUserAvatarPlaceholder = document.getElementById('popoutUserAvatarPlaceholder');
+        const popoutUserStatusDot = document.getElementById('popoutUserStatusDot');
+        const popoutUserDisplayName = document.getElementById('popoutUserDisplayName');
+        const popoutUserUsername = document.getElementById('popoutUserUsername');
+        const popoutUserStatusText = document.getElementById('popoutUserStatusText');
+        const btnPopoutFriendAction = document.getElementById('btnPopoutFriendAction');
+        const btnPopoutStartDm = document.getElementById('btnPopoutStartDm');
+        let currentPopoutTarget = null;
+
         const voiceStageView = document.getElementById('voiceStageView');
         const voiceChannelHeading = document.getElementById('voiceChannelHeading');
         const voiceParticipantsCount = document.getElementById('voiceParticipantsCount');
@@ -1779,6 +1792,12 @@
                     updateFriendsBadges();
                     renderFriendsList();
                     renderDirectMessagesList();
+                    if (currentServerMembersList && currentServerMembersList.length > 0) {
+                        renderServerMembersSidebar(currentServerMembersList);
+                    }
+                    if (currentPopoutTarget && userProfilePopout && !userProfilePopout.classList.contains('hidden')) {
+                        updatePopoutFriendButton(currentPopoutTarget.userId, currentPopoutTarget.username);
+                    }
                 }
             } catch (err) {
                 console.warn('Aviso ao carregar amigos:', err);
@@ -2181,6 +2200,28 @@
                 avatar.textContent = getServerInitials(authorName);
             }
 
+            // Handler de clique para abrir o Popout de Perfil
+            const handleDmAuthorClick = (e) => {
+                e.stopPropagation();
+                const isMine = msg.sender_id === currentUser?.id;
+                const targetId = isMine ? currentUser?.id : (activeDmFriendObj?.id || msg.sender_id);
+                const targetUsername = isMine ? currentUser?.username : (activeDmFriendObj?.username || msg.sender_username);
+                const targetDisplayName = isMine ? (currentUser?.display_name || currentUser?.username) : (activeDmFriendObj?.display_name || msg.sender_display_name || authorName);
+                const targetAvatar = isMine ? currentUser?.avatar_url : (activeDmFriendObj?.avatar_url || msg.sender_avatar_url);
+
+                openUserProfilePopout({
+                    userId: targetId,
+                    username: targetUsername,
+                    displayName: targetDisplayName,
+                    avatarUrl: targetAvatar,
+                    isMine: isMine
+                }, e.currentTarget);
+            };
+
+            avatar.style.cursor = 'pointer';
+            avatar.title = 'Ver perfil';
+            avatar.addEventListener('click', handleDmAuthorClick);
+
             // Conteúdo
             const wrap = document.createElement('div');
             wrap.className = 'dm-message-content-wrap';
@@ -2189,8 +2230,10 @@
             header.className = 'dm-message-header';
 
             const authorSpan = document.createElement('span');
-            authorSpan.className = 'dm-message-author';
+            authorSpan.className = 'dm-message-author message-author-clickable';
+            authorSpan.title = 'Ver perfil';
             authorSpan.textContent = authorName;
+            authorSpan.addEventListener('click', handleDmAuthorClick);
 
             const timeSpan = document.createElement('span');
             timeSpan.className = 'dm-message-timestamp';
@@ -2679,9 +2722,11 @@
             }
         }
 
-        async function sendFriendRequestAction(targetUsername) {
-            if (!targetUsername || !authToken) return;
-            if (addFriendAlert) {
+        async function sendFriendRequestAction(targetUsername, targetUserId = null) {
+            if ((!targetUsername && !targetUserId) || !authToken) return null;
+            const isSocialTabOpen = Boolean(viewSocialHub && !viewSocialHub.classList.contains('hidden'));
+
+            if (addFriendAlert && isSocialTabOpen) {
                 addFriendAlert.className = 'auth-alert';
                 addFriendAlert.textContent = 'Enviando pedido de amizade...';
                 addFriendAlert.style.display = 'block';
@@ -2694,20 +2739,23 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
-                    body: JSON.stringify({ target_username: targetUsername })
+                    body: JSON.stringify({
+                        target_username: targetUsername || undefined,
+                        target_user_id: targetUserId || undefined
+                    })
                 });
 
                 const data = await res.json();
                 if (!res.ok) {
-                    if (addFriendAlert) {
+                    if (addFriendAlert && isSocialTabOpen) {
                         addFriendAlert.className = 'auth-alert error';
                         addFriendAlert.textContent = data.error || 'Não foi possível enviar o pedido de amizade.';
                         addFriendAlert.style.display = 'block';
                     }
-                    return;
+                    throw new Error(data.error || 'Não foi possível enviar o pedido de amizade.');
                 }
 
-                if (addFriendAlert) {
+                if (addFriendAlert && isSocialTabOpen) {
                     addFriendAlert.className = 'auth-alert success';
                     addFriendAlert.textContent = data.message || 'Pedido de amizade enviado com sucesso!';
                     addFriendAlert.style.display = 'block';
@@ -2716,16 +2764,21 @@
                 if (inputAddFriendUsername) inputAddFriendUsername.value = '';
 
                 // Emite sinal via Socket para atualização em tempo real
-                socket.emit('friend-request-sent', { targetUserId: data.friendship?.user_id_2 });
+                const recipientId = data.friendship?.user_id_2 || targetUserId;
+                if (recipientId) {
+                    socket.emit('friend-request-sent', { targetUserId: recipientId });
+                }
 
                 await fetchFriendsList();
+                return data;
             } catch (err) {
                 console.error('Erro ao enviar pedido de amizade:', err);
-                if (addFriendAlert) {
+                if (addFriendAlert && isSocialTabOpen) {
                     addFriendAlert.className = 'auth-alert error';
-                    addFriendAlert.textContent = 'Erro de conexão com o servidor.';
+                    addFriendAlert.textContent = err.message || 'Erro de conexão com o servidor.';
                     addFriendAlert.style.display = 'block';
                 }
+                throw err;
             }
         }
 
@@ -2749,6 +2802,213 @@
                 console.error('Erro ao responder solicitação de amizade:', err);
             }
         }
+
+        // ==========================================
+        // Sprint: Expansão Global de Amizades (Helper & Popout Controller)
+        // ==========================================
+        function getFriendshipStatus(userId, username) {
+            if (!currentUser) return 'self';
+            const numTargetId = userId ? Number(userId) : null;
+            const cleanUsername = username ? String(username).toLowerCase().trim() : null;
+
+            if (numTargetId && Number(currentUser.id) === numTargetId) return 'self';
+            if (cleanUsername && String(currentUser.username).toLowerCase().trim() === cleanUsername) return 'self';
+
+            const accepted = cachedFriendships.accepted || [];
+            const isAccepted = accepted.some(f => {
+                if (numTargetId && Number(f.id) === numTargetId) return true;
+                if (cleanUsername && String(f.username || '').toLowerCase().trim() === cleanUsername) return true;
+                return false;
+            });
+            if (isAccepted) return 'accepted';
+
+            const outgoing = cachedFriendships.pending_outgoing || [];
+            const isOutgoing = outgoing.some(f => {
+                if (numTargetId && (Number(f.id) === numTargetId || Number(f.user_id_2) === numTargetId)) return true;
+                if (cleanUsername && String(f.username || '').toLowerCase().trim() === cleanUsername) return true;
+                return false;
+            });
+            if (isOutgoing) return 'pending_outgoing';
+
+            const incoming = cachedFriendships.pending_incoming || [];
+            const isIncoming = incoming.some(f => {
+                if (numTargetId && (Number(f.id) === numTargetId || Number(f.user_id_1) === numTargetId)) return true;
+                if (cleanUsername && String(f.username || '').toLowerCase().trim() === cleanUsername) return true;
+                return false;
+            });
+            if (isIncoming) return 'pending_incoming';
+
+            return 'none';
+        }
+
+        function openUserProfilePopout(user, triggerEl) {
+            if (!user || !userProfilePopout) return;
+            currentPopoutTarget = user;
+
+            const displayName = user.displayName || user.display_name || user.nickname || user.username || 'Usuário';
+            const username = user.username || '';
+            const avatarUrl = user.avatarUrl || user.avatar_url || null;
+            const isOnline = Boolean(user.isOnline || (user.userId && onlineUserIdsSet.has(Number(user.userId))));
+
+            if (popoutUserDisplayName) popoutUserDisplayName.textContent = displayName;
+            if (popoutUserUsername) popoutUserUsername.textContent = username ? `@${username}` : '';
+
+            if (avatarUrl && popoutUserAvatar) {
+                popoutUserAvatar.src = avatarUrl;
+                popoutUserAvatar.classList.remove('hidden');
+                if (popoutUserAvatarPlaceholder) popoutUserAvatarPlaceholder.classList.add('hidden');
+            } else {
+                if (popoutUserAvatar) popoutUserAvatar.classList.add('hidden');
+                if (popoutUserAvatarPlaceholder) {
+                    popoutUserAvatarPlaceholder.textContent = getServerInitials(displayName);
+                    popoutUserAvatarPlaceholder.classList.remove('hidden');
+                }
+            }
+
+            if (popoutUserStatusDot) {
+                popoutUserStatusDot.className = `popout-status-dot ${isOnline ? 'online' : 'offline'}`;
+            }
+            if (popoutUserStatusText) {
+                popoutUserStatusText.textContent = isOnline ? 'Online' : 'Desconectado';
+                popoutUserStatusText.style.color = isOnline ? '#4ade80' : '#94a3b8';
+            }
+
+            updatePopoutFriendButton(user.userId, username);
+
+            // Configura botão de mensagem direta no popout
+            if (btnPopoutStartDm) {
+                const isSelf = user.isMine || (currentUser && (Number(currentUser.id) === Number(user.userId) || currentUser.username === username));
+                btnPopoutStartDm.classList.toggle('hidden', Boolean(isSelf));
+                btnPopoutStartDm.onclick = () => {
+                    closeUserProfilePopout();
+                    const targetFriendObj = (cachedFriendships.accepted || []).find(f => (user.userId && Number(f.id) === Number(user.userId)) || (username && f.username === username)) || {
+                        id: user.userId || 0,
+                        username: username,
+                        display_name: displayName,
+                        avatar_url: avatarUrl
+                    };
+                    openDirectMessageChat(targetFriendObj);
+                };
+            }
+
+            // Exibe e calcula posição inteligente na viewport
+            userProfilePopout.classList.remove('hidden');
+
+            if (triggerEl && typeof triggerEl.getBoundingClientRect === 'function') {
+                const rect = triggerEl.getBoundingClientRect();
+                const popoutWidth = 300;
+                const popoutHeight = 220;
+
+                let left = rect.right + 12;
+                let top = rect.top - 10;
+
+                if (left + popoutWidth > window.innerWidth - 12) {
+                    left = rect.left - popoutWidth - 12;
+                }
+                if (left < 12) {
+                    left = Math.max(12, (window.innerWidth - popoutWidth) / 2);
+                }
+                if (top + popoutHeight > window.innerHeight - 12) {
+                    top = window.innerHeight - popoutHeight - 12;
+                }
+                if (top < 12) top = 12;
+
+                userProfilePopout.style.left = `${left}px`;
+                userProfilePopout.style.top = `${top}px`;
+            } else {
+                userProfilePopout.style.left = '50%';
+                userProfilePopout.style.top = '50%';
+                userProfilePopout.style.transform = 'translate(-50%, -50%)';
+            }
+        }
+
+        function updatePopoutFriendButton(userId, username) {
+            if (!btnPopoutFriendAction) return;
+            const status = getFriendshipStatus(userId, username);
+
+            if (status === 'self') {
+                btnPopoutFriendAction.className = 'btn-popout-friend is-self';
+                btnPopoutFriendAction.disabled = true;
+                btnPopoutFriendAction.innerHTML = `<span>Você</span>`;
+                return;
+            }
+
+            if (status === 'accepted') {
+                btnPopoutFriendAction.className = 'btn-popout-friend is-friend';
+                btnPopoutFriendAction.disabled = true;
+                btnPopoutFriendAction.innerHTML = `
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Amigo</span>
+                `;
+                return;
+            }
+
+            if (status === 'pending_outgoing' || status === 'pending_incoming') {
+                btnPopoutFriendAction.className = 'btn-popout-friend is-pending';
+                btnPopoutFriendAction.disabled = true;
+                btnPopoutFriendAction.innerHTML = `
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Pendente</span>
+                `;
+                return;
+            }
+
+            // status === 'none'
+            btnPopoutFriendAction.className = 'btn-popout-friend can-add';
+            btnPopoutFriendAction.disabled = false;
+            btnPopoutFriendAction.innerHTML = `
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+                <span>Adicionar Amigo</span>
+            `;
+
+            btnPopoutFriendAction.onclick = async () => {
+                btnPopoutFriendAction.disabled = true;
+                btnPopoutFriendAction.innerHTML = `
+                    <div class="member-btn-spinner"></div>
+                    <span>Enviando...</span>
+                `;
+                try {
+                    await sendFriendRequestAction(username, userId);
+                    updatePopoutFriendButton(userId, username);
+                    renderServerMembersSidebar(currentServerMembersList);
+                } catch (err) {
+                    console.error('Erro ao enviar pedido de amizade do popout:', err);
+                    updatePopoutFriendButton(userId, username);
+                }
+            };
+        }
+
+        function closeUserProfilePopout() {
+            if (userProfilePopout) {
+                userProfilePopout.classList.add('hidden');
+            }
+            currentPopoutTarget = null;
+        }
+
+        if (btnCloseUserProfilePopout) {
+            btnCloseUserProfilePopout.addEventListener('click', closeUserProfilePopout);
+        }
+
+        // Fechar popout ao clicar fora
+        document.addEventListener('pointerdown', (e) => {
+            if (!userProfilePopout || userProfilePopout.classList.contains('hidden')) return;
+            if (!userProfilePopout.contains(e.target) && !e.target.closest('.message-author-clickable') && !e.target.closest('.dm-message-avatar') && !e.target.closest('.btn-member-friend-action')) {
+                closeUserProfilePopout();
+            }
+        });
+
+        // Fechar popout com a tecla Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && userProfilePopout && !userProfilePopout.classList.contains('hidden')) {
+                closeUserProfilePopout();
+            }
+        });
 
         // Listeners do Hub Social & DM
         if (tabFriendsOnline) tabFriendsOnline.addEventListener('click', () => { closeDirectMessageChat(); switchSocialTab('online'); });
@@ -3614,17 +3874,95 @@
                     card.appendChild(avatarWrap);
                     card.appendChild(infoDiv);
 
-                    // Ação de clique no membro: se for outro usuário, abre chat de DM
-                    card.addEventListener('click', () => {
+                    // Botão de Atalho Rápido de Amizade na Sidebar (Sprint: Expansão Global de Amizades)
+                    if (currentUser && Number(currentUser.id) !== Number(m.user_id)) {
+                        const friendBtn = document.createElement('button');
+                        friendBtn.type = 'button';
+                        friendBtn.className = 'btn-member-friend-action';
+
+                        const friendshipStatus = getFriendshipStatus(m.user_id, m.username);
+
+                        if (friendshipStatus === 'accepted') {
+                            friendBtn.classList.add('is-friend');
+                            friendBtn.disabled = true;
+                            friendBtn.title = 'Vocês já são amigos';
+                            friendBtn.innerHTML = `
+                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span>Amigo</span>
+                            `;
+                        } else if (friendshipStatus === 'pending_outgoing' || friendshipStatus === 'pending_incoming') {
+                            friendBtn.classList.add('is-pending');
+                            friendBtn.disabled = true;
+                            friendBtn.title = 'Solicitação pendente';
+                            friendBtn.innerHTML = `
+                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Pendente</span>
+                            `;
+                        } else {
+                            friendBtn.classList.add('can-add');
+                            friendBtn.disabled = false;
+                            friendBtn.title = `Adicionar @${m.username} como amigo`;
+                            friendBtn.innerHTML = `
+                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                </svg>
+                                <span>Adicionar</span>
+                            `;
+
+                            friendBtn.addEventListener('click', async (e) => {
+                                e.stopPropagation();
+                                friendBtn.disabled = true;
+                                friendBtn.innerHTML = `
+                                    <div class="member-btn-spinner"></div>
+                                    <span>Enviando...</span>
+                                `;
+
+                                try {
+                                    await sendFriendRequestAction(m.username, m.user_id);
+                                    friendBtn.className = 'btn-member-friend-action is-pending';
+                                    friendBtn.disabled = true;
+                                    friendBtn.title = 'Solicitação pendente';
+                                    friendBtn.innerHTML = `
+                                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span>Pendente</span>
+                                    `;
+                                    if (currentPopoutTarget && (currentPopoutTarget.username === m.username || Number(currentPopoutTarget.userId) === Number(m.user_id))) {
+                                        updatePopoutFriendButton(m.user_id, m.username);
+                                    }
+                                } catch (err) {
+                                    console.error('Erro ao enviar pedido de amizade pela barra de membros:', err);
+                                    friendBtn.className = 'btn-member-friend-action can-add';
+                                    friendBtn.disabled = false;
+                                    friendBtn.innerHTML = `
+                                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                        </svg>
+                                        <span>Adicionar</span>
+                                    `;
+                                }
+                            });
+                        }
+
+                        card.appendChild(friendBtn);
+                    }
+
+                    // Ação de clique no membro: se for outro usuário, abre o popout de perfil
+                    card.addEventListener('click', (e) => {
                         if (currentUser && Number(currentUser.id) !== Number(m.user_id)) {
-                            const friendObj = {
-                                id: Number(m.user_id),
+                            openUserProfilePopout({
+                                userId: m.user_id,
                                 username: m.username,
-                                display_name: m.display_name || m.nickname || m.username,
-                                avatar_url: m.avatar_url
-                            };
-                            openHomePanel();
-                            openDirectMessageChat(friendObj);
+                                displayName: m.nickname || m.display_name || m.username,
+                                avatarUrl: m.avatar_url,
+                                isOnline: m.isOnline,
+                                isMine: false
+                            }, card);
                         }
                     });
 
@@ -4606,6 +4944,20 @@
 
             const strong = document.createElement('strong');
             strong.textContent = isMine ? (currentAuthUser ? `${currentAuthUser} (Você)` : 'Você') : (sender || 'Participante');
+            strong.className = 'message-author-clickable';
+            strong.title = isMine ? 'Seu perfil' : `Ver perfil de ${sender || 'usuário'}`;
+            strong.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const member = (currentServerMembersList || []).find(m => m.username === sender || m.display_name === sender);
+                openUserProfilePopout({
+                    userId: member?.user_id,
+                    username: member?.username || sender,
+                    displayName: member?.nickname || member?.display_name || sender,
+                    avatarUrl: member?.avatar_url,
+                    isOnline: member?.isOnline,
+                    isMine: isMine
+                }, e.currentTarget);
+            });
 
             const timeSpan = document.createElement('span');
             timeSpan.textContent = formatTime(timestamp);

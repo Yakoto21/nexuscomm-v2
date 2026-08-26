@@ -838,14 +838,21 @@ routes.get('/friends', ensureAuthenticated, async (req: Request, res: Response) 
 routes.post('/friends/request', ensureAuthenticated, async (req: Request, res: Response) => {
     try {
         const userId = Number(req.userId);
-        const { target_username } = req.body;
+        const { target_username, target_user_id } = req.body;
 
         if (!userId) return res.status(401).json({ error: 'Não autorizado.' });
-        if (!target_username || typeof target_username !== 'string') {
+
+        let resolvedUsername = typeof target_username === 'string' ? target_username.trim() : '';
+        if (!resolvedUsername && target_user_id) {
+            const targetUser = await findUserById(target_user_id);
+            if (targetUser) resolvedUsername = targetUser.username;
+        }
+
+        if (!resolvedUsername) {
             return res.status(400).json({ error: 'Nome de usuário alvo é obrigatório.' });
         }
 
-        const result = await sendFriendRequest(userId, target_username);
+        const result = await sendFriendRequest(userId, resolvedUsername);
         return res.status(200).json({
             message: result.autoAccepted ? 'Pedido aceito mutuamente! Vocês agora são amigos.' : 'Pedido de amizade enviado com sucesso!',
             ...result
