@@ -143,6 +143,18 @@
         const btnToggleMembersSidebar = document.getElementById('btnToggleMembersSidebar');
         let currentServerMembersList = [];
 
+        // Elementos de Indicador de Digitação (Epic Sprint: Interatividade)
+        const channelTypingIndicator = document.getElementById('channelTypingIndicator');
+        const sideChatTypingIndicator = document.getElementById('sideChatTypingIndicator');
+        const dmTypingIndicator = document.getElementById('dmTypingIndicator');
+        const activeTypingUsersMap = new Map();
+        let mainChatTypingTimer = null;
+        let isMainChatTyping = false;
+        let sideChatTypingTimer = null;
+        let isSideChatTyping = false;
+        let dmTypingTimer = null;
+        let isDmTyping = false;
+
         // Elementos da Interface de Administração (Server Settings)
         const serverSettingsOverlay = document.getElementById('serverSettingsOverlay');
         const btnCloseServerSettings = document.getElementById('btnCloseServerSettings');
@@ -2166,7 +2178,7 @@
             if (textContent) {
                 const textDiv = document.createElement('div');
                 textDiv.className = 'dm-message-text';
-                textDiv.textContent = textContent;
+                textDiv.innerHTML = formatMessageTextWithMentions(textContent);
                 wrap.appendChild(textDiv);
             }
 
@@ -2208,6 +2220,8 @@
             const hasMedia = Boolean(pendingDmMedia);
             if (!safeContent && !hasMedia) return;
             if (!activeDmUserId) return;
+
+            stopInputTyping(getActiveDmRoomName(), 'dm');
 
             let uploadedMediaUrl = null;
             if (hasMedia) {
@@ -3993,7 +4007,25 @@
         }
 
         // ==========================================
-        // Sprint 7: Gestão de Mensagens (CRUD de Chat & Hover Actions)
+        // Epic Sprint: Sistema de Menções (@) com Glassmorphism
+        // ==========================================
+        function formatMessageTextWithMentions(text) {
+            if (!text) return '';
+            const safeText = escapeHtml(text);
+            return safeText.replace(/@([a-zA-Z0-9_\-\.]+)/g, (match, mentionedName) => {
+                const myUsername = currentUser?.username || '';
+                const myDisplayName = currentUser?.display_name || '';
+                const isSelfMention = (
+                    mentionedName.toLowerCase() === myUsername.toLowerCase() ||
+                    (myDisplayName && mentionedName.toLowerCase() === myDisplayName.toLowerCase()) ||
+                    mentionedName.toLowerCase() === 'everyone'
+                );
+                return `<span class="mention ${isSelfMention ? 'mention-self' : ''}">@${mentionedName}</span>`;
+            });
+        }
+
+        // ==========================================
+        // Sprint 7 & Epic Sprint: Gestão e Moderação de Mensagens (CRUD & Admin Actions)
         // ==========================================
         function createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited }) {
             const group = document.createElement('div');
@@ -4031,7 +4063,7 @@
             if (text) {
                 bubbleDiv = document.createElement('div');
                 bubbleDiv.className = 'message-bubble';
-                bubbleDiv.textContent = text;
+                bubbleDiv.innerHTML = formatMessageTextWithMentions(text);
                 bubbleDiv.setAttribute('data-bubble-text', text);
                 group.appendChild(bubbleDiv);
             }
@@ -4052,9 +4084,16 @@
                 group.appendChild(imgWrap);
             }
 
-            // Barra de Ações Flutuante (Editar & Apagar)
+            // Barra de Ações Flutuante (Editar & Apagar com verificação de Admin / Moderador / Dono)
             const isOwner = Boolean(activeServerObj && currentUser && Number(activeServerObj.dono_id) === Number(currentUser.id));
-            const canDelete = isMine || isOwner;
+            const currentMemberObj = (currentServerMembersList || []).find(m => Number(m.user_id) === Number(currentUser?.id));
+            const currentMemberRoles = Array.isArray(currentMemberObj?.roles) ? currentMemberObj.roles : [];
+            const isAdmin = currentMemberRoles.some(r => {
+                const name = (r.nome || '').toLowerCase();
+                return name === 'admin' || name === 'administrador' || name === 'moderador' ||
+                       r.permissoes?.can_delete_messages || r.permissoes?.can_manage_server;
+            });
+            const canDelete = isMine || isOwner || isAdmin;
 
             if (isMine || canDelete) {
                 const actionsBar = document.createElement('div');
@@ -4249,7 +4288,7 @@
 
             try {
                 if (actualId && !actualId.startsWith('temp-')) {
-                    const res = await fetch(`/messages/${actualId}`, {
+                    const res = await fetch(`/api/messages/${actualId}`, {
                         method: 'DELETE',
                         headers: {
                             'Authorization': `Bearer ${authToken}`
@@ -4307,8 +4346,16 @@
                     return;
                 }
 
-                if (targetType === 'main') clearMainChatMediaPreview();
-                else clearSideMediaPreview();
+                if (targetType === 'main') {
+                    clearMainChatMediaPreview();
+                    stopInputTyping(currentRoom, 'channel');
+                } else {
+                    clearSideMediaPreview();
+                    stopInputTyping(currentVoiceRoom || currentRoom, 'side');
+                }
+            } else {
+                if (targetType === 'main') stopInputTyping(currentRoom, 'channel');
+                else stopInputTyping(currentVoiceRoom || currentRoom, 'side');
             }
 
             const myUsername = currentUser?.username || 'Você';
@@ -4345,6 +4392,150 @@
                 pendingMessageQueue.push(messageData);
                 console.warn('⚠️ [Message Queue] Socket offline/desconectado. Mensagem guardada na fila de envio automático:', messageData);
             }
+        }
+
+        // ==========================================
+        // Epic Sprint: Indicadores de Digitação (Typing Indicators)
+        // ==========================================
+        function getActiveDmRoomName() {
+            if (privateCallRoom) return privateCallRoom;
+            if (activeDmUserId && currentUser) {
+                const u1 = Math.min(Number(currentUser.id), Number(activeDmUserId));
+                const u2 = Math.max(Number(currentUser.id), Number(activeDmUserId));
+                return `dm_${u1}_${u2}`;
+            }
+            return null;
+        }
+
+        function handleInputTyping(room, type = 'channel') {
+            if (!socket.connected || !room) return;
+
+            if (type === 'channel') {
+                if (!isMainChatTyping) {
+                    isMainChatTyping = true;
+                    socket.emit('typing', { room: room, isTyping: true });
+                }
+                clearTimeout(mainChatTypingTimer);
+                mainChatTypingTimer = setTimeout(() => {
+                    isMainChatTyping = false;
+                    socket.emit('typing', { room: room, isTyping: false });
+                }, 2500);
+            } else if (type === 'side') {
+                if (!isSideChatTyping) {
+                    isSideChatTyping = true;
+                    socket.emit('typing', { room: room, isTyping: true });
+                }
+                clearTimeout(sideChatTypingTimer);
+                sideChatTypingTimer = setTimeout(() => {
+                    isSideChatTyping = false;
+                    socket.emit('typing', { room: room, isTyping: false });
+                }, 2500);
+            } else if (type === 'dm') {
+                if (!isDmTyping) {
+                    isDmTyping = true;
+                    socket.emit('typing', { room: room, isTyping: true });
+                }
+                clearTimeout(dmTypingTimer);
+                dmTypingTimer = setTimeout(() => {
+                    isDmTyping = false;
+                    socket.emit('typing', { room: room, isTyping: false });
+                }, 2500);
+            }
+        }
+
+        function stopInputTyping(room, type = 'channel') {
+            if (!socket.connected || !room) return;
+            if (type === 'channel') {
+                clearTimeout(mainChatTypingTimer);
+                if (isMainChatTyping) {
+                    isMainChatTyping = false;
+                    socket.emit('typing', { room: room, isTyping: false });
+                }
+            } else if (type === 'side') {
+                clearTimeout(sideChatTypingTimer);
+                if (isSideChatTyping) {
+                    isSideChatTyping = false;
+                    socket.emit('typing', { room: room, isTyping: false });
+                }
+            } else if (type === 'dm') {
+                clearTimeout(dmTypingTimer);
+                if (isDmTyping) {
+                    isDmTyping = false;
+                    socket.emit('typing', { room: room, isTyping: false });
+                }
+            }
+        }
+
+        function updateTypingIndicatorsUI(room) {
+            const roomMap = activeTypingUsersMap.get(room);
+            const typingUsers = roomMap ? Array.from(roomMap.values()).map(v => v.name) : [];
+
+            const renderHtml = (names) => {
+                if (!names || names.length === 0) return '';
+                const dotsHtml = `<span class="typing-dots"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></span>`;
+                if (names.length === 1) {
+                    return `${dotsHtml} <span><strong>${escapeHtml(names[0])}</strong> está digitando...</span>`;
+                } else if (names.length === 2) {
+                    return `${dotsHtml} <span><strong>${escapeHtml(names[0])}</strong> e <strong>${escapeHtml(names[1])}</strong> estão digitando...</span>`;
+                } else {
+                    return `${dotsHtml} <span>Várias pessoas estão digitando...</span>`;
+                }
+            };
+
+            // 1. Canal de Texto Principal
+            if (channelTypingIndicator) {
+                if (currentRoom === room && typingUsers.length > 0) {
+                    channelTypingIndicator.innerHTML = renderHtml(typingUsers);
+                    channelTypingIndicator.classList.remove('hidden');
+                } else if (currentRoom === room) {
+                    channelTypingIndicator.innerHTML = '';
+                    channelTypingIndicator.classList.add('hidden');
+                }
+            }
+
+            // 2. Chat Lateral da Chamada de Voz
+            if (sideChatTypingIndicator) {
+                if (currentVoiceRoom === room && typingUsers.length > 0) {
+                    sideChatTypingIndicator.innerHTML = renderHtml(typingUsers);
+                    sideChatTypingIndicator.classList.remove('hidden');
+                } else if (currentVoiceRoom === room) {
+                    sideChatTypingIndicator.innerHTML = '';
+                    sideChatTypingIndicator.classList.add('hidden');
+                }
+            }
+
+            // 3. Chat de DM
+            if (dmTypingIndicator) {
+                const activeDmRoom = getActiveDmRoomName();
+                if (activeDmRoom === room && typingUsers.length > 0) {
+                    dmTypingIndicator.innerHTML = renderHtml(typingUsers);
+                    dmTypingIndicator.classList.remove('hidden');
+                } else if (activeDmRoom === room) {
+                    dmTypingIndicator.innerHTML = '';
+                    dmTypingIndicator.classList.add('hidden');
+                }
+            }
+        }
+
+        // Input listeners para digitação em tempo real
+        if (mainChatExpandedInput) {
+            mainChatExpandedInput.addEventListener('input', () => {
+                if (currentRoom) handleInputTyping(currentRoom, 'channel');
+            });
+        }
+
+        if (chatInput) {
+            chatInput.addEventListener('input', () => {
+                const targetRoom = currentVoiceRoom || currentRoom;
+                if (targetRoom) handleInputTyping(targetRoom, 'side');
+            });
+        }
+
+        if (inputDmMessage) {
+            inputDmMessage.addEventListener('input', () => {
+                const targetRoom = getActiveDmRoomName();
+                if (targetRoom) handleInputTyping(targetRoom, 'dm');
+            });
         }
 
         if (mainChatExpandedForm) {
@@ -4392,7 +4583,7 @@
             document.querySelectorAll(`[data-msg-id="${data.id}"]`).forEach(group => {
                 const bubble = group.querySelector('.message-bubble');
                 if (bubble) {
-                    bubble.textContent = data.text;
+                    bubble.innerHTML = formatMessageTextWithMentions(data.text);
                     bubble.setAttribute('data-bubble-text', data.text);
                 }
                 const meta = group.querySelector('.message-meta');
@@ -4405,7 +4596,43 @@
             });
         });
 
-        // 🗑️ Sprint 7: Sincronização em Tempo Real de Exclusão de Mensagem
+        // ✍️ Epic Sprint: Sincronização em Tempo Real de Usuário Digitando
+        socket.on('user-typing', (data) => {
+            if (!data || !data.room) return;
+            if (currentUser && Number(data.userId) === Number(currentUser.id)) return;
+
+            const room = data.room;
+            if (!activeTypingUsersMap.has(room)) {
+                activeTypingUsersMap.set(room, new Map());
+            }
+
+            const roomMap = activeTypingUsersMap.get(room);
+            const userKey = data.userId || data.username;
+
+            if (data.isTyping) {
+                if (roomMap.has(userKey)) {
+                    clearTimeout(roomMap.get(userKey).timeout);
+                }
+                const timeout = setTimeout(() => {
+                    roomMap.delete(userKey);
+                    updateTypingIndicatorsUI(room);
+                }, 3500);
+
+                roomMap.set(userKey, {
+                    name: data.displayName || data.username || 'Usuário',
+                    timeout
+                });
+            } else {
+                if (roomMap.has(userKey)) {
+                    clearTimeout(roomMap.get(userKey).timeout);
+                    roomMap.delete(userKey);
+                }
+            }
+
+            updateTypingIndicatorsUI(room);
+        });
+
+        // 🗑️ Sprint 7 & Epic Sprint: Sincronização em Tempo Real de Exclusão de Mensagem
         socket.on('message-deleted', (data) => {
             if (!data || !data.id) return;
             console.log('🗑️ Mensagem deletada recebida:', data);

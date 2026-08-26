@@ -941,4 +941,91 @@ routes.post('/invites/:code', ensureAuthenticated, async (req: Request, res: Res
     }
 });
 
+// ==========================================
+// Moderação e Edição de Mensagens (DELETE & PATCH /api/messages/:id)
+// ==========================================
+
+// Excluir mensagem com verificação de cargo de Moderação / Admin / Autor (DELETE /api/messages/:id)
+routes.delete(['/api/messages/:id', '/messages/:id'], ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        const msgIdParam = req.params.id;
+        const messageId = Number(Array.isArray(msgIdParam) ? msgIdParam[0] : msgIdParam);
+
+        if (isNaN(messageId) || isNaN(userId)) {
+            return res.status(400).json({ error: 'ID da mensagem inválido.' });
+        }
+
+        const msg = await getMessageById(messageId);
+        if (!msg) {
+            return res.status(404).json({ error: 'Mensagem não encontrada.' });
+        }
+
+        const canDelete = await canUserModerateMessage(userId, messageId);
+        if (!canDelete) {
+            return res.status(403).json({ error: 'Você não tem permissão para excluir esta mensagem.' });
+        }
+
+        await deleteMessage(messageId);
+
+        // Notifica via Socket.IO para remover em tempo real na tela de todos
+        try {
+            const { io } = require('./server');
+            if (io && msg.channel_id) {
+                io.to(msg.channel_id).emit('message-deleted', {
+                    id: messageId,
+                    channel_id: msg.channel_id
+                });
+            }
+        } catch (sockErr) {
+            console.warn('Aviso ao emitir message-deleted via Socket.IO:', sockErr);
+        }
+
+        return res.status(200).json({ success: true, message: 'Mensagem excluída com sucesso.', id: messageId });
+    } catch (error: any) {
+        console.error('Erro ao excluir mensagem:', error);
+        return res.status(500).json({ error: error?.message || 'Erro ao excluir mensagem.' });
+    }
+});
+
+// Editar mensagem (PATCH /api/messages/:id)
+routes.patch(['/api/messages/:id', '/messages/:id'], ensureAuthenticated, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.userId);
+        const msgIdParam = req.params.id;
+        const messageId = Number(Array.isArray(msgIdParam) ? msgIdParam[0] : msgIdParam);
+        const text = sanitizePlainText(req.body?.text || '').substring(0, 2000);
+
+        if (isNaN(messageId) || isNaN(userId) || !text) {
+            return res.status(400).json({ error: 'ID e conteúdo da mensagem são obrigatórios.' });
+        }
+
+        const existing = await getMessageById(messageId);
+        if (!existing) {
+            return res.status(404).json({ error: 'Mensagem não encontrada.' });
+        }
+
+        if (existing.user_id !== userId) {
+            return res.status(403).json({ error: 'Apenas o autor pode editar esta mensagem.' });
+        }
+
+        const updated = await updateMessage(messageId, userId, text);
+
+        // Notifica via Socket.IO
+        try {
+            const { io } = require('./server');
+            if (io && updated && updated.channel_id) {
+                io.to(updated.channel_id).emit('message-updated', updated);
+            }
+        } catch (sockErr) {
+            console.warn('Aviso ao emitir message-updated via Socket.IO:', sockErr);
+        }
+
+        return res.status(200).json({ success: true, message: updated });
+    } catch (error: any) {
+        console.error('Erro ao editar mensagem:', error);
+        return res.status(500).json({ error: error?.message || 'Erro ao editar mensagem.' });
+    }
+});
+
 export { routes };

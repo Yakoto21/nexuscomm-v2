@@ -416,6 +416,23 @@ io.on('connection', (socket) => {
         }
     });
 
+    // ✍️ Indicador de Digitação em Tempo Real (Typing Indicator)
+    socket.on('typing', (data: { room?: string; channel_id?: string; isTyping?: boolean }) => {
+        const targetRoom = String(data?.room || data?.channel_id || '').trim();
+        if (!targetRoom) return;
+
+        const isTyping = data.isTyping !== false;
+        const senderDisplayName = (socket.data.user as any)?.display_name || (socket.data.user as any)?.username || username || 'Usuário';
+
+        socket.to(targetRoom).emit('user-typing', {
+            userId: userId,
+            username: username,
+            displayName: senderDisplayName,
+            room: targetRoom,
+            isTyping: isTyping
+        });
+    });
+
     // Adiciona o socket à sala pessoal do usuário para notificações diretas (DMs, amizades)
     if (userId) {
         socket.join(`user_${userId}`);
