@@ -3526,14 +3526,28 @@
             });
         }
 
-        // Listener do botão de alternar visualização da barra de membros
+        // Listener do botão de alternar visualização da barra de membros (Sprint: Responsividade)
         if (btnToggleMembersSidebar) {
-            btnToggleMembersSidebar.addEventListener('click', () => {
+            btnToggleMembersSidebar.addEventListener('click', (e) => {
+                e.stopPropagation();
                 if (membersSidebar) {
-                    membersSidebar.classList.toggle('hidden');
+                    if (window.innerWidth <= 768) {
+                        membersSidebar.classList.toggle('show');
+                    } else {
+                        membersSidebar.classList.toggle('hidden');
+                    }
                 }
             });
         }
+
+        // Fecha a barra lateral de membros no mobile ao clicar fora dela
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && membersSidebar && membersSidebar.classList.contains('show')) {
+                if (!membersSidebar.contains(e.target) && e.target !== btnToggleMembersSidebar && !btnToggleMembersSidebar?.contains(e.target)) {
+                    membersSidebar.classList.remove('show');
+                }
+            }
+        });
 
         // Modais de Criação de Servidor e Canal
         if (btnOpenAddServerModal) {
