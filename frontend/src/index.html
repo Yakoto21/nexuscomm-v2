@@ -277,12 +277,20 @@
                             <h3 id="mainChatChannelName">geral</h3>
                             <span style="font-size: 0.82rem; color: var(--text-dark-muted); margin-left: 8px;" id="mainChatChannelTopic">Canal de texto da comunidade</span>
                         </div>
-                        <button type="button" id="btnCopyChannelLink" class="btn-room-action" style="padding: 6px 12px; font-size: 0.78rem;">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                            <span>Copiar Link do Canal</span>
-                        </button>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button type="button" id="btnToggleMembersSidebar" class="btn-room-action" style="padding: 6px 12px; font-size: 0.78rem;" title="Ocultar/Exibir Membros">
+                                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                <span>Membros</span>
+                            </button>
+                            <button type="button" id="btnCopyChannelLink" class="btn-room-action" style="padding: 6px 12px; font-size: 0.78rem;">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                <span>Copiar Link do Canal</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div id="mainChatMessagesList" class="main-chat-messages-container">
@@ -456,6 +464,26 @@
                         </button>
                     </div>
                 </form>
+            </aside>
+
+            <!-- 4. Barra Lateral Direita de Membros (Sprint: Hierarquia & Barra de Membros) -->
+            <aside id="membersSidebar" class="members-sidebar">
+                <div class="members-sidebar-header">
+                    <div class="members-header-title">
+                        <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span>Membros</span>
+                    </div>
+                    <span id="membersCountBadge" class="members-count-badge">0</span>
+                </div>
+
+                <div id="membersListContainer" class="members-list-container">
+                    <div class="members-loading-state">
+                        <div class="spinner-sm"></div>
+                        <span>Carregando membros...</span>
+                    </div>
+                </div>
             </aside>
         </div>
 

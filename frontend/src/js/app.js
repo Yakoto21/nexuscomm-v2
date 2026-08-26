@@ -136,6 +136,13 @@
         const btnConfirmAcceptInvite = document.getElementById('btnConfirmAcceptInvite');
         let pendingInviteCode = null;
 
+        // Elementos da Barra Lateral de Membros (Sprint de Membros & Hierarquia)
+        const membersSidebar = document.getElementById('membersSidebar');
+        const membersListContainer = document.getElementById('membersListContainer');
+        const membersCountBadge = document.getElementById('membersCountBadge');
+        const btnToggleMembersSidebar = document.getElementById('btnToggleMembersSidebar');
+        let currentServerMembersList = [];
+
         // Elementos da Interface de Administração (Server Settings)
         const serverSettingsOverlay = document.getElementById('serverSettingsOverlay');
         const btnCloseServerSettings = document.getElementById('btnCloseServerSettings');
@@ -2607,6 +2614,11 @@
                     dmFriendPresenceText.textContent = isOnline ? 'Disponível / Online' : 'Offline';
                 }
             }
+
+            // Atualiza barra lateral de membros do servidor ativo
+            if (activeServerId && currentServerMembersList.length > 0) {
+                renderServerMembersSidebar(currentServerMembersList);
+            }
         }
 
         async function sendFriendRequestAction(targetUsername) {
@@ -2770,6 +2782,9 @@
                 updateFriendsBadges();
                 renderFriendsList();
                 renderDirectMessagesList();
+                if (activeServerId && currentServerMembersList.length > 0) {
+                    renderServerMembersSidebar(currentServerMembersList);
+                }
             }
         });
 
@@ -3035,6 +3050,7 @@
 
             // Se o servidor for o atualmente ativo
             if (activeServerId && Number(data.serverId) === Number(activeServerId)) {
+                fetchAndRenderServerMembersSidebar(activeServerId);
                 // Atualiza abas de membros se estiverem abertas
                 if (typeof loadServerMembersInSettings === 'function' && serverSettingsOverlay && !serverSettingsOverlay.classList.contains('hidden')) {
                     loadServerMembersInSettings();
@@ -3070,6 +3086,7 @@
 
             setViewMode('empty');
             await fetchServerChannels(server.id);
+            await fetchAndRenderServerMembersSidebar(server.id);
         }
 
         if (btnServerHome) {
@@ -3268,6 +3285,253 @@
                 const firstVoice = loadedChannels.find(c => c.tipo === 'voz');
                 if (firstVoice) selectVoiceChannel(firstVoice);
                 else if (loadedChannels.length > 0) selectVoiceChannel(loadedChannels[0]);
+            });
+        }
+
+        // ==========================================
+        // 5.1. Barra Lateral de Membros & Hierarquia de Cargos (Sprint: Hierarquia e Membros)
+        // ==========================================
+        async function fetchAndRenderServerMembersSidebar(serverId) {
+            if (!serverId) {
+                currentServerMembersList = [];
+                renderServerMembersSidebar([]);
+                return;
+            }
+
+            try {
+                if (membersListContainer) {
+                    membersListContainer.innerHTML = `
+                        <div class="members-loading-state">
+                            <div class="spinner-sm"></div>
+                            <span>Carregando membros...</span>
+                        </div>
+                    `;
+                }
+
+                const res = await fetch(`/api/servers/${serverId}/members`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (!res.ok) {
+                    const fallbackRes = await fetch(`/servers/${serverId}/members`, {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    });
+                    if (!fallbackRes.ok) throw new Error('Falha ao carregar membros do servidor.');
+                    const fallbackData = await fallbackRes.json();
+                    currentServerMembersList = fallbackData.members || [];
+                } else {
+                    const data = await res.json();
+                    currentServerMembersList = data.members || [];
+                }
+
+                renderServerMembersSidebar(currentServerMembersList);
+            } catch (err) {
+                console.error('Erro ao buscar membros para a barra lateral:', err);
+                if (membersListContainer) {
+                    membersListContainer.innerHTML = `
+                        <div class="members-empty-state">
+                            <span style="color: #f87171;">⚠️ Não foi possível carregar os membros.</span>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function renderServerMembersSidebar(members) {
+            if (!membersListContainer) return;
+            membersListContainer.textContent = '';
+
+            if (membersCountBadge) {
+                membersCountBadge.textContent = String(members?.length || 0);
+            }
+
+            if (!members || members.length === 0) {
+                membersListContainer.innerHTML = `
+                    <div class="members-empty-state">
+                        <span>Nenhum membro encontrado.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            // 1. Agrupa os membros por Cargo Mais Alto com Hoist ou Posição (Hierarchy)
+            const roleGroupsMap = new Map();
+
+            members.forEach(member => {
+                const isOnline = onlineUserIdsSet.has(Number(member.user_id));
+                const memberRoles = Array.isArray(member.roles) ? member.roles : [];
+                
+                // Encontra o cargo mais alto com hoist ou o mais alto geral
+                const topRole = memberRoles.find(r => r.hoist === true) || memberRoles[0] || null;
+
+                // Se o membro é o Dono do Servidor
+                const isServerOwner = Boolean(activeServerObj && Number(activeServerObj.dono_id) === Number(member.user_id));
+
+                let groupKey = 'membros_default';
+                let groupRoleName = 'Membros';
+                let groupColor = '#94a3b8';
+                let groupPosition = 0;
+
+                if (topRole && topRole.nome && topRole.nome.toLowerCase() !== '@everyone') {
+                    groupKey = `role_${topRole.id}`;
+                    groupRoleName = topRole.nome;
+                    groupColor = topRole.cor_hex || '#94a3b8';
+                    groupPosition = Number(topRole.posicao) || 1;
+                } else if (isServerOwner) {
+                    groupKey = 'role_owner';
+                    groupRoleName = 'Proprietário';
+                    groupColor = '#f59e0b';
+                    groupPosition = 9999;
+                }
+
+                if (!roleGroupsMap.has(groupKey)) {
+                    roleGroupsMap.set(groupKey, {
+                        key: groupKey,
+                        nome: groupRoleName,
+                        cor_hex: groupColor,
+                        posicao: groupPosition,
+                        members: []
+                    });
+                }
+
+                roleGroupsMap.get(groupKey).members.push({
+                    ...member,
+                    isOnline,
+                    isServerOwner,
+                    topRole: topRole
+                });
+            });
+
+            // 2. Ordena os grupos pela posição de cargo decrescente (Maior privilégio primeiro)
+            const sortedGroups = Array.from(roleGroupsMap.values()).sort((a, b) => b.posicao - a.posicao);
+
+            // 3. Renderiza cada grupo de cargos e seus membros
+            sortedGroups.forEach(group => {
+                // Ordena membros dentro do grupo: Online primeiro, depois alfabético
+                group.members.sort((a, b) => {
+                    if (a.isOnline && !b.isOnline) return -1;
+                    if (!a.isOnline && b.isOnline) return 1;
+                    const nameA = (a.nickname || a.display_name || a.username || '').toLowerCase();
+                    const nameB = (b.nickname || b.display_name || b.username || '').toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+
+                const groupSection = document.createElement('div');
+                groupSection.className = 'members-group';
+
+                // Cabeçalho da categoria de cargo
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'members-group-header';
+                groupHeader.style.color = group.cor_hex || 'var(--text-muted)';
+
+                const titleSpan = document.createElement('span');
+                titleSpan.textContent = `${group.nome.toUpperCase()} — ${group.members.length}`;
+
+                groupHeader.appendChild(titleSpan);
+                groupSection.appendChild(groupHeader);
+
+                // Lista de membros do cargo
+                group.members.forEach(m => {
+                    const card = document.createElement('div');
+                    card.className = 'member-sidebar-card';
+                    card.setAttribute('data-user-id', String(m.user_id));
+
+                    // Avatar Wrapper
+                    const avatarWrap = document.createElement('div');
+                    avatarWrap.className = 'member-avatar-wrapper';
+
+                    if (m.avatar_url) {
+                        const img = document.createElement('img');
+                        img.src = m.avatar_url;
+                        img.className = 'member-avatar-img';
+                        img.alt = m.display_name || m.username;
+                        img.loading = 'lazy';
+                        avatarWrap.appendChild(img);
+                    } else {
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'member-avatar-placeholder';
+                        placeholder.textContent = getServerInitials(m.nickname || m.display_name || m.username);
+                        avatarWrap.appendChild(placeholder);
+                    }
+
+                    // Bolinha de status online/offline
+                    const dot = document.createElement('span');
+                    dot.className = `member-status-dot ${m.isOnline ? 'online' : ''}`;
+                    dot.title = m.isOnline ? 'Online' : 'Offline';
+                    avatarWrap.appendChild(dot);
+
+                    // Info
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'member-info';
+
+                    const nameRow = document.createElement('div');
+                    nameRow.className = 'member-name-row';
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'member-display-name';
+                    nameSpan.textContent = m.nickname || m.display_name || m.username;
+                    if (group.cor_hex && group.cor_hex !== '#94a3b8') {
+                        nameSpan.style.color = group.cor_hex;
+                    }
+
+                    nameRow.appendChild(nameSpan);
+
+                    if (m.isServerOwner) {
+                        const crown = document.createElement('span');
+                        crown.className = 'member-owner-crown';
+                        crown.textContent = '👑';
+                        crown.title = 'Proprietário do Servidor';
+                        nameRow.appendChild(crown);
+                    }
+
+                    const tagSpan = document.createElement('span');
+                    tagSpan.className = 'member-username-tag';
+                    tagSpan.textContent = `@${m.username}`;
+
+                    infoDiv.appendChild(nameRow);
+                    infoDiv.appendChild(tagSpan);
+
+                    // Se possuir cargo com cor especial, renderiza tag mini
+                    if (m.topRole && m.topRole.nome && m.topRole.nome.toLowerCase() !== '@everyone') {
+                        const roleChip = document.createElement('span');
+                        roleChip.className = 'member-role-badge-mini';
+                        roleChip.style.background = m.topRole.cor_hex ? `${m.topRole.cor_hex}22` : 'rgba(255,255,255,0.08)';
+                        roleChip.style.border = `1px solid ${m.topRole.cor_hex || 'rgba(255,255,255,0.1)'}`;
+                        roleChip.style.color = m.topRole.cor_hex || '#cbd5e1';
+                        roleChip.textContent = m.topRole.nome;
+                        infoDiv.appendChild(roleChip);
+                    }
+
+                    card.appendChild(avatarWrap);
+                    card.appendChild(infoDiv);
+
+                    // Ação de clique no membro: se for outro usuário, abre chat de DM
+                    card.addEventListener('click', () => {
+                        if (currentUser && Number(currentUser.id) !== Number(m.user_id)) {
+                            const friendObj = {
+                                id: Number(m.user_id),
+                                username: m.username,
+                                display_name: m.display_name || m.nickname || m.username,
+                                avatar_url: m.avatar_url
+                            };
+                            openHomePanel();
+                            openDirectMessageChat(friendObj);
+                        }
+                    });
+
+                    groupSection.appendChild(card);
+                });
+
+                membersListContainer.appendChild(groupSection);
+            });
+        }
+
+        // Listener do botão de alternar visualização da barra de membros
+        if (btnToggleMembersSidebar) {
+            btnToggleMembersSidebar.addEventListener('click', () => {
+                if (membersSidebar) {
+                    membersSidebar.classList.toggle('hidden');
+                }
             });
         }
 

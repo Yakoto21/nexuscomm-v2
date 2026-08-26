@@ -584,8 +584,8 @@ routes.post('/servers/:serverId/roles', ensureAuthenticated, ensureServerPermiss
     }
 });
 
-// Listar todos os membros de um servidor com seus cargos (GET /servers/:serverId/members)
-routes.get('/servers/:serverId/members', ensureAuthenticated, ensureServerMember, async (req: Request, res: Response) => {
+// Listar todos os membros de um servidor com seus cargos (GET /servers/:serverId/members e GET /api/servers/:serverId/members)
+routes.get(['/servers/:serverId/members', '/api/servers/:serverId/members'], ensureAuthenticated, ensureServerMember, async (req: Request, res: Response) => {
     try {
         const serverIdParam = req.params.serverId;
         const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
@@ -596,9 +596,9 @@ routes.get('/servers/:serverId/members', ensureAuthenticated, ensureServerMember
 
         const members = await getServerMembers(serverId);
         return res.status(200).json({ members });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erro ao listar membros do servidor:', error);
-        return res.status(500).json({ error: 'Erro ao listar membros.' });
+        return res.status(500).json({ error: error?.message || 'Erro ao listar membros.' });
     }
 });
 

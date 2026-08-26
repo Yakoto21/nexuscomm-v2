@@ -567,6 +567,8 @@ export async function getServerMembers(serverId: number) {
         `SELECT 
             u.id AS user_id,
             u.username,
+            u.display_name,
+            u.avatar_url,
             sm.nickname,
             sm.joined_at,
             COALESCE(
@@ -576,7 +578,8 @@ export async function getServerMembers(serverId: number) {
                         'nome', r.nome,
                         'cor_hex', r.cor_hex,
                         'posicao', r.posicao,
-                        'hoist', r.hoist
+                        'hoist', r.hoist,
+                        'permissoes', r.permissoes
                     ) ORDER BY r.posicao DESC
                 ) FILTER (WHERE r.id IS NOT NULL), '[]'
             ) AS roles
@@ -585,7 +588,7 @@ export async function getServerMembers(serverId: number) {
          LEFT JOIN member_roles mr ON sm.user_id = mr.user_id AND sm.server_id = mr.server_id
          LEFT JOIN server_roles r ON mr.role_id = r.id
          WHERE sm.server_id = $1
-         GROUP BY u.id, u.username, sm.nickname, sm.joined_at
+         GROUP BY u.id, u.username, u.display_name, u.avatar_url, sm.nickname, sm.joined_at
          ORDER BY sm.joined_at ASC`,
         [serverId]
     );
