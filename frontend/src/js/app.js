@@ -4081,14 +4081,39 @@
 
         async function uploadChatMedia(file, base64) {
             if (!authToken) throw new Error('Não autenticado para upload');
-            const res = await fetch('/upload/media', {
+
+            // 1. Tenta upload binário direto via Multer (multipart/form-data)
+            if (file) {
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const res = await fetch('/api/messages/media', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: formData
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        return data.url || data.media_url;
+                    }
+                } catch (formErr) {
+                    console.warn('Upload via FormData falhou, tentando fallback Base64...', formErr);
+                }
+            }
+
+            // 2. Fallback via JSON Base64
+            const res = await fetch('/api/messages/media', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${authToken}`
                 },
                 body: JSON.stringify({
-                    fileName: file.name,
+                    fileName: file?.name || 'imagem.png',
                     fileData: base64
                 })
             });
@@ -4099,7 +4124,7 @@
             }
 
             const data = await res.json();
-            return data.url;
+            return data.url || data.media_url;
         }
 
         function clearMainChatMediaPreview() {

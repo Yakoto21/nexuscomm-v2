@@ -4110,3 +4110,131 @@
             from { opacity: 0; transform: translateY(4px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* ==========================================
+           Sprint: Compartilhamento de Mídia no Chat (Glassmorphism Media Styling)
+           ========================================== */
+        .chat-message-image-wrapper {
+            margin-top: 8px;
+            display: inline-block;
+            max-width: 100%;
+            border-radius: 14px;
+            overflow: hidden;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        .chat-message-image-wrapper:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(99, 102, 241, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .chat-message-image {
+            display: block;
+            max-width: 440px;
+            max-height: 380px;
+            width: auto;
+            height: auto;
+            object-fit: cover;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.25s ease;
+        }
+
+        .chat-message-image:hover {
+            opacity: 0.95;
+        }
+
+        /* Botão de Anexar Mídia */
+        .btn-chat-attach {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            border-radius: 10px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            flex-shrink: 0;
+        }
+
+        .btn-chat-attach:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.4);
+            color: #ffffff;
+            transform: scale(1.05);
+        }
+
+        /* Preview de Mídia antes do Envio */
+        .chat-media-preview-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 14px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            animation: fadeInScale 0.2s ease-out;
+        }
+
+        .chat-media-preview-bar.hidden {
+            display: none !important;
+        }
+
+        .chat-media-preview-thumb {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .chat-media-preview-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-media-preview-name {
+            font-size: 0.82rem;
+            color: #f1f5f9;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-media-preview-size {
+            font-size: 0.72rem;
+            color: #94a3b8;
+        }
+
+        .chat-media-preview-remove {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            border-radius: 8px;
+            padding: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-media-preview-remove:hover {
+            background: rgba(239, 68, 68, 0.3);
+            color: #ffffff;
+            transform: scale(1.1);
+        }

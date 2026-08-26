@@ -283,3 +283,25 @@ export async function uploadChatMediaFile(
 
     return await uploadToBucket(CHAT_MEDIA_BUCKET, fileName, buffer, mimeType);
 }
+
+/**
+ * Faz upload direto de Buffer de imagem (Multer) para o bucket 'chat_media' no Supabase Storage
+ */
+export async function uploadChatMediaBuffer(
+    originalFileName: string,
+    buffer: Buffer,
+    mimeType: string
+): Promise<string> {
+    if (!buffer || buffer.length === 0) {
+        throw new Error('Buffer de imagem vazio ou inválido.');
+    }
+
+    const ext = mimeType.split('/')[1] || 'png';
+    const cleanOriginalName = (originalFileName || 'image')
+        .replace(/[^a-zA-Z0-9._-]/g, '_')
+        .substring(0, 40);
+    const fileName = `${Date.now()}_${cleanOriginalName.endsWith(`.${ext}`) ? cleanOriginalName : `${cleanOriginalName}.${ext}`}`;
+
+    return await uploadToBucket(CHAT_MEDIA_BUCKET, fileName, buffer, mimeType);
+}
+

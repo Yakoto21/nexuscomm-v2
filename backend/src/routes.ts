@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
 import { ensureAuthenticated } from './middlewares/ensureAuthenticated';
 import { ensureServerMember, ensureServerPermission } from './middlewares/serverPermissions';
-import { uploadServerMediaFile, uploadUserAvatar, uploadChatMediaFile } from './supabaseStorage';
+import { uploadServerMediaFile, uploadUserAvatar, uploadChatMediaFile, uploadChatMediaBuffer } from './supabaseStorage';
 import {
     findUserByUsername,
     findUserById,
@@ -39,6 +40,19 @@ import {
 } from './db';
 
 const routes = Router();
+
+// Configuração do Multer para Upload de Mídias de Chat (Sprint: Compartilhamento de Mídia)
+const uploadChatMediaMulter = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
+    fileFilter: (_req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Apenas arquivos de imagem e GIFs são permitidos.'));
+        }
+    }
+});
 
 // Função utilitária para sanitização e garantia de texto puro (Anti-XSS Defense-in-Depth)
 function sanitizePlainText(input: unknown): string {
@@ -880,24 +894,55 @@ routes.get('/dms/:otherUserId', ensureAuthenticated, async (req: Request, res: R
     }
 });
 
-// Upload de Anexos de Mídia para o Chat (POST /upload/media - Sprint 4)
-routes.post('/upload/media', ensureAuthenticated, async (req: Request, res: Response) => {
-    try {
-        const { fileName, fileData } = req.body;
-        if (!fileData || typeof fileData !== 'string') {
-            return res.status(400).json({ error: 'Arquivo de mídia inválido ou não fornecido.' });
-        }
-
-        const publicUrl = await uploadChatMediaFile(fileName || 'imagem.png', fileData);
-        return res.status(200).json({
-            message: 'Mídia enviada com sucesso!',
-            url: publicUrl
+// Upload de Anexos de Mídia para o Chat (POST /api/messages/media - Sprint: Compartilhamento de Mídia)
+routes.post(
+    ['/api/messages/media', '/messages/media', '/upload/media'],
+    ensureAuthenticated,
+    (req: Request, res: Response, next) => {
+        uploadChatMediaMulter.single('file')(req, res, (err: any) => {
+            if (err) {
+                if (err instanceof multer.MulterError) {
+                    if (err.code === 'LIMIT_FILE_SIZE') {
+                        return res.status(400).json({ error: 'A imagem selecionada excede o limite de 15MB.' });
+                    }
+                    return res.status(400).json({ error: `Erro no upload: ${err.message}` });
+                }
+                return res.status(400).json({ error: err.message || 'Arquivo de mídia inválido.' });
+            }
+            next();
         });
-    } catch (error: any) {
-        console.error('Erro ao realizar upload de mídia do chat:', error);
-        return res.status(500).json({ error: error?.message || 'Falha ao processar upload de mídia.' });
+    },
+    async (req: Request, res: Response) => {
+        try {
+            let publicUrl = '';
+
+            // 1. Upload via Multer (multipart/form-data)
+            if (req.file) {
+                publicUrl = await uploadChatMediaBuffer(
+                    req.file.originalname,
+                    req.file.buffer,
+                    req.file.mimetype
+                );
+            }
+            // 2. Upload via JSON Base64 (application/json)
+            else if (req.body?.fileData) {
+                const fileName = req.body.fileName || 'imagem.png';
+                publicUrl = await uploadChatMediaFile(fileName, req.body.fileData);
+            } else {
+                return res.status(400).json({ error: 'Nenhum arquivo de imagem fornecido para upload.' });
+            }
+
+            return res.status(200).json({
+                message: 'Mídia enviada com sucesso!',
+                url: publicUrl,
+                media_url: publicUrl
+            });
+        } catch (error: any) {
+            console.error('❌ Erro no upload de mídia do chat:', error);
+            return res.status(500).json({ error: error?.message || 'Falha ao processar upload de mídia.' });
+        }
     }
-});
+);
 
 // Enviar mensagem direta (POST /dms/:otherUserId)
 routes.post('/dms/:otherUserId', ensureAuthenticated, async (req: Request, res: Response) => {
