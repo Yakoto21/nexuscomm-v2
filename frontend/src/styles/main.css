@@ -5092,3 +5092,45 @@
             align-items: center;
             opacity: 0.9;
         }
+
+        /* ==========================================
+           Sprint: Áudio no Compartilhamento de Tela - Toast Notifier
+           ========================================== */
+        .nexus-floating-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.45);
+            color: #f8fafc;
+            padding: 12px 22px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.75), 0 0 20px rgba(56, 189, 248, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 999999;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: 90vw;
+            text-align: left;
+        }
+
+        .nexus-floating-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+
+        .nexus-floating-toast-icon {
+            color: #38bdf8;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+        }

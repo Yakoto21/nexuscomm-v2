@@ -7356,9 +7356,101 @@
             }
         }
 
+        // ==========================================
+        // Sprint: Áudio no Compartilhamento de Tela - Toast & Screen Audio Management
+        // ==========================================
+        let activeScreenAudioTrack = null;
+
+        function showToast(message, type = 'info', duration = 6500) {
+            let toastEl = document.getElementById('nexusFloatingToast');
+            if (!toastEl) {
+                toastEl = document.createElement('div');
+                toastEl.id = 'nexusFloatingToast';
+                toastEl.className = 'nexus-floating-toast';
+                document.body.appendChild(toastEl);
+            }
+
+            toastEl.innerHTML = `
+                <div class="nexus-floating-toast-icon">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                    </svg>
+                </div>
+                <span>${message}</span>
+            `;
+
+            toastEl.classList.add('show');
+            if (toastEl._hideTimeout) clearTimeout(toastEl._hideTimeout);
+            toastEl._hideTimeout = setTimeout(() => {
+                toastEl.classList.remove('show');
+            }, duration);
+        }
+
+        function updateAllPeersScreenAudioTrack(track) {
+            activeScreenAudioTrack = track;
+            if (!track) return;
+
+            // Anexa a trilha ao localStream para que novos peers conectados também a recebam
+            localStream.addTrack(track);
+
+            for (const [peerId, pc] of Object.entries(peerConnections)) {
+                if (!pc || pc.signalingState === 'closed') continue;
+                try {
+                    const senders = pc.getSenders();
+                    const existingSender = senders.find(s => s.track && s.track.id === track.id);
+                    if (existingSender) {
+                        existingSender.replaceTrack(track);
+                    } else {
+                        console.log(`🔊 [WebRTC Track] Adicionando trilha de áudio do sistema/guia via addTrack no peer [${peerId}]`);
+                        pc.addTrack(track, localStream);
+                    }
+                } catch (err) {
+                    console.warn(`Erro ao adicionar áudio de tela no peer [${peerId}]:`, err);
+                }
+            }
+        }
+
+        function removeScreenAudioTrackFromPeers(track) {
+            if (!track) return;
+            try {
+                localStream.removeTrack(track);
+                track.stop();
+            } catch(e) {}
+
+            for (const [peerId, pc] of Object.entries(peerConnections)) {
+                if (!pc || pc.signalingState === 'closed') continue;
+                try {
+                    const senders = pc.getSenders();
+                    const senderToRemove = senders.find(s => s.track && s.track.id === track.id);
+                    if (senderToRemove) {
+                        pc.removeTrack(senderToRemove);
+                    }
+                } catch(e) {}
+            }
+            if (activeScreenAudioTrack === track) {
+                activeScreenAudioTrack = null;
+            }
+        }
+
         function stopScreenShareTracks() {
+            if (activeScreenAudioTrack) {
+                removeScreenAudioTrackFromPeers(activeScreenAudioTrack);
+            }
+
             if (screenStream) {
-                screenStream.getTracks().forEach((t) => t.stop());
+                screenStream.getTracks().forEach((t) => {
+                    t.stop();
+                    for (const [peerId, pc] of Object.entries(peerConnections)) {
+                        if (!pc || pc.signalingState === 'closed') continue;
+                        try {
+                            const senders = pc.getSenders();
+                            const senderToRemove = senders.find(s => s.track && s.track.id === t.id);
+                            if (senderToRemove) {
+                                pc.removeTrack(senderToRemove);
+                            }
+                        } catch (e) {}
+                    }
+                });
                 screenStream = null;
             }
         }
@@ -7371,6 +7463,9 @@
                 }
             }
 
+            // Alerta de UX (apenas para quem clica em compartilhar)
+            showToast('Para transmitir o som, lembre-se de marcar a opção "Compartilhar áudio" no pop-up do navegador', 'info', 6500);
+
             const width = res === 1080 ? 1920 : 1280;
             const height = res === 1080 ? 1080 : 720;
 
@@ -7382,9 +7477,10 @@
 
             try {
                 await getOrCreateMicrophone();
+                // 1. Captura de Mídia (getDisplayMedia) com { video: ..., audio: true }
                 screenStream = await navigator.mediaDevices.getDisplayMedia({
                     video: videoConstraints,
-                    audio: shareAudio
+                    audio: true
                 });
 
                 activeVideoType = 'screen';
@@ -7394,15 +7490,28 @@
                 }
                 if (localPlaceholder) localPlaceholder.style.opacity = '0';
 
-                updateAllPeersVideoTrack(screenStream.getVideoTracks()[0]);
-                updateLocalStatus();
-
-                const videoTrack = screenStream.getVideoTracks()[0];
-                if (videoTrack) {
-                    videoTrack.onended = () => {
+                // 2. Integração das Trilhas (Tracks)
+                const screenVideoTrack = screenStream.getVideoTracks()[0];
+                if (screenVideoTrack) {
+                    updateAllPeersVideoTrack(screenVideoTrack);
+                    screenVideoTrack.onended = () => {
                         if (activeVideoType === 'screen') toggleScreenShare();
                     };
                 }
+
+                const screenAudioTrack = screenStream.getAudioTracks()[0];
+                if (screenAudioTrack) {
+                    console.log('🔊 [Screen Share] Trilha de áudio do sistema/guia detectada:', screenAudioTrack.label);
+                    updateAllPeersScreenAudioTrack(screenAudioTrack);
+                    screenAudioTrack.onended = () => {
+                        console.log('🔇 [Screen Share] Trilha de áudio da tela finalizada.');
+                        removeScreenAudioTrackFromPeers(screenAudioTrack);
+                    };
+                } else {
+                    console.log('ℹ️ [Screen Share] Nenhuma trilha de áudio da tela capturada.');
+                }
+
+                updateLocalStatus();
             } catch (err) {
                 console.error('Erro ao compartilhar tela:', err);
             }
