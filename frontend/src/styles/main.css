@@ -5134,3 +5134,28 @@
             display: flex;
             align-items: center;
         }
+
+        /* ==========================================
+           Sprint: Controle de Acesso Baseado em Cargos (RBAC) - Badges
+           ========================================== */
+        .role-badge-tag {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            line-height: 1.2;
+            margin-left: 6px;
+            vertical-align: middle;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .role-badge-tag:hover {
+            filter: brightness(1.15);
+            transform: translateY(-1px);
+        }

@@ -41,7 +41,31 @@ export async function initDb() {
             );
         `);
 
-        // Migração automática para adicionar avatar_url e display_name na tabela users
+        // 1.1 Tabela de Cargos do Sistema (Roles - RBAC)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS roles (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL UNIQUE,
+                color_hex VARCHAR(10) DEFAULT '#94a3b8',
+                permissions_json JSONB DEFAULT '{}'::jsonb,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        // Popula os 3 níveis de privilégio padrão: 'Admin' (permissão total), 'VIP' e 'Membro'
+        await pool.query(`
+            INSERT INTO roles (id, name, color_hex, permissions_json)
+            VALUES 
+                (1, 'Admin', '#ef4444', '{"all": true, "can_manage_server": true, "can_manage_channels": true, "can_kick_users": true, "can_delete_messages": true, "can_send_messages": true, "can_connect_voice": true, "can_manage_roles": true}'::jsonb),
+                (2, 'VIP', '#a855f7', '{"all": false, "vip_badge": true, "priority_speaker": true, "can_send_messages": true, "can_connect_voice": true}'::jsonb),
+                (3, 'Membro', '#94a3b8', '{"all": false, "can_send_messages": true, "can_connect_voice": true}'::jsonb)
+            ON CONFLICT (id) DO UPDATE SET 
+                name = EXCLUDED.name,
+                color_hex = EXCLUDED.color_hex,
+                permissions_json = EXCLUDED.permissions_json;
+        `);
+
+        // Migração automática para adicionar avatar_url, display_name e role_id na tabela users
         await pool.query(`
             DO $$
             BEGIN
@@ -58,7 +82,19 @@ export async function initDb() {
                 ) THEN
                     ALTER TABLE users ADD COLUMN display_name VARCHAR(100);
                 END IF;
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'role_id'
+                ) THEN
+                    ALTER TABLE users ADD COLUMN role_id INTEGER REFERENCES roles(id) DEFAULT 3;
+                END IF;
             END $$;
+        `);
+
+        // Garante que o usuário inicial (id: 1) tenha cargo Admin
+        await pool.query(`
+            UPDATE users SET role_id = 1 WHERE id = 1 AND (role_id IS NULL OR role_id = 3);
         `);
 
         // 2. Tabela de Servidores/Comunidades (Servers)
@@ -336,6 +372,9 @@ export async function initDb() {
 // ==========================================
 
 export interface RolePermissions {
+    all?: boolean;
+    vip_badge?: boolean;
+    priority_speaker?: boolean;
     can_manage_server?: boolean;
     can_manage_channels?: boolean;
     can_kick_users?: boolean;
@@ -346,12 +385,13 @@ export interface RolePermissions {
 }
 
 /**
- * Cria o cargo padrão @everyone, Moderador e Admin para o servidor.
+ * Cria os cargos padrão @everyone, Membro, VIP, Moderador e Admin para o servidor.
  */
 export async function createDefaultServerRoles(serverId: number, ownerId?: number | null) {
     try {
         // 1. Cargo padrão @everyone (posicao = 0)
         const everyonePerms: RolePermissions = {
+            all: false,
             can_send_messages: true,
             can_connect_voice: true,
             can_manage_server: false,
@@ -368,8 +408,39 @@ export async function createDefaultServerRoles(serverId: number, ownerId?: numbe
             [serverId, JSON.stringify(everyonePerms)]
         );
 
-        // 2. Cargo padrão Moderador (posicao = 50)
+        // 2. Cargo padrão Membro (posicao = 10)
+        const membroPerms: RolePermissions = {
+            all: false,
+            can_send_messages: true,
+            can_connect_voice: true
+        };
+
+        await pool.query(
+            `INSERT INTO server_roles (server_id, nome, cor_hex, posicao, hoist, permissoes)
+             VALUES ($1, 'Membro', '#94a3b8', 10, FALSE, $2)
+             ON CONFLICT DO NOTHING`,
+            [serverId, JSON.stringify(membroPerms)]
+        );
+
+        // 3. Cargo padrão VIP (posicao = 50)
+        const vipPerms: RolePermissions = {
+            all: false,
+            vip_badge: true,
+            priority_speaker: true,
+            can_send_messages: true,
+            can_connect_voice: true
+        };
+
+        await pool.query(
+            `INSERT INTO server_roles (server_id, nome, cor_hex, posicao, hoist, permissoes)
+             VALUES ($1, 'VIP', '#a855f7', 50, TRUE, $2)
+             ON CONFLICT DO NOTHING`,
+            [serverId, JSON.stringify(vipPerms)]
+        );
+
+        // 4. Cargo padrão Moderador (posicao = 75)
         const modPerms: RolePermissions = {
+            all: false,
             can_send_messages: true,
             can_connect_voice: true,
             can_delete_messages: true,
@@ -381,16 +452,17 @@ export async function createDefaultServerRoles(serverId: number, ownerId?: numbe
 
         await pool.query(
             `INSERT INTO server_roles (server_id, nome, cor_hex, posicao, hoist, permissoes)
-             VALUES ($1, 'Moderador', '#38bdf8', 50, TRUE, $2)
+             VALUES ($1, 'Moderador', '#38bdf8', 75, TRUE, $2)
              ON CONFLICT DO NOTHING`,
             [serverId, JSON.stringify(modPerms)]
         );
 
-        // 3. Se houver dono/criador, adiciona como membro e cria cargo de Dono / Admin (posicao = 100)
+        // 5. Se houver dono/criador, adiciona como membro e cria cargo de Dono / Admin (posicao = 100)
         if (ownerId) {
             await addMemberToServer(ownerId, serverId);
 
             const adminPerms: RolePermissions = {
+                all: true,
                 can_manage_server: true,
                 can_manage_channels: true,
                 can_kick_users: true,
@@ -402,7 +474,7 @@ export async function createDefaultServerRoles(serverId: number, ownerId?: numbe
 
             const adminRoleRes = await pool.query(
                 `INSERT INTO server_roles (server_id, nome, cor_hex, posicao, hoist, permissoes)
-                 VALUES ($1, 'Admin', '#f59e0b', 100, TRUE, $2)
+                 VALUES ($1, 'Admin', '#ef4444', 100, TRUE, $2)
                  ON CONFLICT DO NOTHING
                  RETURNING id`,
                 [serverId, JSON.stringify(adminPerms)]
@@ -676,6 +748,70 @@ export async function saveMessage(
     return res.rows[0];
 }
 
+export interface HighestRoleInfo {
+    id?: number;
+    name: string;
+    color_hex: string;
+    permissions?: any;
+    position?: number;
+}
+
+export async function getUserHighestRole(userId: number | string | null | undefined, serverId?: number | string | null): Promise<HighestRoleInfo> {
+    if (!userId) return { name: 'Membro', color_hex: '#94a3b8', position: 0 };
+    const numUserId = Number(userId);
+    if (isNaN(numUserId)) return { name: 'Membro', color_hex: '#94a3b8', position: 0 };
+
+    // 1. Se pertencer a um servidor, prioriza o cargo mais alto com posicao em server_roles
+    if (serverId) {
+        const numServerId = Number(serverId);
+        if (!isNaN(numServerId)) {
+            // Verifica se é proprietário do servidor
+            const sRes = await pool.query('SELECT dono_id FROM servers WHERE id = $1', [numServerId]);
+            if (sRes.rows.length > 0 && sRes.rows[0].dono_id === numUserId) {
+                return {
+                    name: 'Admin',
+                    color_hex: '#ef4444',
+                    position: 9999
+                };
+            }
+
+            const roles = await getMemberRoles(numUserId, numServerId);
+            if (roles && roles.length > 0) {
+                const validRoles = roles.filter(r => r.nome && r.nome.toLowerCase() !== '@everyone');
+                const highest = validRoles.length > 0 ? validRoles[0] : roles[0];
+                return {
+                    id: highest.id,
+                    name: highest.nome,
+                    color_hex: highest.cor_hex || '#94a3b8',
+                    permissions: highest.permissoes,
+                    position: highest.posicao || 0
+                };
+            }
+        }
+    }
+
+    // 2. Fallback para cargo global da tabela roles
+    const userRes = await pool.query(
+        `SELECT r.id, r.name, r.color_hex, r.permissions_json
+         FROM users u
+         LEFT JOIN roles r ON u.role_id = r.id
+         WHERE u.id = $1`,
+        [numUserId]
+    );
+
+    if (userRes.rows.length > 0 && userRes.rows[0].name) {
+        return {
+            id: userRes.rows[0].id,
+            name: userRes.rows[0].name,
+            color_hex: userRes.rows[0].color_hex || '#94a3b8',
+            permissions: userRes.rows[0].permissions_json,
+            position: userRes.rows[0].name === 'Admin' ? 100 : (userRes.rows[0].name === 'VIP' ? 50 : 10)
+        };
+    }
+
+    return { name: 'Membro', color_hex: '#94a3b8', position: 10 };
+}
+
 export async function getMessagesByChannel(channelId: string, limit = 50, beforeId?: number | string) {
     const safeChannelId = String(channelId || 'geral');
     const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 50);
@@ -687,17 +823,38 @@ export async function getMessagesByChannel(channelId: string, limit = 50, before
         const numBefore = parseInt(String(beforeId), 10);
         if (!isNaN(numBefore)) {
             params.push(numBefore);
-            beforeClause = ` AND id < $${params.length}`;
+            beforeClause = ` AND m.id < $${params.length}`;
         }
     }
 
     params.push(safeLimit);
 
     const res = await pool.query(
-        `SELECT id, channel_id, user_id, sender_name AS sender, conteudo AS text, media_url, is_edited, data_envio AS timestamp
-         FROM messages
-         WHERE channel_id = $1 ${beforeClause}
-         ORDER BY id DESC
+        `SELECT 
+            m.id, 
+            m.channel_id, 
+            m.user_id, 
+            m.sender_name AS sender, 
+            m.conteudo AS text, 
+            m.media_url, 
+            m.is_edited, 
+            m.data_envio AS timestamp,
+            COALESCE(sr.nome, gr.name, 'Membro') AS role_name,
+            COALESCE(sr.cor_hex, gr.color_hex, '#94a3b8') AS role_color
+         FROM messages m
+         LEFT JOIN channels c ON ((m.channel_id ~ '^channel_[0-9]+$' AND c.id = CAST(SUBSTRING(m.channel_id FROM 9) AS INTEGER)) OR c.nome = m.channel_id)
+         LEFT JOIN LATERAL (
+             SELECT r.nome, r.cor_hex
+             FROM member_roles mr
+             JOIN server_roles r ON mr.role_id = r.id
+             WHERE mr.user_id = m.user_id AND mr.server_id = c.server_id
+             ORDER BY r.posicao DESC
+             LIMIT 1
+         ) sr ON true
+         LEFT JOIN users u ON m.user_id = u.id
+         LEFT JOIN roles gr ON u.role_id = gr.id
+         WHERE m.channel_id = $1 ${beforeClause}
+         ORDER BY m.id DESC
          LIMIT $${params.length}`,
         params
     );
@@ -709,9 +866,30 @@ export async function getMessageById(messageId: number | string) {
     if (isNaN(numericId)) return null;
 
     const res = await pool.query(
-        `SELECT id, channel_id, user_id, sender_name AS sender, conteudo AS text, media_url, is_edited, data_envio AS timestamp
-         FROM messages
-         WHERE id = $1
+        `SELECT 
+            m.id, 
+            m.channel_id, 
+            m.user_id, 
+            m.sender_name AS sender, 
+            m.conteudo AS text, 
+            m.media_url, 
+            m.is_edited, 
+            m.data_envio AS timestamp,
+            COALESCE(sr.nome, gr.name, 'Membro') AS role_name,
+            COALESCE(sr.cor_hex, gr.color_hex, '#94a3b8') AS role_color
+         FROM messages m
+         LEFT JOIN channels c ON ((m.channel_id ~ '^channel_[0-9]+$' AND c.id = CAST(SUBSTRING(m.channel_id FROM 9) AS INTEGER)) OR c.nome = m.channel_id)
+         LEFT JOIN LATERAL (
+             SELECT r.nome, r.cor_hex
+             FROM member_roles mr
+             JOIN server_roles r ON mr.role_id = r.id
+             WHERE mr.user_id = m.user_id AND mr.server_id = c.server_id
+             ORDER BY r.posicao DESC
+             LIMIT 1
+         ) sr ON true
+         LEFT JOIN users u ON m.user_id = u.id
+         LEFT JOIN roles gr ON u.role_id = gr.id
+         WHERE m.id = $1
          LIMIT 1`,
         [numericId]
     );
@@ -782,10 +960,65 @@ export async function canUserModerateMessage(userId: number | string, messageId:
         if (donoId === numUserId) return true;
 
         const roles = await getMemberRoles(numUserId, serverId);
-        return roles.some(r => r.permissoes?.can_delete_messages || r.permissoes?.can_manage_server);
+        return roles.some(r => r.permissoes?.all || r.permissoes?.can_delete_messages || r.permissoes?.can_manage_server);
     }
 
-    return false;
+    // Verifica cargo global Admin
+    const globalRole = await getUserHighestRole(numUserId);
+    return globalRole.name === 'Admin';
+}
+
+export async function canUserKickMember(
+    moderatorUserId: number | string,
+    serverId: number | string,
+    targetUserId: number | string
+): Promise<boolean> {
+    const numModId = Number(moderatorUserId);
+    const numServerId = Number(serverId);
+    const numTargetId = Number(targetUserId);
+
+    if (isNaN(numModId) || isNaN(numServerId) || isNaN(numTargetId)) return false;
+    if (numModId === numTargetId) return false;
+
+    // 1. Verifica dono do servidor
+    const serverRes = await pool.query('SELECT dono_id FROM servers WHERE id = $1', [numServerId]);
+    if (serverRes.rows.length === 0) return false;
+    const donoId = serverRes.rows[0].dono_id;
+
+    // Se o alvo for o dono, ninguém pode expulsá-lo
+    if (numTargetId === donoId) return false;
+
+    // Se o moderador for o dono, tem permissão total
+    if (numModId === donoId) return true;
+
+    // 2. Obtém cargos do moderador no servidor
+    const modRoles = await getMemberRoles(numModId, numServerId);
+    const hasKickPerm = modRoles.some(r => {
+        const p = r.permissoes || {};
+        return p.all === true || p.can_kick_users === true || p.can_manage_server === true;
+    });
+
+    if (!hasKickPerm) {
+        const modGlobal = await getUserHighestRole(numModId);
+        if (modGlobal.name !== 'Admin') return false;
+    }
+
+    // 3. Hierarquia: cargo do moderador deve ser estritamente superior ao do alvo
+    const targetRoles = await getMemberRoles(numTargetId, numServerId);
+    const maxModPos = Math.max(...modRoles.map(r => Number(r.posicao) || 0), 0);
+    const maxTargetPos = Math.max(...targetRoles.map(r => Number(r.posicao) || 0), 0);
+
+    return maxModPos > maxTargetPos;
+}
+
+export async function removeMemberFromServer(userId: number | string, serverId: number | string): Promise<boolean> {
+    const numUserId = Number(userId);
+    const numServerId = Number(serverId);
+    if (isNaN(numUserId) || isNaN(numServerId)) return false;
+
+    await pool.query('DELETE FROM member_roles WHERE user_id = $1 AND server_id = $2', [numUserId, numServerId]);
+    const res = await pool.query('DELETE FROM server_members WHERE user_id = $1 AND server_id = $2', [numUserId, numServerId]);
+    return (res.rowCount || 0) > 0;
 }
 
 // ==========================================

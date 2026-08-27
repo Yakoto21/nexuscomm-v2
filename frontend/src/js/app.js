@@ -4041,15 +4041,15 @@
                     const infoDiv = document.createElement('div');
                     infoDiv.className = 'member-info';
 
-                    const nameRow = document.createElement('div');
                     nameRow.className = 'member-name-row';
+
+                    const memberRoleName = m.isServerOwner ? 'Admin' : (m.topRole?.nome || group.nome || 'Membro');
+                    const memberRoleColor = m.isServerOwner ? '#ef4444' : (m.topRole?.cor_hex || group.cor_hex || '#94a3b8');
 
                     const nameSpan = document.createElement('span');
                     nameSpan.className = 'member-display-name';
                     nameSpan.textContent = m.nickname || m.display_name || m.username;
-                    if (group.cor_hex && group.cor_hex !== '#94a3b8') {
-                        nameSpan.style.color = group.cor_hex;
-                    }
+                    nameSpan.style.color = memberRoleColor;
 
                     nameRow.appendChild(nameSpan);
 
@@ -4059,6 +4059,17 @@
                         crown.textContent = '👑';
                         crown.title = 'Proprietário do Servidor';
                         nameRow.appendChild(crown);
+                    }
+
+                    // Badge visual de cargo ao lado do nome do membro
+                    if (memberRoleName && memberRoleName.toLowerCase() !== '@everyone') {
+                        const roleBadge = document.createElement('span');
+                        roleBadge.className = 'role-badge-tag';
+                        roleBadge.textContent = memberRoleName;
+                        roleBadge.style.color = memberRoleColor;
+                        roleBadge.style.backgroundColor = `${memberRoleColor}20`;
+                        roleBadge.style.border = `1px solid ${memberRoleColor}55`;
+                        nameRow.appendChild(roleBadge);
                     }
 
                     const tagSpan = document.createElement('span');
@@ -5136,7 +5147,7 @@
         // ==========================================
         // Sprint 7 & Epic Sprint: Gestão e Moderação de Mensagens (CRUD & Admin Actions)
         // ==========================================
-        function createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited }) {
+        function createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited, role_name, role_color }) {
             const group = document.createElement('div');
             group.className = `message-group ${isMine ? 'mine' : 'other'}`;
             if (id) {
@@ -5150,13 +5161,40 @@
             const metaDiv = document.createElement('div');
             metaDiv.className = 'message-meta';
 
+            // 🏷️ Resolução de Cargo e Cor RBAC do Autor
+            let authorRoleName = role_name || null;
+            let authorRoleColor = role_color || null;
+
+            const member = (currentServerMembersList || []).find(m => m.username === sender || m.display_name === sender);
+            if (member) {
+                const isServerOwner = Boolean(activeServerObj && Number(activeServerObj.dono_id) === Number(member.user_id));
+                if (isServerOwner) {
+                    authorRoleName = 'Admin';
+                    authorRoleColor = '#ef4444';
+                } else if (!authorRoleName) {
+                    const memberRoles = Array.isArray(member.roles) ? member.roles : [];
+                    const topRole = memberRoles.find(r => r.hoist === true) || memberRoles[0];
+                    if (topRole) {
+                        authorRoleName = topRole.nome;
+                        authorRoleColor = topRole.cor_hex;
+                    }
+                }
+            }
+
+            if (!authorRoleName) {
+                authorRoleName = 'Membro';
+                authorRoleColor = '#94a3b8';
+            }
+
             const strong = document.createElement('strong');
-            strong.textContent = isMine ? (currentAuthUser ? `${currentAuthUser} (Você)` : 'Você') : (sender || 'Participante');
+            strong.textContent = isMine ? (currentAuthUser ? `${currentAuthUser} (Você)` : 'Você') : (sender || 'Usuário');
             strong.className = 'message-author-clickable';
+            if (authorRoleColor) {
+                strong.style.color = authorRoleColor;
+            }
             strong.title = isMine ? 'Seu perfil' : `Ver perfil de ${sender || 'usuário'}`;
             strong.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const member = (currentServerMembersList || []).find(m => m.username === sender || m.display_name === sender);
                 openUserProfilePopout({
                     userId: member?.user_id,
                     username: member?.username || sender,
@@ -5167,10 +5205,19 @@
                 }, e.currentTarget);
             });
 
+            // Badge visual de cargo ao lado do nome
+            const roleBadge = document.createElement('span');
+            roleBadge.className = 'role-badge-tag';
+            roleBadge.textContent = authorRoleName;
+            roleBadge.style.color = authorRoleColor;
+            roleBadge.style.backgroundColor = `${authorRoleColor}20`;
+            roleBadge.style.border = `1px solid ${authorRoleColor}55`;
+
             const timeSpan = document.createElement('span');
             timeSpan.textContent = formatTime(timestamp);
 
             metaDiv.appendChild(strong);
+            metaDiv.appendChild(roleBadge);
             metaDiv.appendChild(timeSpan);
 
             if (is_edited) {
@@ -5442,31 +5489,31 @@
         let hasMoreChannelMessages = true;
         let isLoadingOlderChannelMessages = false;
 
-        function appendChatMessage({ id, text, media_url, sender, timestamp, isMine, is_edited }) {
+        function appendChatMessage({ id, text, media_url, sender, timestamp, isMine, is_edited, role_name, role_color }) {
             if (id && (document.getElementById(`msg-group-${id}`) || document.querySelector(`[data-msg-id="${id}"]`))) {
                 return;
             }
 
             if (mainChatMessagesList) {
-                const groupMain = createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited });
+                const groupMain = createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited, role_name, role_color });
                 mainChatMessagesList.appendChild(groupMain);
                 mainChatMessagesList.scrollTop = mainChatMessagesList.scrollHeight;
             }
 
             if (chatMessages) {
-                const groupSide = createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited });
+                const groupSide = createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited, role_name, role_color });
                 chatMessages.appendChild(groupSide);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         }
 
-        function prependChatMessage({ id, text, media_url, sender, timestamp, isMine, is_edited }) {
+        function prependChatMessage({ id, text, media_url, sender, timestamp, isMine, is_edited, role_name, role_color }) {
             if (id && (document.getElementById(`msg-group-${id}`) || document.querySelector(`[data-msg-id="${id}"]`))) {
                 return;
             }
 
             if (mainChatMessagesList) {
-                const groupMain = createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited });
+                const groupMain = createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited, role_name, role_color });
                 const welcomeBanner = mainChatMessagesList.querySelector('.channel-welcome-banner');
                 if (welcomeBanner && welcomeBanner.nextSibling) {
                     mainChatMessagesList.insertBefore(groupMain, welcomeBanner.nextSibling);
@@ -5480,7 +5527,7 @@
             }
 
             if (chatMessages) {
-                const groupSide = createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited });
+                const groupSide = createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited, role_name, role_color });
                 const notice = chatMessages.querySelector('.chat-system-notice');
                 if (notice && notice.nextSibling) {
                     chatMessages.insertBefore(groupSide, notice.nextSibling);
@@ -5524,7 +5571,9 @@
                                 sender: msg.sender || 'Usuário',
                                 timestamp: new Date(msg.timestamp).getTime(),
                                 isMine: isMine,
-                                is_edited: Boolean(msg.is_edited)
+                                is_edited: Boolean(msg.is_edited),
+                                role_name: msg.role_name,
+                                role_color: msg.role_color
                             });
                         }
                         if (container) {
@@ -5773,10 +5822,12 @@
                 id: data.id,
                 text: data.text,
                 media_url: data.media_url,
-                sender: data.sender || 'Participante',
+                sender: data.sender || 'Usuário',
                 timestamp: data.timestamp || Date.now(),
                 isMine: isMine,
-                is_edited: Boolean(data.is_edited)
+                is_edited: Boolean(data.is_edited),
+                role_name: data.role_name,
+                role_color: data.role_color
             });
 
             if (!isMine) {
@@ -5857,6 +5908,29 @@
             });
         });
 
+        // 🛡️ Sprint: RBAC - Tratamento de Avisos de Erro de Permissão
+        socket.off('error-notice').on('error-notice', (data) => {
+            if (data && data.message) {
+                showToast(data.message, 'error', 5000);
+            }
+        });
+
+        // 🛡️ Sprint: RBAC - Notificação de Expulsão do Servidor
+        socket.off('kicked-from-server').on('kicked-from-server', (data) => {
+            alert(data?.reason || 'Você foi expulso deste servidor por um moderador.');
+            if (activeServerId && Number(activeServerId) === Number(data?.serverId)) {
+                switchSocialTab('online');
+            }
+        });
+
+        // 🛡️ Sprint: RBAC - Atualização de Membro Expulso na Sidebar
+        socket.off('server-member-kicked').on('server-member-kicked', (data) => {
+            if (activeServerId && Number(activeServerId) === Number(data?.serverId)) {
+                currentServerMembersList = (currentServerMembersList || []).filter(m => Number(m.user_id) !== Number(data?.userId));
+                renderServerMembersSidebar(currentServerMembersList);
+            }
+        });
+
         // Confirmação do ID persistido do Banco para o Remetente
         socket.off('chat-message-sent').on('chat-message-sent', (data) => {
             if (data && data.tempId && data.id) {
@@ -5926,7 +6000,9 @@
                         sender: msg.sender || 'Usuário',
                         timestamp: new Date(msg.timestamp).getTime(),
                         isMine: isMine,
-                        is_edited: Boolean(msg.is_edited)
+                        is_edited: Boolean(msg.is_edited),
+                        role_name: msg.role_name,
+                        role_color: msg.role_color
                     });
                 });
             }

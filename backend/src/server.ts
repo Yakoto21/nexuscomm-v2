@@ -8,7 +8,7 @@ import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { routes } from './routes';
-import { initDb, saveMessage, getMessagesByChannel, findUserById, saveDirectMessage, canUserAccessChannel, getMessageById, updateMessage, deleteMessage, canUserModerateMessage, sanitizePlainText } from './db';
+import { initDb, saveMessage, getMessagesByChannel, findUserById, saveDirectMessage, canUserAccessChannel, getMessageById, updateMessage, deleteMessage, canUserModerateMessage, sanitizePlainText, getUserHighestRole, canUserKickMember, removeMemberFromServer } from './db';
 
 // Carrega as variáveis de ambiente
 dotenv.config();
@@ -255,6 +255,50 @@ io.on('connection', (socket) => {
         id: socket.id,
         username: username,
         userId: userId
+    });
+
+    // ==========================================
+    // 🛡️ Middleware de Segurança Socket.IO (Sprint: RBAC)
+    // Intercepta e barra qualquer evento sensível não autorizado
+    // ==========================================
+    socket.use(async (packet, next) => {
+        const [event, data] = packet;
+        const sensitiveEvents = ['delete-message', 'kick-user'];
+
+        if (sensitiveEvents.includes(event)) {
+            if (!userId) {
+                console.warn(`⛔ [RBAC Socket Middleware] Evento sensível [${event}] bloqueado: usuário anônimo ou sem autenticação.`);
+                socket.emit('error-notice', { message: 'Você precisa estar autenticado para realizar esta ação.' });
+                return next(new Error('Unauthorized'));
+            }
+
+            if (event === 'delete-message') {
+                const messageId = data?.id;
+                if (!messageId) {
+                    return next(new Error('ID de mensagem inválido.'));
+                }
+                const canDelete = await canUserModerateMessage(userId, messageId);
+                if (!canDelete) {
+                    console.warn(`⛔ [RBAC Socket Middleware] Usuário [${userId}] bloqueado ao tentar apagar mensagem [${messageId}] sem permissão.`);
+                    socket.emit('error-notice', { message: 'Você não tem permissão para excluir esta mensagem.' });
+                    return next(new Error('Forbidden: sem permissão para apagar mensagens'));
+                }
+            }
+
+            if (event === 'kick-user') {
+                const { serverId, targetUserId } = data || {};
+                if (!serverId || !targetUserId) {
+                    return next(new Error('Parâmetros de expulsão incompletos.'));
+                }
+                const canKick = await canUserKickMember(userId, serverId, targetUserId);
+                if (!canKick) {
+                    console.warn(`⛔ [RBAC Socket Middleware] Usuário [${userId}] bloqueado ao tentar expulsar [${targetUserId}] do servidor [${serverId}].`);
+                    socket.emit('error-notice', { message: 'Você não possui permissão para expulsar este membro ou seu cargo é inferior ao dele.' });
+                    return next(new Error('Forbidden: sem permissão para expulsar membros'));
+                }
+            }
+        }
+        next();
     });
 
     // Entrada na Sala (Room)
@@ -509,6 +553,8 @@ io.on('connection', (socket) => {
 
             console.log(`💬 [${roomName}] ${senderUsername}: ${messageText} ${mediaUrl ? `[Mídia: ${mediaUrl}]` : ''} (ID: ${savedMsg.id})`);
 
+            const senderRole = await getUserHighestRole(userId, (data as any)?.serverId || null);
+
             // Envia a mensagem persistida com o nome real do remetente para todos os outros participantes da sala
             const payload = {
                 id: savedMsg.id,
@@ -517,6 +563,8 @@ io.on('connection', (socket) => {
                 media_url: savedMsg.media_url,
                 sender: savedMsg.sender,
                 senderId: socket.id,
+                role_name: senderRole.name,
+                role_color: senderRole.color_hex,
                 is_edited: false,
                 timestamp: savedMsg.timestamp
             };
@@ -526,12 +574,15 @@ io.on('connection', (socket) => {
                 tempId: data.tempId,
                 id: savedMsg.id,
                 channel_id: savedMsg.channel_id,
+                role_name: senderRole.name,
+                role_color: senderRole.color_hex,
                 timestamp: savedMsg.timestamp
             });
 
             socket.to(roomName).emit('chat-message', payload);
         } catch (err) {
             console.error('Erro ao persistir mensagem no banco de dados:', err);
+            const fallbackRole = await getUserHighestRole(userId, (data as any)?.serverId || null);
             // Em caso de falha transitória no banco, realiza o broadcast
             socket.to(roomName).emit('chat-message', {
                 id: `fallback-${Date.now()}`,
@@ -540,6 +591,8 @@ io.on('connection', (socket) => {
                 media_url: mediaUrl,
                 sender: senderUsername,
                 senderId: socket.id,
+                role_name: fallbackRole.name,
+                role_color: fallbackRole.color_hex,
                 is_edited: false,
                 timestamp: data.timestamp || Date.now()
             });
@@ -596,6 +649,43 @@ io.on('connection', (socket) => {
             });
         } catch (err) {
             console.error('Erro ao processar socket delete-message:', err);
+        }
+    });
+
+    // 🛡️ Sprint: RBAC - Expulsão de Membro via Socket.IO
+    socket.on('kick-user', async (data: { serverId: number | string; targetUserId: number | string; reason?: string }) => {
+        if (!userId || !data || !data.serverId || !data.targetUserId) return;
+
+        try {
+            const canKick = await canUserKickMember(userId, data.serverId, data.targetUserId);
+            if (!canKick) {
+                socket.emit('error-notice', { message: 'Ação não autorizada pelo sistema RBAC: você não tem permissão para expulsar este membro.' });
+                return;
+            }
+
+            const removed = await removeMemberFromServer(data.targetUserId, data.serverId);
+            if (removed) {
+                console.log(`👢 [RBAC Kick] Usuário [${data.targetUserId}] expulso do servidor [${data.serverId}] pelo moderador [${userId}]`);
+
+                // Notifica o usuário expulso em sua sala pessoal
+                io.to(`user_${data.targetUserId}`).emit('kicked-from-server', {
+                    serverId: Number(data.serverId),
+                    reason: data.reason || 'Você foi expulso do servidor por um moderador.'
+                });
+
+                // Notifica a sala do servidor para atualizar dinamicamente a sidebar de membros
+                io.emit('server-member-kicked', {
+                    serverId: Number(data.serverId),
+                    userId: Number(data.targetUserId)
+                });
+
+                socket.emit('kick-success', {
+                    serverId: Number(data.serverId),
+                    targetUserId: Number(data.targetUserId)
+                });
+            }
+        } catch (err) {
+            console.error('Erro ao processar socket kick-user:', err);
         }
     });
 
