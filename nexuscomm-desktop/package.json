@@ -1,0 +1,25 @@
+{
+  "name": "nexuscomm-desktop",
+  "version": "1.0.0",
+  "description": "NexusComm Desktop Application - Comunicação e Colaboração em Tempo Real",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "keywords": [
+    "electron",
+    "chat",
+    "webrtc",
+    "voice",
+    "desktop",
+    "nexuscomm"
+  ],
+  "author": "NexusComm Team",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}

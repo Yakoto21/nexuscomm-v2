@@ -4,5 +4,7 @@ backend/node_modules/
 backend/.env
 /dist/
 /backend/dist/
+nexuscomm-desktop/node_modules/
+nexuscomm-desktop/dist/
 .DS_Store
 Thumbs.db
