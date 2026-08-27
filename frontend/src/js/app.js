@@ -4051,6 +4051,7 @@
                     const infoDiv = document.createElement('div');
                     infoDiv.className = 'member-info';
 
+                    const nameRow = document.createElement('div');
                     nameRow.className = 'member-name-row';
 
                     const memberRoleName = m.isServerOwner ? 'Admin' : (m.topRole?.nome || group.nome || 'Membro');
