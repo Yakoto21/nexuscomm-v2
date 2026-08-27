@@ -2135,9 +2135,17 @@
             switchSocialTab(currentSocialTab || 'online');
         }
 
+        let oldestDmMessageId = null;
+        let hasMoreDmMessages = true;
+        let isLoadingOlderDmMessages = false;
+
         async function fetchDirectMessagesHistory(friendId) {
             if (!friendId || !authToken) return;
             if (!dmMessagesList) return;
+
+            oldestDmMessageId = null;
+            hasMoreDmMessages = true;
+            isLoadingOlderDmMessages = false;
 
             dmMessagesList.textContent = '';
             const loadingMsg = document.createElement('div');
@@ -2146,15 +2154,21 @@
             dmMessagesList.appendChild(loadingMsg);
 
             try {
-                const res = await fetch(`/dms/${friendId}`, {
+                const res = await fetch(`/dms/${friendId}?limit=50`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
                 const data = await res.json();
                 dmMessagesList.textContent = '';
 
                 if (data && Array.isArray(data.messages)) {
+                    if (data.messages.length < 50) {
+                        hasMoreDmMessages = false;
+                    }
+                    if (data.messages.length > 0) {
+                        oldestDmMessageId = data.messages[0].id;
+                    }
                     data.messages.forEach(msg => {
-                        renderDmMessageItem(msg, false);
+                        renderDmMessageItem(msg, false, false);
                     });
                 }
                 scrollDmChatToBottom();
@@ -2170,7 +2184,43 @@
             }
         }
 
-        function renderDmMessageItem(msg, shouldScroll = true) {
+        async function loadOlderDmMessages() {
+            if (isLoadingOlderDmMessages || !hasMoreDmMessages || !oldestDmMessageId || !activeDmUserId) return;
+            isLoadingOlderDmMessages = true;
+
+            const container = dmChatMessagesContainer || dmMessagesList;
+            const prevScrollHeight = container ? container.scrollHeight : 0;
+            const prevScrollTop = container ? container.scrollTop : 0;
+
+            try {
+                const res = await fetch(`/dms/${activeDmUserId}?limit=50&beforeId=${oldestDmMessageId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && Array.isArray(data.messages)) {
+                    if (data.messages.length < 50) {
+                        hasMoreDmMessages = false;
+                    }
+                    if (data.messages.length > 0) {
+                        oldestDmMessageId = data.messages[0].id;
+                        for (let i = data.messages.length - 1; i >= 0; i--) {
+                            renderDmMessageItem(data.messages[i], false, true);
+                        }
+                        if (container) {
+                            const newScrollHeight = container.scrollHeight;
+                            container.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Erro ao carregar mensagens antigas da DM:', err);
+            } finally {
+                isLoadingOlderDmMessages = false;
+            }
+        }
+
+        function renderDmMessageItem(msg, shouldScroll = true, insertAtTop = false) {
             if (!dmMessagesList || !msg) return;
 
             // Prevenção de Duplicação na DOM (Checagem estrita via ID)
@@ -2198,6 +2248,8 @@
                 img.src = avatarUrl;
                 img.className = 'user-avatar-img';
                 img.alt = authorName;
+                img.loading = 'lazy';
+                img.decoding = 'async';
                 avatar.appendChild(img);
             } else {
                 avatar.textContent = getServerInitials(authorName);
@@ -2265,6 +2317,7 @@
                 mediaImg.src = msg.media_url;
                 mediaImg.alt = 'Imagem anexada';
                 mediaImg.loading = 'lazy';
+                mediaImg.decoding = 'async';
                 mediaImg.title = 'Clique para ver em tamanho real';
                 mediaImg.addEventListener('click', () => {
                     window.open(msg.media_url, '_blank');
@@ -2276,7 +2329,11 @@
             bubble.appendChild(avatar);
             bubble.appendChild(wrap);
 
-            dmMessagesList.appendChild(bubble);
+            if (insertAtTop && dmMessagesList.firstChild) {
+                dmMessagesList.insertBefore(bubble, dmMessagesList.firstChild);
+            } else {
+                dmMessagesList.appendChild(bubble);
+            }
 
             if (shouldScroll) {
                 scrollDmChatToBottom();
@@ -2287,6 +2344,14 @@
             if (dmChatMessagesContainer) {
                 dmChatMessagesContainer.scrollTop = dmChatMessagesContainer.scrollHeight;
             }
+        }
+
+        if (dmChatMessagesContainer) {
+            dmChatMessagesContainer.addEventListener('scroll', () => {
+                if (dmChatMessagesContainer.scrollTop <= 60) {
+                    loadOlderDmMessages();
+                }
+            });
         }
 
         async function sendDmAction(content) {
@@ -5373,7 +5438,15 @@
             }
         }
 
+        let oldestChannelMessageId = null;
+        let hasMoreChannelMessages = true;
+        let isLoadingOlderChannelMessages = false;
+
         function appendChatMessage({ id, text, media_url, sender, timestamp, isMine, is_edited }) {
+            if (id && (document.getElementById(`msg-group-${id}`) || document.querySelector(`[data-msg-id="${id}"]`))) {
+                return;
+            }
+
             if (mainChatMessagesList) {
                 const groupMain = createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited });
                 mainChatMessagesList.appendChild(groupMain);
@@ -5385,6 +5458,101 @@
                 chatMessages.appendChild(groupSide);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
+        }
+
+        function prependChatMessage({ id, text, media_url, sender, timestamp, isMine, is_edited }) {
+            if (id && (document.getElementById(`msg-group-${id}`) || document.querySelector(`[data-msg-id="${id}"]`))) {
+                return;
+            }
+
+            if (mainChatMessagesList) {
+                const groupMain = createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited });
+                const welcomeBanner = mainChatMessagesList.querySelector('.channel-welcome-banner');
+                if (welcomeBanner && welcomeBanner.nextSibling) {
+                    mainChatMessagesList.insertBefore(groupMain, welcomeBanner.nextSibling);
+                } else if (welcomeBanner) {
+                    mainChatMessagesList.appendChild(groupMain);
+                } else if (mainChatMessagesList.firstChild) {
+                    mainChatMessagesList.insertBefore(groupMain, mainChatMessagesList.firstChild);
+                } else {
+                    mainChatMessagesList.appendChild(groupMain);
+                }
+            }
+
+            if (chatMessages) {
+                const groupSide = createChatMessageGroup({ id, text, media_url, sender, timestamp, isMine, is_edited });
+                const notice = chatMessages.querySelector('.chat-system-notice');
+                if (notice && notice.nextSibling) {
+                    chatMessages.insertBefore(groupSide, notice.nextSibling);
+                } else if (notice) {
+                    chatMessages.appendChild(groupSide);
+                } else if (chatMessages.firstChild) {
+                    chatMessages.insertBefore(groupSide, chatMessages.firstChild);
+                } else {
+                    chatMessages.appendChild(groupSide);
+                }
+            }
+        }
+
+        async function loadOlderChannelMessages() {
+            if (isLoadingOlderChannelMessages || !hasMoreChannelMessages || !oldestChannelMessageId || !currentRoom) return;
+            isLoadingOlderChannelMessages = true;
+
+            const container = mainChatMessagesList || chatMessages;
+            const prevScrollHeight = container ? container.scrollHeight : 0;
+            const prevScrollTop = container ? container.scrollTop : 0;
+
+            try {
+                const res = await fetch(`/messages/${currentRoom}?limit=50&beforeId=${oldestChannelMessageId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && Array.isArray(data.messages)) {
+                    if (data.messages.length < 50) {
+                        hasMoreChannelMessages = false;
+                    }
+                    if (data.messages.length > 0) {
+                        oldestChannelMessageId = data.messages[0].id;
+                        for (let i = data.messages.length - 1; i >= 0; i--) {
+                            const msg = data.messages[i];
+                            const isMine = Boolean(currentAuthUser && msg.sender && msg.sender === currentAuthUser);
+                            prependChatMessage({
+                                id: msg.id,
+                                text: msg.text,
+                                media_url: msg.media_url,
+                                sender: msg.sender || 'Usuário',
+                                timestamp: new Date(msg.timestamp).getTime(),
+                                isMine: isMine,
+                                is_edited: Boolean(msg.is_edited)
+                            });
+                        }
+                        if (container) {
+                            const newScrollHeight = container.scrollHeight;
+                            container.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Erro ao carregar mensagens anteriores do canal:', err);
+            } finally {
+                isLoadingOlderChannelMessages = false;
+            }
+        }
+
+        if (mainChatMessagesList) {
+            mainChatMessagesList.addEventListener('scroll', () => {
+                if (mainChatMessagesList.scrollTop <= 60) {
+                    loadOlderChannelMessages();
+                }
+            });
+        }
+        if (chatMessages) {
+            chatMessages.addEventListener('scroll', () => {
+                if (chatMessages.scrollTop <= 60) {
+                    loadOlderChannelMessages();
+                }
+            });
         }
 
         async function sendChatMessage(text, targetType = 'main') {
@@ -5738,14 +5906,24 @@
                 chatMessages.appendChild(noticeDiv);
             }
 
+            oldestChannelMessageId = null;
+            hasMoreChannelMessages = true;
+            isLoadingOlderChannelMessages = false;
+
             if (Array.isArray(data.messages)) {
+                if (data.messages.length < 50) {
+                    hasMoreChannelMessages = false;
+                }
+                if (data.messages.length > 0) {
+                    oldestChannelMessageId = data.messages[0].id;
+                }
                 data.messages.forEach((msg) => {
                     const isMine = Boolean(currentAuthUser && msg.sender && msg.sender === currentAuthUser);
                     appendChatMessage({
                         id: msg.id,
                         text: msg.text,
                         media_url: msg.media_url,
-                        sender: msg.sender || 'Participante',
+                        sender: msg.sender || 'Usuário',
                         timestamp: new Date(msg.timestamp).getTime(),
                         isMine: isMine,
                         is_edited: Boolean(msg.is_edited)

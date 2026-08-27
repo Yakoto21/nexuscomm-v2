@@ -242,7 +242,8 @@ routes.get('/messages/:channelId', ensureAuthenticated, async (req: Request, res
         const userId = Number(req.userId);
         const channelIdParam = req.params.channelId;
         const channelId = Array.isArray(channelIdParam) ? channelIdParam[0] : channelIdParam;
-        const limitParam = req.query.limit ? Number(req.query.limit) : 50;
+        const limitParam = req.query.limit ? Math.min(Number(req.query.limit), 50) : 50;
+        const beforeIdParam = req.query.beforeId ? Number(req.query.beforeId) : undefined;
 
         if (!channelId) {
             return res.status(400).json({ error: 'ID do canal é obrigatório.' });
@@ -254,7 +255,7 @@ routes.get('/messages/:channelId', ensureAuthenticated, async (req: Request, res
             return res.status(403).json({ error: 'Acesso negado ao histórico deste canal.' });
         }
 
-        const messages = await getMessagesByChannel(channelId, limitParam);
+        const messages = await getMessagesByChannel(channelId, limitParam, beforeIdParam);
 
         return res.status(200).json({
             channelId,
@@ -723,7 +724,10 @@ routes.get(['/servers/:serverId/members', '/api/servers/:serverId/members'], ens
             return res.status(400).json({ error: 'ID do servidor inválido.' });
         }
 
-        const members = await getServerMembers(serverId);
+        const limitParam = req.query.limit ? Math.min(Number(req.query.limit), 50) : 50;
+        const offsetParam = req.query.offset ? Number(req.query.offset) : 0;
+
+        const members = await getServerMembers(serverId, limitParam, offsetParam);
         return res.status(200).json({ members });
     } catch (error: any) {
         console.error('Erro ao listar membros do servidor:', error);
@@ -887,13 +891,14 @@ routes.get('/dms/:otherUserId', ensureAuthenticated, async (req: Request, res: R
     try {
         const userId = Number(req.userId);
         const otherUserId = Number(req.params.otherUserId);
-        const limit = req.query.limit ? Number(req.query.limit) : 50;
+        const limit = req.query.limit ? Math.min(Number(req.query.limit), 50) : 50;
+        const beforeId = req.query.beforeId ? Number(req.query.beforeId) : undefined;
 
         if (!userId || isNaN(otherUserId)) {
             return res.status(400).json({ error: 'IDs de usuário inválidos.' });
         }
 
-        const messages = await getDirectMessages(userId, otherUserId, limit);
+        const messages = await getDirectMessages(userId, otherUserId, limit, beforeId);
         return res.status(200).json({ messages });
     } catch (error) {
         console.error('Erro ao buscar mensagens diretas:', error);

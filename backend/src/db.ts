@@ -562,7 +562,10 @@ export async function getMemberRoles(userId: number, serverId: number) {
 /**
  * Retorna todos os membros de um servidor com seus cargos agregados.
  */
-export async function getServerMembers(serverId: number) {
+export async function getServerMembers(serverId: number, limit = 50, offset = 0) {
+    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 50);
+    const safeOffset = Math.max(Number(offset) || 0, 0);
+
     const res = await pool.query(
         `SELECT 
             u.id AS user_id,
@@ -589,8 +592,9 @@ export async function getServerMembers(serverId: number) {
          LEFT JOIN server_roles r ON mr.role_id = r.id
          WHERE sm.server_id = $1
          GROUP BY u.id, u.username, u.display_name, u.avatar_url, sm.nickname, sm.joined_at
-         ORDER BY sm.joined_at ASC`,
-        [serverId]
+         ORDER BY sm.joined_at ASC
+         LIMIT $2 OFFSET $3`,
+        [serverId, safeLimit, safeOffset]
     );
     return res.rows;
 }
@@ -672,19 +676,32 @@ export async function saveMessage(
     return res.rows[0];
 }
 
-export async function getMessagesByChannel(channelId: string, limit = 50) {
+export async function getMessagesByChannel(channelId: string, limit = 50, beforeId?: number | string) {
     const safeChannelId = String(channelId || 'geral');
-    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
+    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 50);
+
+    const params: any[] = [safeChannelId];
+    let beforeClause = '';
+
+    if (beforeId) {
+        const numBefore = parseInt(String(beforeId), 10);
+        if (!isNaN(numBefore)) {
+            params.push(numBefore);
+            beforeClause = ` AND id < $${params.length}`;
+        }
+    }
+
+    params.push(safeLimit);
 
     const res = await pool.query(
         `SELECT id, channel_id, user_id, sender_name AS sender, conteudo AS text, media_url, is_edited, data_envio AS timestamp
          FROM messages
-         WHERE channel_id = $1
-         ORDER BY data_envio ASC
-         LIMIT $2`,
-        [safeChannelId, safeLimit]
+         WHERE channel_id = $1 ${beforeClause}
+         ORDER BY id DESC
+         LIMIT $${params.length}`,
+        params
     );
-    return res.rows;
+    return res.rows.reverse();
 }
 
 export async function getMessageById(messageId: number | string) {
@@ -787,9 +804,10 @@ export interface FriendUser {
     friendship_created_at: string;
 }
 
-export async function getFriendships(userId: number | string) {
+export async function getFriendships(userId: number | string, limit = 50) {
     const numericId = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
     if (isNaN(numericId)) return { accepted: [], pending_incoming: [], pending_outgoing: [], blocked: [] };
+    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 50);
 
     const query = `
         SELECT 
@@ -812,9 +830,10 @@ export async function getFriendships(userId: number | string) {
         )
         WHERE f.user_id_1 = $1 OR f.user_id_2 = $1
         ORDER BY f.created_at DESC
+        LIMIT $2
     `;
 
-    const res = await pool.query(query, [numericId]);
+    const res = await pool.query(query, [numericId, safeLimit]);
 
     const accepted: FriendUser[] = [];
     const pending_incoming: FriendUser[] = [];
@@ -954,12 +973,25 @@ export async function respondFriendRequest(userId: number | string, friendshipId
     }
 }
 
-export async function getDirectMessages(user1Id: number | string, user2Id: number | string, limit = 50) {
+export async function getDirectMessages(user1Id: number | string, user2Id: number | string, limit = 50, beforeId?: number | string) {
     const num1 = typeof user1Id === 'number' ? user1Id : parseInt(String(user1Id), 10);
     const num2 = typeof user2Id === 'number' ? user2Id : parseInt(String(user2Id), 10);
-    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
+    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 50);
 
     if (isNaN(num1) || isNaN(num2)) return [];
+
+    const params: any[] = [num1, num2];
+    let beforeClause = '';
+
+    if (beforeId) {
+        const numBefore = parseInt(String(beforeId), 10);
+        if (!isNaN(numBefore)) {
+            params.push(numBefore);
+            beforeClause = ` AND dm.id < $${params.length}`;
+        }
+    }
+
+    params.push(safeLimit);
 
     const res = await pool.query(
         `SELECT 
@@ -974,14 +1006,15 @@ export async function getDirectMessages(user1Id: number | string, user2Id: numbe
             u.avatar_url AS sender_avatar_url
          FROM direct_messages dm
          JOIN users u ON u.id = dm.sender_id
-         WHERE (dm.sender_id = $1 AND dm.receiver_id = $2)
-            OR (dm.sender_id = $2 AND dm.receiver_id = $1)
-         ORDER BY dm.created_at ASC
-         LIMIT $3`,
-        [num1, num2, safeLimit]
+         WHERE ((dm.sender_id = $1 AND dm.receiver_id = $2)
+             OR (dm.sender_id = $2 AND dm.receiver_id = $1))
+             ${beforeClause}
+         ORDER BY dm.id DESC
+         LIMIT $${params.length}`,
+        params
     );
 
-    return res.rows;
+    return res.rows.reverse();
 }
 
 export async function saveDirectMessage(
