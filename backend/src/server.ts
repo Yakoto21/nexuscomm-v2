@@ -84,6 +84,61 @@ const io = new Server(httpServer, {
 // Mapa de rastreamento de presença online (socket.id -> userId)
 const onlineUsersMap = new Map<string, number>();
 
+// ==========================================
+// Sprint: Presença Visual nos Canais de Voz (Voice Channels Presence)
+// ==========================================
+interface VoiceParticipant {
+    id: number | null;
+    socketId: string;
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+    channelId: string | number;
+    channelName: string;
+    room: string;
+    serverId: number | null;
+    isMuted: boolean;
+    isDeafened: boolean;
+}
+
+// Mapa de Presença em Canais de Voz: roomName -> Map<socketId, VoiceParticipant>
+const voiceRoomsPresenceMap = new Map<string, Map<string, VoiceParticipant>>();
+
+function broadcastVoiceChannelPresence(roomName: string) {
+    const participantsMap = voiceRoomsPresenceMap.get(roomName);
+    const participantsList = participantsMap ? Array.from(participantsMap.values()) : [];
+
+    const firstP = participantsList[0];
+    let channelId = firstP?.channelId;
+    let channelName = firstP?.channelName;
+    let serverId = firstP?.serverId;
+
+    if (!channelName && roomName.includes('-voz-')) {
+        const parts = roomName.split('-voz-');
+        channelName = parts[1] || '';
+        const serverParts = parts[0].split('comunidade-');
+        serverId = serverParts[1] ? parseInt(serverParts[1], 10) : null;
+    }
+
+    const payload = {
+        room: roomName,
+        channelId: channelId || roomName,
+        channelName: channelName || '',
+        serverId: serverId || null,
+        participants: participantsList.map(p => ({
+            id: p.id,
+            socketId: p.socketId,
+            username: p.username,
+            displayName: p.displayName,
+            avatarUrl: p.avatarUrl,
+            isMuted: Boolean(p.isMuted),
+            isDeafened: Boolean(p.isDeafened)
+        }))
+    };
+
+    io.emit('voice-channel-presence-update', payload);
+}
+
 // Middleware de Autenticação do Socket.IO (io.use) para interceptar conexões iniciais
 io.use(async (socket, next) => {
     // 1. Extrai o token enviado pelo cliente via socket.handshake.auth.token ou headers
@@ -119,12 +174,17 @@ io.use(async (socket, next) => {
         const rawUserId = decoded.id ?? decoded.sub;
         const userId = (rawUserId !== undefined && rawUserId !== null && !isNaN(Number(rawUserId))) ? Number(rawUserId) : null;
 
-        // Se o token JWT não tiver o username embutido, busca no PostgreSQL pelo ID
-        if (!username && userId) {
+        let displayName = username;
+        let avatarUrl: string | null = null;
+
+        // Se tiver userId, busca dados do usuário no PostgreSQL para displayName e avatar
+        if (userId) {
             try {
                 const dbUser = await findUserById(userId);
-                if (dbUser && dbUser.username) {
-                    username = dbUser.username;
+                if (dbUser) {
+                    if (dbUser.username) username = dbUser.username;
+                    displayName = dbUser.display_name || username;
+                    avatarUrl = dbUser.avatar_url || null;
                 }
             } catch (dbErr) {
                 console.warn(`Aviso ao buscar usuário [${userId}] no DB:`, dbErr);
@@ -134,17 +194,21 @@ io.use(async (socket, next) => {
         // Se ainda não tiver username, verifica se o cliente enviou no handshake auth
         if (!username && socket.handshake.auth?.username) {
             username = String(socket.handshake.auth.username).trim();
+            if (!displayName) displayName = username;
         }
 
         // Se ainda não tiver, gera identificador
         if (!username) {
             username = `User-${socket.id.substring(0, 5)}`;
+            displayName = username;
         }
 
         // 3. Anexa os dados do usuário autenticado no socket
         socket.data.user = {
             id: userId,
-            username: username
+            username: username,
+            displayName: displayName,
+            avatarUrl: avatarUrl
         };
 
         console.log(`🔑 Socket [${socket.id}] autenticado com sucesso para o usuário: ${username} (ID: ${userId})`);
@@ -157,7 +221,7 @@ io.use(async (socket, next) => {
 
 // Gerenciamento de conexões em tempo real, Sinalização WebRTC e Chat Persistido
 io.on('connection', (socket) => {
-    const userPayload = socket.data.user as { id: number | null, username: string };
+    const userPayload = socket.data.user as { id: number | null, username: string, displayName?: string, avatarUrl?: string | null };
     const username = userPayload?.username || `User-${socket.id.substring(0, 5)}`;
     const userId = userPayload?.id || null;
     console.log(`⚡ Usuário conectado: ${socket.id} (${username}) | UserID: ${userId}`);
@@ -170,9 +234,21 @@ io.on('connection', (socket) => {
     });
 
     // Entrada na Sala (Room)
-    socket.on('join-room', async (room) => {
-        const roomName = String(room || 'sala-publica').trim();
+    socket.on('join-room', async (data) => {
+        const roomName = typeof data === 'object' && data !== null
+            ? String(data.room || data.name || '').trim()
+            : String(data || 'sala-publica').trim();
         if (!roomName) return;
+
+        const isVoiceRoom = Boolean(
+            (typeof data === 'object' && (data.isVoice || data.tipo === 'voz')) ||
+            roomName.includes('-voz-')
+        );
+        const channelId = typeof data === 'object' ? (data.channelId || data.id || null) : null;
+        const channelName = typeof data === 'object' ? (data.channelName || data.nome || null) : null;
+        const serverId = typeof data === 'object' ? (data.serverId || null) : null;
+        const clientAvatar = typeof data === 'object' ? (data.avatarUrl || data.avatar_url || null) : null;
+        const clientDisplayName = typeof data === 'object' ? (data.displayName || data.display_name || null) : null;
 
         // 🔒 SEC-04: Validação de autorização no banco antes de permitir entrada na sala
         const hasAccess = await canUserAccessChannel(userId, roomName);
@@ -184,6 +260,41 @@ io.on('connection', (socket) => {
 
         socket.join(roomName);
         console.log(`🚪 Usuário ${socket.id} (${username}) entrou na sala: "${roomName}"`);
+
+        // Se for canal de voz, registra presença no mapa e emite atualização global
+        if (isVoiceRoom) {
+            // Remove o usuário de qualquer outra sala de voz em que estivesse previamente
+            for (const [vRoom, pMap] of voiceRoomsPresenceMap.entries()) {
+                if (vRoom !== roomName && pMap.has(socket.id)) {
+                    pMap.delete(socket.id);
+                    broadcastVoiceChannelPresence(vRoom);
+                }
+            }
+
+            if (!voiceRoomsPresenceMap.has(roomName)) {
+                voiceRoomsPresenceMap.set(roomName, new Map());
+            }
+
+            const pMap = voiceRoomsPresenceMap.get(roomName)!;
+            const pDisplayName = clientDisplayName || userPayload?.displayName || username;
+            const pAvatar = clientAvatar || userPayload?.avatarUrl || null;
+
+            pMap.set(socket.id, {
+                id: userId,
+                socketId: socket.id,
+                username: username,
+                displayName: pDisplayName,
+                avatarUrl: pAvatar,
+                channelId: channelId || roomName,
+                channelName: channelName || (roomName.includes('-voz-') ? roomName.split('-voz-')[1] : roomName),
+                room: roomName,
+                serverId: serverId,
+                isMuted: false,
+                isDeafened: false
+            });
+
+            broadcastVoiceChannelPresence(roomName);
+        }
 
         // Obtém todos os outros sockets já presentes nesta sala
         const roomSockets = io.sockets.adapter.rooms.get(roomName);
@@ -224,10 +335,17 @@ io.on('connection', (socket) => {
     // Saída Graciosa da Sala (Room Teardown)
     socket.on('leave-room', (room) => {
         if (!room) return;
-        const roomName = String(room).trim();
+        const roomName = typeof room === 'object' && room !== null ? String(room.room || room.name || '').trim() : String(room).trim();
         socket.leave(roomName);
         console.log(`🚪 Usuário ${socket.id} (${username}) saiu da sala: "${roomName}"`);
         socket.to(roomName).emit('user-left', { id: socket.id, username: username, room: roomName });
+
+        if (voiceRoomsPresenceMap.has(roomName)) {
+            const pMap = voiceRoomsPresenceMap.get(roomName)!;
+            if (pMap.delete(socket.id)) {
+                broadcastVoiceChannelPresence(roomName);
+            }
+        }
     });
 
     // 1. Repasse da Oferta WebRTC (offer) direcionada para um peer específico ou para a sala
@@ -284,13 +402,27 @@ io.on('connection', (socket) => {
 
     // 4. Sincronização do estado de mídia (Microfone Mutado / Câmera Desligada)
     socket.on('media-state-change', (data) => {
-        if (data.room) {
+        if (data && data.room) {
             socket.to(data.room).emit('user-media-state-changed', {
                 sender: socket.id,
                 isMicMuted: data.isMicMuted,
+                isDeafened: data.isDeafened,
                 isCameraOff: data.isCameraOff,
                 activeVideoType: data.activeVideoType
             });
+
+            // Atualiza presença visual no canal de voz
+            if (voiceRoomsPresenceMap.has(data.room)) {
+                const pMap = voiceRoomsPresenceMap.get(data.room)!;
+                const participant = pMap.get(socket.id);
+                if (participant) {
+                    participant.isMuted = Boolean(data.isMicMuted);
+                    if (data.isDeafened !== undefined) {
+                        participant.isDeafened = Boolean(data.isDeafened);
+                    }
+                    broadcastVoiceChannelPresence(data.room);
+                }
+            }
         }
     });
 
@@ -555,10 +687,20 @@ io.on('connection', (socket) => {
                 socket.to(room).emit('user-left', { id: socket.id, username: username });
             }
         }
+        for (const [vRoom, pMap] of voiceRoomsPresenceMap.entries()) {
+            if (pMap.delete(socket.id)) {
+                broadcastVoiceChannelPresence(vRoom);
+            }
+        }
     });
 
     socket.on('disconnect', () => {
         console.log(`❌ Usuário desconectado: ${socket.id} (${username})`);
+        for (const [vRoom, pMap] of voiceRoomsPresenceMap.entries()) {
+            if (pMap.delete(socket.id)) {
+                broadcastVoiceChannelPresence(vRoom);
+            }
+        }
         if (userId) {
             onlineUsersMap.delete(socket.id);
             // Verifica se o usuário ainda possui outros sockets ativos
@@ -569,6 +711,37 @@ io.on('connection', (socket) => {
                     status: 'offline'
                 });
             }
+        }
+    });
+
+    // Fornece a presença atual de todos os canais de voz para sincronização inicial
+    socket.on('get-voice-channel-presence', (_data, callback) => {
+        const allPresence: any[] = [];
+        for (const [vRoom, pMap] of voiceRoomsPresenceMap.entries()) {
+            if (pMap.size > 0) {
+                const participantsList = Array.from(pMap.values());
+                const firstP = participantsList[0];
+                allPresence.push({
+                    room: vRoom,
+                    channelId: firstP?.channelId || vRoom,
+                    channelName: firstP?.channelName || '',
+                    serverId: firstP?.serverId || null,
+                    participants: participantsList.map(p => ({
+                        id: p.id,
+                        socketId: p.socketId,
+                        username: p.username,
+                        displayName: p.displayName,
+                        avatarUrl: p.avatarUrl,
+                        isMuted: Boolean(p.isMuted),
+                        isDeafened: Boolean(p.isDeafened)
+                    }))
+                });
+            }
+        }
+        if (typeof callback === 'function') {
+            callback(allPresence);
+        } else {
+            socket.emit('voice-channel-presence-sync', allPresence);
         }
     });
 });

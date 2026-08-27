@@ -494,6 +494,9 @@
                 currentUser = { username: data.username, id: data.userId };
                 updateCurrentUserUI(currentUser);
             }
+            if (socket.connected) {
+                socket.emit('get-voice-channel-presence', { serverId: activeServerId });
+            }
         });
 
         // Estruturas de Estado
@@ -3447,6 +3450,9 @@
                 if (data && data.channels && Array.isArray(data.channels)) {
                     loadedChannels = data.channels;
                     renderChannels(loadedChannels);
+                    if (socket && socket.connected) {
+                        socket.emit('get-voice-channel-presence', { serverId: activeServerId });
+                    }
                 } else {
                     loadedChannels = [];
                     renderChannels([]);
@@ -3456,6 +3462,112 @@
                 loadedChannels = [];
                 renderChannels([]);
             }
+        }
+
+        // ==========================================
+        // Sprint: Presença Visual nos Canais de Voz (Sidebar)
+        // ==========================================
+        const voicePresenceCacheMap = new Map();
+
+        function renderVoiceChannelUsers(channelIdentifier, participants = [], roomName = '') {
+            if (!channelIdentifier && !roomName) return;
+
+            // Busca o elemento container da lista de usuários na DOM
+            let targetEl = null;
+            if (channelIdentifier) {
+                targetEl = document.getElementById(`voice-users-${channelIdentifier}`) ||
+                           document.querySelector(`.voice-channel-users-list[data-channel-id="${channelIdentifier}"]`);
+            }
+            if (!targetEl && roomName) {
+                targetEl = document.querySelector(`.voice-channel-users-list[data-room-name="${roomName}"]`);
+            }
+
+            if (!targetEl) return;
+
+            targetEl.textContent = '';
+
+            if (!participants || participants.length === 0) {
+                targetEl.classList.add('hidden');
+                return;
+            }
+
+            targetEl.classList.remove('hidden');
+
+            participants.forEach(p => {
+                const li = document.createElement('li');
+                li.className = 'voice-channel-user-item';
+                li.setAttribute('data-user-id', String(p.id || ''));
+                li.setAttribute('data-socket-id', String(p.socketId || ''));
+                li.title = `${p.displayName || p.username} (Clique para ver perfil)`;
+
+                // Micro-Avatar (24x24px)
+                if (p.avatarUrl) {
+                    const img = document.createElement('img');
+                    img.src = p.avatarUrl;
+                    img.className = 'voice-user-avatar-mini';
+                    img.alt = p.displayName || p.username;
+                    img.loading = 'lazy';
+                    li.appendChild(img);
+                } else {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'voice-user-avatar-placeholder-mini';
+                    placeholder.textContent = getServerInitials(p.displayName || p.username);
+                    li.appendChild(placeholder);
+                }
+
+                // Nome do Usuário
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'voice-user-name';
+                nameSpan.textContent = p.displayName || p.username;
+                li.appendChild(nameSpan);
+
+                // Ícones de Status (Microfone Mutado / Fone Desativado)
+                const iconsContainer = document.createElement('div');
+                iconsContainer.className = 'voice-user-status-icons';
+
+                if (p.isMuted) {
+                    const micMutedSpan = document.createElement('span');
+                    micMutedSpan.className = 'voice-user-icon-muted';
+                    micMutedSpan.title = 'Microfone Mutado';
+                    micMutedSpan.innerHTML = `
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
+                        </svg>
+                    `;
+                    iconsContainer.appendChild(micMutedSpan);
+                }
+
+                if (p.isDeafened) {
+                    const deafenedSpan = document.createElement('span');
+                    deafenedSpan.className = 'voice-user-icon-deafened';
+                    deafenedSpan.title = 'Áudio Desativado';
+                    deafenedSpan.innerHTML = `
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                        </svg>
+                    `;
+                    iconsContainer.appendChild(deafenedSpan);
+                }
+
+                li.appendChild(iconsContainer);
+
+                // Integração com Popout de Perfil (Sprint de Expansão Global de Amizades)
+                li.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isMine = currentUser && Number(currentUser.id) === Number(p.id);
+                    openUserProfilePopout({
+                        userId: p.id,
+                        username: p.username,
+                        displayName: p.displayName || p.username,
+                        avatarUrl: p.avatarUrl,
+                        isMine: isMine
+                    }, li);
+                });
+
+                targetEl.appendChild(li);
+            });
         }
 
         function renderChannels(channels) {
@@ -3532,6 +3644,11 @@
                 }
             } else {
                 voiceChannels.forEach(c => {
+                    const block = document.createElement('div');
+                    block.className = 'voice-channel-block';
+                    block.setAttribute('data-channel-id', String(c.id));
+                    block.setAttribute('data-channel-name', c.nome);
+
                     const item = document.createElement('div');
                     item.className = `channel-item ${activeChannelId === c.id ? 'active' : ''}`;
                     item.id = `channel-item-${c.id}`;
@@ -3571,7 +3688,25 @@
                     }
 
                     item.addEventListener('click', () => selectVoiceChannel(c));
-                    if (voiceChannelsList) voiceChannelsList.appendChild(item);
+                    block.appendChild(item);
+
+                    // Sub-lista indentada de membros conectados neste canal de voz
+                    const voiceRoomName = `comunidade-${activeServerId}-voz-${c.nome}`;
+                    const usersList = document.createElement('ul');
+                    usersList.className = 'voice-channel-users-list hidden';
+                    usersList.id = `voice-users-${c.id}`;
+                    usersList.setAttribute('data-channel-id', String(c.id));
+                    usersList.setAttribute('data-channel-name', c.nome);
+                    usersList.setAttribute('data-room-name', voiceRoomName);
+                    block.appendChild(usersList);
+
+                    if (voiceChannelsList) voiceChannelsList.appendChild(block);
+
+                    // Renderiza imediatamente caso já haja participantes em cache para este canal
+                    const cachedParticipants = voicePresenceCacheMap.get(String(c.id)) || voicePresenceCacheMap.get(voiceRoomName);
+                    if (cachedParticipants && cachedParticipants.length > 0) {
+                        renderVoiceChannelUsers(c.id, cachedParticipants, voiceRoomName);
+                    }
                 });
             }
         }
@@ -3626,7 +3761,15 @@
             }
 
             currentVoiceRoom = voiceRoomName;
-            socket.emit('join-room', currentVoiceRoom);
+            socket.emit('join-room', {
+                room: currentVoiceRoom,
+                channelId: channel.id,
+                channelName: channel.nome,
+                serverId: activeServerId,
+                isVoice: true,
+                avatarUrl: currentUser?.avatar_url,
+                displayName: currentUser?.display_name || currentUser?.username
+            });
             console.log(`🎙️ [Canal de Voz] Conectando ao canal de voz: "${currentVoiceRoom}"`);
 
             soundManager.play('join');
@@ -6688,6 +6831,31 @@
             console.log('🚪 Participante saiu:', data);
             soundManager.play('leave');
             closePeerConnection(data.id);
+        });
+
+        // ==========================================
+        // Sprint: Presença Visual nos Canais de Voz (Sidebar)
+        // ==========================================
+        socket.off('voice-channel-presence-update').on('voice-channel-presence-update', (data) => {
+            if (!data) return;
+            const keyId = String(data.channelId || '');
+            const keyRoom = data.room || '';
+            if (keyId) voicePresenceCacheMap.set(keyId, data.participants || []);
+            if (keyRoom) voicePresenceCacheMap.set(keyRoom, data.participants || []);
+            renderVoiceChannelUsers(data.channelId || data.room, data.participants || [], data.room);
+        });
+
+        socket.off('voice-channel-presence-sync').on('voice-channel-presence-sync', (allPresence) => {
+            if (Array.isArray(allPresence)) {
+                allPresence.forEach(data => {
+                    if (!data) return;
+                    const keyId = String(data.channelId || '');
+                    const keyRoom = data.room || '';
+                    if (keyId) voicePresenceCacheMap.set(keyId, data.participants || []);
+                    if (keyRoom) voicePresenceCacheMap.set(keyRoom, data.participants || []);
+                    renderVoiceChannelUsers(data.channelId || data.room, data.participants || [], data.room);
+                });
+            }
         });
 
         // ==========================================
