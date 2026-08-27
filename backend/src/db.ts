@@ -89,12 +89,26 @@ export async function initDb() {
                 ) THEN
                     ALTER TABLE users ADD COLUMN role_id INTEGER REFERENCES roles(id) DEFAULT 3;
                 END IF;
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'is_super_admin'
+                ) THEN
+                    ALTER TABLE users ADD COLUMN is_super_admin BOOLEAN DEFAULT FALSE;
+                END IF;
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'is_banned'
+                ) THEN
+                    ALTER TABLE users ADD COLUMN is_banned BOOLEAN DEFAULT FALSE;
+                END IF;
             END $$;
         `);
 
-        // Garante que o usuário inicial (id: 1) tenha cargo Admin
+        // Garante que o usuário inicial (id: 1) tenha cargo Admin e privilégios de Super Admin
         await pool.query(`
-            UPDATE users SET role_id = 1 WHERE id = 1 AND (role_id IS NULL OR role_id = 3);
+            UPDATE users SET role_id = 1, is_super_admin = TRUE WHERE id = 1;
         `);
 
         // 2. Tabela de Servidores/Comunidades (Servers)
@@ -685,7 +699,7 @@ export async function findUserById(id: number | string) {
     if (isNaN(numericId)) return null;
 
     const res = await pool.query(
-        'SELECT id, username, display_name, avatar_url, created_at FROM users WHERE id = $1 LIMIT 1',
+        'SELECT id, username, display_name, avatar_url, role_id, is_super_admin, is_banned, created_at FROM users WHERE id = $1 LIMIT 1',
         [numericId]
     );
     return res.rows[0] || null;
@@ -712,10 +726,64 @@ export async function updateUserProfile(
 
 export async function createUser(username: string, passwordHash: string) {
     const res = await pool.query(
-        'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username, display_name, avatar_url, created_at',
+        'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username, display_name, avatar_url, is_super_admin, is_banned, created_at',
         [username, passwordHash]
     );
     return res.rows[0];
+}
+
+// ==========================================
+// 🛡️ Sprint: Privilégios de Fundador e Segurança Criptográfica (Super Admin)
+// ==========================================
+
+export async function isUserSuperAdmin(userId: number | string): Promise<boolean> {
+    const numericId = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
+    if (isNaN(numericId)) return false;
+
+    const res = await pool.query('SELECT is_super_admin FROM users WHERE id = $1 LIMIT 1', [numericId]);
+    return Boolean(res.rows[0]?.is_super_admin);
+}
+
+export async function getAllUsersForSuperAdmin(): Promise<any[]> {
+    const res = await pool.query(`
+        SELECT 
+            u.id, 
+            u.username, 
+            u.display_name, 
+            u.avatar_url, 
+            u.role_id, 
+            COALESCE(r.name, 'Membro') AS role_name,
+            COALESCE(r.color_hex, '#94a3b8') AS role_color,
+            COALESCE(u.is_super_admin, false) AS is_super_admin,
+            COALESCE(u.is_banned, false) AS is_banned,
+            u.created_at
+        FROM users u
+        LEFT JOIN roles r ON r.id = u.role_id
+        ORDER BY u.id ASC
+    `);
+    return res.rows;
+}
+
+export async function banUserById(targetUserId: number | string, banned: boolean): Promise<boolean> {
+    const numericId = typeof targetUserId === 'number' ? targetUserId : parseInt(String(targetUserId), 10);
+    if (isNaN(numericId)) return false;
+
+    const res = await pool.query(
+        'UPDATE users SET is_banned = $1 WHERE id = $2 RETURNING id, is_banned',
+        [banned, numericId]
+    );
+    return res.rowCount !== null && res.rowCount > 0;
+}
+
+export async function forceUserPasswordReset(targetUserId: number | string, bcryptHash: string): Promise<boolean> {
+    const numericId = typeof targetUserId === 'number' ? targetUserId : parseInt(String(targetUserId), 10);
+    if (isNaN(numericId)) return false;
+
+    const res = await pool.query(
+        'UPDATE users SET password = $1 WHERE id = $2 RETURNING id',
+        [bcryptHash, numericId]
+    );
+    return res.rowCount !== null && res.rowCount > 0;
 }
 
 export async function saveMessage(
@@ -932,6 +1000,10 @@ export async function canUserModerateMessage(userId: number | string, messageId:
 
     if (isNaN(numUserId) || isNaN(numMsgId)) return false;
 
+    // Super Admin possui privilégio máximo irrestrito
+    const user = await findUserById(numUserId);
+    if (user?.is_super_admin) return true;
+
     const msg = await getMessageById(numMsgId);
     if (!msg) return false;
 
@@ -979,6 +1051,10 @@ export async function canUserKickMember(
 
     if (isNaN(numModId) || isNaN(numServerId) || isNaN(numTargetId)) return false;
     if (numModId === numTargetId) return false;
+
+    // Super Admin tem permissão máxima global de moderação
+    const modUser = await findUserById(numModId);
+    if (modUser?.is_super_admin) return true;
 
     // 1. Verifica dono do servidor
     const serverRes = await pool.query('SELECT dono_id FROM servers WHERE id = $1', [numServerId]);
@@ -1527,6 +1603,10 @@ export async function deleteChannel(channelId: number) {
 }
 
 export async function canUserManageChannel(userId: number, channelId: number): Promise<boolean> {
+    // 0. Super Admin possui permissão irrestrita (exclusão/gerenciamento de canais)
+    const user = await findUserById(userId);
+    if (user?.is_super_admin) return true;
+
     const channel = await getChannelById(channelId);
     if (!channel || !channel.server_id) return false;
 

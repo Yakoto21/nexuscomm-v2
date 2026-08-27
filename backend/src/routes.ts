@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import { ensureAuthenticated } from './middlewares/ensureAuthenticated';
+import { ensureSuperAdmin } from './middlewares/ensureSuperAdmin';
 import { ensureServerMember, ensureServerPermission } from './middlewares/serverPermissions';
 import { uploadServerMediaFile, uploadUserAvatar, uploadChatMediaFile, uploadChatMediaBuffer } from './supabaseStorage';
 import {
@@ -36,6 +38,9 @@ import {
     updateChannel,
     deleteChannel,
     canUserManageChannel,
+    getAllUsersForSuperAdmin,
+    banUserById,
+    forceUserPasswordReset,
     pool
 } from './db';
 
@@ -132,6 +137,11 @@ routes.post('/login', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Usuário ou senha inválidos.' });
         }
 
+        // Verifica se a conta foi suspensa ou banida por um Super Admin
+        if (user.is_banned === true) {
+            return res.status(403).json({ error: 'Sua conta foi banida permanentemente por um Super Admin.' });
+        }
+
         // 3. Gera o token JWT com o ID e Username do usuário
         const jwtSecret = process.env.JWT_SECRET;
         if (!jwtSecret) {
@@ -153,7 +163,9 @@ routes.post('/login', async (req: Request, res: Response) => {
                 id: user.id,
                 username: user.username,
                 display_name: user.display_name,
-                avatar_url: user.avatar_url
+                avatar_url: user.avatar_url,
+                is_super_admin: Boolean(user.is_super_admin),
+                is_banned: Boolean(user.is_banned)
             }
         });
     } catch (error) {
@@ -183,6 +195,8 @@ routes.get('/me', ensureAuthenticated, async (req: Request, res: Response) => {
                 username: user.username,
                 display_name: user.display_name,
                 avatar_url: user.avatar_url,
+                is_super_admin: Boolean(user.is_super_admin),
+                is_banned: Boolean(user.is_banned),
                 created_at: user.created_at
             }
         });
@@ -1197,6 +1211,121 @@ routes.patch(['/api/messages/:id', '/messages/:id'], ensureAuthenticated, async 
     } catch (error: any) {
         console.error('Erro ao editar mensagem:', error);
         return res.status(500).json({ error: error?.message || 'Erro ao editar mensagem.' });
+    }
+});
+
+// ==========================================
+// 🛡️ Sprint: Privilégios de Fundador e Segurança Criptográfica (Super Admin)
+// ==========================================
+
+// Listar todos os usuários para o painel de Super Admin (GET /admin/users)
+routes.get('/admin/users', ensureAuthenticated, ensureSuperAdmin, async (_req: Request, res: Response) => {
+    try {
+        const users = await getAllUsersForSuperAdmin();
+        return res.status(200).json({ users });
+    } catch (err) {
+        console.error('Erro ao listar usuários para Super Admin:', err);
+        return res.status(500).json({ error: 'Erro interno ao listar usuários.' });
+    }
+});
+
+// Banir ou Desbanir usuário (POST /admin/users/:targetUserId/ban)
+routes.post('/admin/users/:targetUserId/ban', ensureAuthenticated, ensureSuperAdmin, async (req: Request, res: Response) => {
+    try {
+        const superAdminId = Number(req.userId);
+        const targetUserId = Number(req.params.targetUserId);
+        const { banned, reason } = req.body;
+
+        if (isNaN(targetUserId)) {
+            return res.status(400).json({ error: 'ID de usuário inválido.' });
+        }
+
+        if (superAdminId === targetUserId) {
+            return res.status(400).json({ error: 'Você não pode banir sua própria conta de Super Admin.' });
+        }
+
+        const targetUser = await findUserById(targetUserId);
+        if (!targetUser) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+
+        const isBanning = banned !== false;
+        const success = await banUserById(targetUserId, isBanning);
+
+        if (!success) {
+            return res.status(500).json({ error: 'Falha ao atualizar status de banimento.' });
+        }
+
+        console.log(`🔨 [Super Admin Ban] Usuário [${targetUserId} - ${targetUser.username}] foi ${isBanning ? 'BANIDO' : 'DESBANIDO'} pelo Super Admin [${superAdminId}]`);
+
+        // Se estiver banindo, notifica e desconecta sockets via Socket.IO
+        if (isBanning) {
+            try {
+                const { io } = require('./server');
+                if (io) {
+                    io.to(`user_${targetUserId}`).emit('banned-notice', {
+                        reason: reason || 'Sua conta foi banida permanentemente por um Super Admin.'
+                    });
+                }
+            } catch (sockErr) {
+                console.warn('Aviso ao emitir banned-notice:', sockErr);
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            is_banned: isBanning,
+            message: isBanning ? 'Usuário banido com sucesso.' : 'Usuário desbanido com sucesso.'
+        });
+    } catch (err) {
+        console.error('Erro ao banir usuário:', err);
+        return res.status(500).json({ error: 'Erro interno ao processar banimento.' });
+    }
+});
+
+// Forçar Redefinição de Senha (POST /admin/users/:targetUserId/force-password-reset)
+// Arquitetura Zero-Trust: gera token/senha temporária criptográfica, hashea com bcrypt antes de salvar no banco
+// e retorna a senha temporária em texto puro apenas UMA ÚNICA VEZ nesta resposta.
+routes.post('/admin/users/:targetUserId/force-password-reset', ensureAuthenticated, ensureSuperAdmin, async (req: Request, res: Response) => {
+    try {
+        const superAdminId = Number(req.userId);
+        const targetUserId = Number(req.params.targetUserId);
+
+        if (isNaN(targetUserId)) {
+            return res.status(400).json({ error: 'ID de usuário inválido.' });
+        }
+
+        const targetUser = await findUserById(targetUserId);
+        if (!targetUser) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+
+        // 1. Gera token/senha temporária criptográfica única de alta entropia (Zero-Trust)
+        const randomPart1 = crypto.randomBytes(4).toString('hex').toUpperCase();
+        const randomPart2 = crypto.randomBytes(4).toString('hex').toUpperCase();
+        const temporaryToken = `NX-${randomPart1}-${randomPart2}`;
+
+        // 2. Criptografa imediatamente com bcrypt (senhas nunca trafegam em texto puro no banco)
+        const bcryptHash = await bcrypt.hash(temporaryToken, 10);
+
+        // 3. Persiste no banco de dados exclusivamente o hash bcrypt
+        const success = await forceUserPasswordReset(targetUserId, bcryptHash);
+        if (!success) {
+            return res.status(500).json({ error: 'Falha ao redefinir a senha do usuário no banco.' });
+        }
+
+        console.log(`🔐 [Zero-Trust Password Reset] Senha temporária gerada e hasheada com bcrypt para o usuário [${targetUserId} - ${targetUser.username}] pelo Super Admin [${superAdminId}]`);
+
+        // 4. Retorna a senha temporária apenas UMA VEZ na resposta para repasse seguro
+        return res.status(200).json({
+            success: true,
+            message: 'Senha temporária gerada e hasheada com sucesso.',
+            username: targetUser.username,
+            temporaryToken: temporaryToken
+        });
+    } catch (err) {
+        console.error('Erro ao forçar redefinição de senha:', err);
+        return res.status(500).json({ error: 'Erro interno ao forçar redefinição de senha.' });
     }
 });
 

@@ -483,6 +483,16 @@
                         userBarAvatarHome.textContent = getServerInitials(displayName);
                     }
                 }
+
+                // Atualiza visibilidade dos botões de Super Admin exclusivamente com base no payload validado no backend
+                const isSuperAdmin = Boolean(activeUser.is_super_admin);
+                document.querySelectorAll('.btn-super-admin-trigger').forEach(btn => {
+                    if (isSuperAdmin) {
+                        btn.classList.remove('hidden');
+                    } else {
+                        btn.classList.add('hidden');
+                    }
+                });
             } catch (err) {
                 console.warn('Aviso ao atualizar barra de usuário:', err);
             }
@@ -7630,6 +7640,333 @@
         if (btnCamera) btnCamera.addEventListener('click', toggleCamera);
         if (btnScreen) btnScreen.addEventListener('click', toggleScreenShare);
         if (btnMute) btnMute.addEventListener('click', toggleMute);
+
+        // ==========================================
+        // 12. Sprint: Privilégios de Fundador e Segurança Criptográfica (Super Admin)
+        // ==========================================
+        const superAdminOverlay = document.getElementById('superAdminOverlay');
+        const btnCloseSuperAdminPanel = document.getElementById('btnCloseSuperAdminPanel');
+        const btnOpenSuperAdminPanel = document.getElementById('btnOpenSuperAdminPanel');
+        const btnOpenSuperAdminPanelHome = document.getElementById('btnOpenSuperAdminPanelHome');
+        const inputSearchAdminUsers = document.getElementById('inputSearchAdminUsers');
+        const countAdminUsers = document.getElementById('countAdminUsers');
+        const adminUsersTableBody = document.getElementById('adminUsersTableBody');
+
+        const zeroTrustTokenOverlay = document.getElementById('zeroTrustTokenOverlay');
+        const btnCloseZeroTrustModal = document.getElementById('btnCloseZeroTrustModal');
+        const btnConfirmZeroTrustClose = document.getElementById('btnConfirmZeroTrustClose');
+        const zeroTrustTargetUsername = document.getElementById('zeroTrustTargetUsername');
+        const zeroTrustTokenCode = document.getElementById('zeroTrustTokenCode');
+        const btnCopyZeroTrustToken = document.getElementById('btnCopyZeroTrustToken');
+
+        let superAdminUsersList = [];
+
+        async function openSuperAdminPanel() {
+            if (!superAdminOverlay) return;
+            superAdminOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            await fetchSuperAdminUsers();
+        }
+
+        function closeSuperAdminPanel() {
+            if (!superAdminOverlay) return;
+            superAdminOverlay.classList.remove('open');
+            document.body.style.overflow = 'auto';
+        }
+
+        async function fetchSuperAdminUsers() {
+            if (!adminUsersTableBody) return;
+            adminUsersTableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align: center; color: #94a3b8; padding: 28px;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <span class="loading-spinner" style="width: 18px; height: 18px; border: 2px solid rgba(245, 158, 11, 0.2); border-top-color: #f59e0b; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;"></span>
+                            <span>Carregando usuários do sistema...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const res = await fetch('/admin/users', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    adminUsersTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #f87171; padding: 24px;">
+                                ${errData.error || 'Erro ao carregar usuários: privilégios insuficientes.'}
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                const data = await res.json();
+                superAdminUsersList = Array.isArray(data.users) ? data.users : [];
+                renderSuperAdminUsersTable(superAdminUsersList);
+            } catch (err) {
+                console.error('Erro ao buscar usuários do Super Admin:', err);
+                adminUsersTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #f87171; padding: 24px;">
+                            Falha de conexão com o servidor.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderSuperAdminUsersTable(users) {
+            if (!adminUsersTableBody) return;
+            adminUsersTableBody.innerHTML = '';
+
+            if (countAdminUsers) {
+                countAdminUsers.textContent = users.length.toString();
+            }
+
+            if (users.length === 0) {
+                adminUsersTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #64748b; padding: 30px;">
+                            Nenhum usuário encontrado.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            users.forEach(u => {
+                const tr = document.createElement('tr');
+
+                // 1. Célula do Usuário (Avatar + Display Name + @username)
+                const userTd = document.createElement('td');
+                const userCell = document.createElement('div');
+                userCell.className = 'admin-user-cell';
+
+                const avatar = document.createElement('div');
+                avatar.className = 'admin-user-avatar';
+                avatar.style.display = 'flex';
+                avatar.style.alignItems = 'center';
+                avatar.style.justifyContent = 'center';
+                avatar.style.color = '#cbd5e1';
+                avatar.style.fontWeight = '700';
+                avatar.style.fontSize = '0.85rem';
+
+                if (u.avatar_url) {
+                    const img = document.createElement('img');
+                    img.src = u.avatar_url;
+                    img.className = 'admin-user-avatar';
+                    img.alt = u.username;
+                    avatar.appendChild(img);
+                } else {
+                    avatar.textContent = getServerInitials(u.display_name || u.username);
+                }
+
+                const namesDiv = document.createElement('div');
+                namesDiv.className = 'admin-user-names';
+
+                const dispName = document.createElement('span');
+                dispName.className = 'admin-user-display-name';
+                dispName.textContent = u.display_name || u.username;
+                if (u.is_super_admin) {
+                    dispName.style.color = '#fbbf24';
+                }
+
+                const uTag = document.createElement('span');
+                uTag.className = 'admin-user-username';
+                uTag.textContent = `@${u.username} (ID: ${u.id})`;
+
+                namesDiv.appendChild(dispName);
+                namesDiv.appendChild(uTag);
+
+                userCell.appendChild(avatar);
+                userCell.appendChild(namesDiv);
+                userTd.appendChild(userCell);
+
+                // 2. Cargo
+                const roleTd = document.createElement('td');
+                const roleBadge = document.createElement('span');
+                roleBadge.className = 'role-badge-tag';
+                const roleName = u.is_super_admin ? 'Super Admin' : (u.role_name || 'Membro');
+                const roleColor = u.is_super_admin ? '#fbbf24' : (u.role_color || '#94a3b8');
+                roleBadge.textContent = roleName;
+                roleBadge.style.color = roleColor;
+                roleBadge.style.backgroundColor = `${roleColor}20`;
+                roleBadge.style.border = `1px solid ${roleColor}55`;
+                roleTd.appendChild(roleBadge);
+
+                // 3. Status (Ativo / Banido)
+                const statusTd = document.createElement('td');
+                const statusPill = document.createElement('span');
+                if (u.is_banned) {
+                    statusPill.className = 'admin-status-pill admin-status-banned';
+                    statusPill.textContent = '⛔ Banido';
+                } else {
+                    statusPill.className = 'admin-status-pill admin-status-active';
+                    statusPill.textContent = '✓ Ativo';
+                }
+                statusTd.appendChild(statusPill);
+
+                // 4. Ações de Segurança
+                const actionsTd = document.createElement('td');
+                actionsTd.style.textAlign = 'right';
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'admin-actions-cell';
+                actionsDiv.style.justifyContent = 'flex-end';
+
+                const isMe = Boolean(currentUser && Number(currentUser.id) === Number(u.id));
+
+                if (!isMe) {
+                    // Botão Banir / Desbanir
+                    const btnBan = document.createElement('button');
+                    btnBan.type = 'button';
+                    btnBan.className = `btn-admin-action ${u.is_banned ? 'btn-admin-unban' : 'btn-admin-ban'}`;
+                    btnBan.textContent = u.is_banned ? 'Desbanir' : 'Banir';
+                    btnBan.title = u.is_banned ? 'Restaurar acesso do usuário' : 'Bloquear usuário do sistema';
+                    btnBan.addEventListener('click', () => handleAdminBanToggle(u.id, u.is_banned, u.username));
+                    actionsDiv.appendChild(btnBan);
+
+                    // Botão Forçar Redefinição de Senha
+                    const btnReset = document.createElement('button');
+                    btnReset.type = 'button';
+                    btnReset.className = 'btn-admin-action btn-admin-reset-pw';
+                    btnReset.textContent = 'Forçar Redefinição';
+                    btnReset.title = 'Gerar senha temporária criptografada Zero-Trust via Bcrypt';
+                    btnReset.addEventListener('click', () => handleAdminForcePasswordReset(u.id, u.username));
+                    actionsDiv.appendChild(btnReset);
+                } else {
+                    const youBadge = document.createElement('span');
+                    youBadge.style.fontSize = '0.75rem';
+                    youBadge.style.color = '#64748b';
+                    youBadge.textContent = '(Sua Conta)';
+                    actionsDiv.appendChild(youBadge);
+                }
+
+                actionsTd.appendChild(actionsDiv);
+
+                tr.appendChild(userTd);
+                tr.appendChild(roleTd);
+                tr.appendChild(statusTd);
+                tr.appendChild(actionsTd);
+
+                adminUsersTableBody.appendChild(tr);
+            });
+        }
+
+        async function handleAdminBanToggle(userId, currentBanned, username) {
+            const actionVerb = currentBanned ? 'desbanir' : 'banir permanentemente';
+            const confirmed = confirm(`Tem certeza de que deseja ${actionVerb} o usuário @${username}?`);
+            if (!confirmed) return;
+
+            try {
+                const res = await fetch(`/admin/users/${userId}/ban`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ banned: !currentBanned })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    showToast(data.error || 'Erro ao processar banimento.', 'error', 4000);
+                    return;
+                }
+
+                showToast(data.message || 'Status atualizado com sucesso!', 'success', 3000);
+                await fetchSuperAdminUsers();
+            } catch (err) {
+                console.error('Erro ao alternar banimento:', err);
+                showToast('Falha na comunicação com o servidor.', 'error', 4000);
+            }
+        }
+
+        async function handleAdminForcePasswordReset(userId, username) {
+            const confirmed = confirm(`Deseja forçar a redefinição de senha para @${username}?\n\nUma senha temporária de alta entropia será gerada e criptografada com Bcrypt no banco de dados.`);
+            if (!confirmed) return;
+
+            try {
+                const res = await fetch(`/admin/users/${userId}/force-password-reset`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    showToast(data.error || 'Erro ao forçar redefinição de senha.', 'error', 4000);
+                    return;
+                }
+
+                // Abre o modal seguro Zero-Trust com o token
+                if (zeroTrustTargetUsername) zeroTrustTargetUsername.textContent = `@${username}`;
+                if (zeroTrustTokenCode) zeroTrustTokenCode.textContent = data.temporaryToken;
+                if (zeroTrustTokenOverlay) {
+                    zeroTrustTokenOverlay.classList.add('open');
+                }
+            } catch (err) {
+                console.error('Erro ao forçar redefinição:', err);
+                showToast('Falha na comunicação com o servidor.', 'error', 4000);
+            }
+        }
+
+        // Busca e filtro em tempo real no painel
+        if (inputSearchAdminUsers) {
+            inputSearchAdminUsers.addEventListener('input', (e) => {
+                const query = (e.target.value || '').toLowerCase().trim();
+                if (!query) {
+                    renderSuperAdminUsersTable(superAdminUsersList);
+                    return;
+                }
+                const filtered = superAdminUsersList.filter(u => {
+                    const un = (u.username || '').toLowerCase();
+                    const dn = (u.display_name || '').toLowerCase();
+                    return un.includes(query) || dn.includes(query);
+                });
+                renderSuperAdminUsersTable(filtered);
+            });
+        }
+
+        if (btnOpenSuperAdminPanel) btnOpenSuperAdminPanel.addEventListener('click', openSuperAdminPanel);
+        if (btnOpenSuperAdminPanelHome) btnOpenSuperAdminPanelHome.addEventListener('click', openSuperAdminPanel);
+        if (btnCloseSuperAdminPanel) btnCloseSuperAdminPanel.addEventListener('click', closeSuperAdminPanel);
+
+        if (btnCloseZeroTrustModal) {
+            btnCloseZeroTrustModal.addEventListener('click', () => {
+                if (zeroTrustTokenOverlay) zeroTrustTokenOverlay.classList.remove('open');
+            });
+        }
+        if (btnConfirmZeroTrustClose) {
+            btnConfirmZeroTrustClose.addEventListener('click', () => {
+                if (zeroTrustTokenOverlay) zeroTrustTokenOverlay.classList.remove('open');
+            });
+        }
+        if (btnCopyZeroTrustToken) {
+            btnCopyZeroTrustToken.addEventListener('click', () => {
+                if (!zeroTrustTokenCode) return;
+                const token = zeroTrustTokenCode.textContent.trim();
+                navigator.clipboard.writeText(token).then(() => {
+                    btnCopyZeroTrustToken.textContent = '✓ Copiado!';
+                    setTimeout(() => {
+                        btnCopyZeroTrustToken.textContent = '📋 Copiar Senha';
+                    }, 2000);
+                }).catch(() => {
+                    showToast('Selecione e copie o texto manualmente.', 'info', 3000);
+                });
+            });
+        }
+
+        // Listener Socket.io para quando o próprio usuário for banido
+        socket.off('banned-notice').on('banned-notice', (data) => {
+            alert(data?.reason || 'Sua conta foi banida permanentemente por um Super Admin.');
+            logoutApp('Sua conta foi banida permanentemente.');
+        });
 
         // ==========================================
         // 11. Inicialização do Auth Gate
