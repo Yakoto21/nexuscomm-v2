@@ -44,7 +44,7 @@ const routes = Router();
 // Configuração do Multer para Upload de Mídias de Chat (Sprint: Compartilhamento de Mídia)
 const uploadChatMediaMulter = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
     fileFilter: (_req, file, cb) => {
         if (file.mimetype.startsWith('image/')) {
             cb(null, true);
@@ -910,7 +910,7 @@ routes.post(
             if (err) {
                 if (err instanceof multer.MulterError) {
                     if (err.code === 'LIMIT_FILE_SIZE') {
-                        return res.status(400).json({ error: 'A imagem selecionada excede o limite de 15MB.' });
+                        return res.status(400).json({ error: 'A imagem selecionada excede o limite de 10MB.' });
                     }
                     return res.status(400).json({ error: `Erro no upload: ${err.message}` });
                 }

@@ -299,10 +299,28 @@ io.on('connection', (socket) => {
         // Obtém todos os outros sockets já presentes nesta sala
         const roomSockets = io.sockets.adapter.rooms.get(roomName);
         const otherUsersInRoom: string[] = [];
+        const roomUsersList: Array<{ id: string, socketId: string, userId: number | null, username: string, displayName: string, avatarUrl: string | null }> = [];
+
         if (roomSockets) {
             for (const socketId of roomSockets) {
                 if (socketId !== socket.id) {
                     otherUsersInRoom.push(socketId);
+                    const peerSocket = io.sockets.sockets.get(socketId);
+                    const peerUser = peerSocket?.data?.user;
+                    const vParticipant = voiceRoomsPresenceMap.get(roomName)?.get(socketId);
+                    const pUserId = peerUser?.id || vParticipant?.id || null;
+                    const pUsername = peerUser?.username || vParticipant?.username || 'Usuário';
+                    const pDisplayName = peerUser?.displayName || vParticipant?.displayName || pUsername;
+                    const pAvatarUrl = peerUser?.avatarUrl || vParticipant?.avatarUrl || null;
+
+                    roomUsersList.push({
+                        id: socketId,
+                        socketId: socketId,
+                        userId: pUserId,
+                        username: pUsername,
+                        displayName: pDisplayName,
+                        avatarUrl: pAvatarUrl
+                    });
                 }
             }
         }
@@ -310,6 +328,7 @@ io.on('connection', (socket) => {
         // 1. Envia ao usuário que entrou a lista de participantes já existentes na sala
         socket.emit('room-users', {
             users: otherUsersInRoom,
+            roomUsers: roomUsersList,
             selfId: socket.id,
             room: roomName
         });
@@ -326,9 +345,15 @@ io.on('connection', (socket) => {
         }
 
         // 3. Notifica todos os participantes existentes sobre a chegada do novo usuário
+        const myDisplayName = clientDisplayName || userPayload?.displayName || username;
+        const myAvatar = clientAvatar || userPayload?.avatarUrl || null;
         socket.to(roomName).emit('user-joined', {
             id: socket.id,
-            username: username
+            socketId: socket.id,
+            userId: userId,
+            username: username,
+            displayName: myDisplayName,
+            avatarUrl: myAvatar
         });
     });
 

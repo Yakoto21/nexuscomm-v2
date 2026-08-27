@@ -6092,10 +6092,61 @@
             }
         });
 
+        // ==========================================
+        // Sprint: Refinamento de Storage e Identidade WebRTC
+        // ==========================================
+        const roomUsersMap = new Map();
+
+        function resolveParticipantRealName(socketId, candidateName) {
+            // Se o candidateName for válido e não for genérico
+            if (candidateName && candidateName !== 'Participante' && !candidateName.startsWith('Participante (')) {
+                return candidateName;
+            }
+
+            // 1. Busca no roomUsersMap repassado pelo Socket.io
+            const roomUser = roomUsersMap.get(String(socketId));
+            if (roomUser && (roomUser.displayName || roomUser.username)) {
+                return roomUser.displayName || roomUser.username;
+            }
+
+            // 2. Busca no peerUsernames
+            if (peerUsernames[socketId] && peerUsernames[socketId] !== 'Participante' && !peerUsernames[socketId].startsWith('Participante (')) {
+                return peerUsernames[socketId];
+            }
+
+            // 3. Busca no cache de presença de canais de voz
+            for (const participants of voicePresenceCacheMap.values()) {
+                if (Array.isArray(participants)) {
+                    const match = participants.find(p => p.socketId === socketId || String(p.id) === String(socketId));
+                    if (match && (match.displayName || match.username)) {
+                        return match.displayName || match.username;
+                    }
+                }
+            }
+
+            // 4. Busca nos membros do servidor atual
+            if (Array.isArray(currentServerMembersList)) {
+                const memberMatch = currentServerMembersList.find(m => String(m.user_id) === String(socketId) || m.username === socketId);
+                if (memberMatch) {
+                    return memberMatch.nickname || memberMatch.display_name || memberMatch.username;
+                }
+            }
+
+            // 5. Se for chamada privada DM
+            if (isPrivateCallActive && activePrivateCallPeer) {
+                if (activePrivateCallPeer.socket_id === socketId || String(activePrivateCallPeer.id) === String(socketId)) {
+                    return activePrivateCallPeer.display_name || activePrivateCallPeer.username;
+                }
+            }
+
+            // Retorna o identificador limpo do usuário sem a palavra estática "Participante"
+            return candidateName || (currentUser && String(currentUser.id) === String(socketId) ? (currentUser.display_name || currentUser.username) : `Usuário-${socketId.substring(0, 5)}`);
+        }
+
         function createParticipantCard(socketId, username) {
             if (!socketId) return null;
 
-            const displayUsername = username || peerUsernames[socketId] || `Participante (${socketId.substring(0, 5)})`;
+            const displayUsername = resolveParticipantRealName(socketId, username);
             peerUsernames[socketId] = displayUsername;
 
             // 1. Deduplicação Estrita Visual no DOM via ID (participant-${socketId} ou card-${socketId})
@@ -6761,9 +6812,23 @@
             console.log('👥 Participantes na sala:', data.users, '| Sala:', data.room);
             const isTargetVoice = (currentVoiceRoom && data.room === currentVoiceRoom) || (isPrivateCallActive && data.room === privateCallRoom);
             if (isTargetVoice || currentViewMode === 'voice') {
+                // Registra dados detalhados dos participantes no roomUsersMap e peerUsernames
+                if (Array.isArray(data.roomUsers)) {
+                    data.roomUsers.forEach(u => {
+                        const name = u.displayName || u.username;
+                        if (name) {
+                            peerUsernames[u.socketId] = name;
+                            if (u.userId) peerUsernames[u.userId] = name;
+                        }
+                        roomUsersMap.set(String(u.socketId), u);
+                        if (u.userId) roomUsersMap.set(String(u.userId), u);
+                    });
+                }
                 await getOrCreateMicrophone();
-                for (const otherUserId of data.users) {
-                    createPeerConnection(otherUserId, true);
+                for (const otherUserId of (data.users || [])) {
+                    const uInfo = roomUsersMap.get(String(otherUserId));
+                    const resolvedName = uInfo?.displayName || uInfo?.username || peerUsernames[otherUserId];
+                    createPeerConnection(otherUserId, true, resolvedName);
                 }
                 updateGridLayout();
             }
@@ -6774,9 +6839,16 @@
             const isTargetVoice = (currentVoiceRoom && (!data.room || data.room === currentVoiceRoom)) || isPrivateCallActive || (currentViewMode === 'voice');
             if (isTargetVoice) {
                 soundManager.play('join');
+                const realName = data.displayName || data.username;
+                if (realName) {
+                    peerUsernames[data.id] = realName;
+                    if (data.userId) peerUsernames[data.userId] = realName;
+                }
+                roomUsersMap.set(String(data.id), data);
+                if (data.userId) roomUsersMap.set(String(data.userId), data);
+
                 await getOrCreateMicrophone();
-                peerUsernames[data.id] = data.username;
-                createParticipantCard(data.id, data.username);
+                createParticipantCard(data.id, realName);
                 emitMediaStateChange();
                 updateGridLayout();
             }
