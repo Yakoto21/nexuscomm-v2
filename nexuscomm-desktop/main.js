@@ -25,15 +25,40 @@ function createWindow() {
         }
     });
 
-    // 🔒 Concede permissões necessárias para WebRTC (microfone, câmera, tela e notificações)
-    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-        const allowedPermissions = ['media', 'mediaKeySystem', 'notifications', 'display-capture'];
-        if (allowedPermissions.includes(permission)) {
-            callback(true);
-        } else {
-            callback(false);
+    // 🔒 Acesso ao módulo session da janela embutida e defaultSession para permissões de hardware WebRTC
+    const windowSession = mainWindow.webContents.session;
+
+    const handlePermissionRequest = (webContents, permission, callback, details) => {
+        const requestingUrl = (details && details.requestingUrl) || webContents.getURL() || '';
+        const isProductionUrl = requestingUrl.startsWith('https://nexuscomm-v2.onrender.com');
+
+        // Regra explícita: autoriza media (câmera e microfone) e display-capture (compartilhamento de tela)
+        const allowedHardwarePermissions = ['media', 'display-capture', 'notifications'];
+
+        if (isProductionUrl && allowedHardwarePermissions.includes(permission)) {
+            return callback(true);
         }
-    });
+
+        return callback(false);
+    };
+
+    windowSession.setPermissionRequestHandler(handlePermissionRequest);
+    session.defaultSession.setPermissionRequestHandler(handlePermissionRequest);
+
+    // Validação contínua de permissões via setPermissionCheckHandler
+    const handlePermissionCheck = (webContents, permission, requestingOrigin) => {
+        const isProductionUrl = requestingOrigin && requestingOrigin.startsWith('https://nexuscomm-v2.onrender.com');
+        const allowedHardwarePermissions = ['media', 'display-capture', 'notifications'];
+
+        if (isProductionUrl && allowedHardwarePermissions.includes(permission)) {
+            return true;
+        }
+
+        return false;
+    };
+
+    windowSession.setPermissionCheckHandler(handlePermissionCheck);
+    session.defaultSession.setPermissionCheckHandler(handlePermissionCheck);
 
     // 🌐 Ponte Web: Carrega a aplicação de produção diretamente do Render
     mainWindow.loadURL('https://nexuscomm-v2.onrender.com');
