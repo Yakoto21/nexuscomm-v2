@@ -6092,16 +6092,63 @@
             }
         });
 
-        function getOrCreateRemoteCard(socketId, username) {
-            let card = document.getElementById(`card-${socketId}`);
-            if (card) return card;
+        function createParticipantCard(socketId, username) {
+            if (!socketId) return null;
 
             const displayUsername = username || peerUsernames[socketId] || `Participante (${socketId.substring(0, 5)})`;
             peerUsernames[socketId] = displayUsername;
 
-            card = document.createElement('div');
+            // 1. Deduplicação Estrita Visual no DOM via ID (participant-${socketId} ou card-${socketId})
+            const existingCard = document.getElementById(`participant-${socketId}`) || document.getElementById(`card-${socketId}`);
+            if (existingCard) {
+                console.log(`♻️ [DOM Deduplicação] Card já existente para [${socketId}]. Atualizando tags <video> e <audio> sem duplicar.`);
+
+                if (!remoteStreams[socketId]) remoteStreams[socketId] = new MediaStream();
+                const stream = remoteStreams[socketId];
+
+                // Atualiza tag <video> existente
+                const videoEl = existingCard.querySelector('video') || existingCard.querySelector(`#video-${socketId}`);
+                if (videoEl && videoEl.srcObject !== stream) {
+                    videoEl.srcObject = stream;
+                    videoEl.play().catch(e => console.warn('Play video existente:', e));
+                }
+
+                // Atualiza tag <audio> existente
+                let audioEl = existingCard.querySelector('audio') || existingCard.querySelector(`#audio-${socketId}`);
+                if (!audioEl) {
+                    audioEl = document.createElement('audio');
+                    audioEl.id = `audio-${socketId}`;
+                    audioEl.autoplay = true;
+                    audioEl.playsInline = true;
+                    audioEl.style.display = 'none';
+                    existingCard.appendChild(audioEl);
+                }
+                if (audioEl.srcObject !== stream) {
+                    audioEl.srcObject = stream;
+                    audioEl.play().catch(e => console.warn('Play audio existente:', e));
+                }
+
+                // Atualiza o nome exibido
+                const nameEl = existingCard.querySelector(`#name-${socketId}`) || existingCard.querySelector('.video-card-title span:last-child');
+                if (nameEl) nameEl.textContent = displayUsername;
+
+                existingCard.id = `participant-${socketId}`;
+                existingCard.setAttribute('data-socket-id', socketId);
+                existingCard.setAttribute('data-card-id', `card-${socketId}`);
+
+                return existingCard;
+            }
+
+            // Remove nós duplicados remanescentes caso existam
+            const duplicates = document.querySelectorAll(`[id="participant-${socketId}"], [id="card-${socketId}"]`);
+            duplicates.forEach(el => el.remove());
+
+            // 2. Criação de Novo Card com IDs e Tags <video> e <audio>
+            const card = document.createElement('div');
             card.className = 'video-card';
-            card.id = `card-${socketId}`;
+            card.id = `participant-${socketId}`;
+            card.setAttribute('data-socket-id', socketId);
+            card.setAttribute('data-card-id', `card-${socketId}`);
             card.innerHTML = `
                 <div class="video-card-header">
                     <span class="video-card-title">
@@ -6138,6 +6185,7 @@
                         <span id="placeholderText-${socketId}">Conectando áudio/vídeo...</span>
                     </div>
                     <video id="video-${socketId}" autoplay playsinline></video>
+                    <audio id="audio-${socketId}" autoplay playsinline style="display: none;"></audio>
                     <div class="floating-media-badges">
                         <span class="floating-badge active-green" id="floatMic-${socketId}" title="Microfone Ativo">
                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -6156,23 +6204,66 @@
             const nameEl = card.querySelector(`#name-${socketId}`);
             if (nameEl) nameEl.textContent = displayUsername;
 
-            videoGrid.appendChild(card);
+            if (videoGrid) videoGrid.appendChild(card);
+
+            if (!remoteStreams[socketId]) remoteStreams[socketId] = new MediaStream();
+            const stream = remoteStreams[socketId];
 
             const videoEl = card.querySelector(`#video-${socketId}`);
-            if (!remoteStreams[socketId]) remoteStreams[socketId] = new MediaStream();
-            videoEl.srcObject = remoteStreams[socketId];
+            if (videoEl) videoEl.srcObject = stream;
+
+            const audioEl = card.querySelector(`#audio-${socketId}`);
+            if (audioEl) audioEl.srcObject = stream;
 
             updateGridLayout();
             return card;
         }
 
+        // Alias para compatibilidade total
+        const getOrCreateRemoteCard = createParticipantCard;
+
         // ==========================================
         // 9. WebRTC Multi-Peer (RTCPeerConnection) & NAT Traversal
         // ==========================================
-        function createPeerConnection(targetSocketId, isInitiator, targetUsername) {
-            if (peerConnections[targetSocketId]) return peerConnections[targetSocketId];
+        function createPeerConnection(targetSocketId, isInitiator, targetUsername, isRenegotiation = false) {
+            // Se for renegociação e a conexão já estiver aberta/ativa, reutiliza a conexão
+            if (isRenegotiation && peerConnections[targetSocketId] && peerConnections[targetSocketId].signalingState !== 'closed') {
+                return peerConnections[targetSocketId];
+            }
 
-            console.log(`🌐 Criando RTCPeerConnection para [${targetSocketId}] | Initiator: ${isInitiator}`);
+            // 2. Limpeza de Peers Antigos (Memory Leak e áudio fantasma em segundo plano)
+            if (peerConnections[targetSocketId]) {
+                console.warn(`🧹 [WebRTC Limpeza] PeerConnection pré-existente encontrada para [${targetSocketId}]. Fechando conexão antiga e limpando listeners.`);
+                const oldPc = peerConnections[targetSocketId];
+                oldPc.ontrack = null;
+                oldPc.onicecandidate = null;
+                oldPc.oniceconnectionstatechange = null;
+                oldPc.onconnectionstatechange = null;
+                oldPc.onnegotiationneeded = null;
+                try {
+                    oldPc.close();
+                } catch (e) {
+                    console.warn(`Aviso ao fechar conexão antiga de [${targetSocketId}]:`, e);
+                }
+                delete peerConnections[targetSocketId];
+            }
+
+            // Limpa tracks remotos e nós de áudio antigos para evitar áudio duplicado tocando
+            if (remoteStreams[targetSocketId]) {
+                remoteStreams[targetSocketId].getTracks().forEach(t => {
+                    t.stop();
+                    remoteStreams[targetSocketId].removeTrack(t);
+                });
+            }
+            if (peerAudioNodes[targetSocketId]) {
+                try {
+                    peerAudioNodes[targetSocketId].sourceNode.disconnect();
+                    peerAudioNodes[targetSocketId].gainNode.disconnect();
+                } catch(e) {}
+                delete peerAudioNodes[targetSocketId];
+            }
+
+            console.log(`🌐 Criando nova RTCPeerConnection para [${targetSocketId}] | Initiator: ${isInitiator}`);
             const pc = new RTCPeerConnection(rtcConfiguration);
             peerConnections[targetSocketId] = pc;
             iceCandidateQueues[targetSocketId] = [];
@@ -6181,7 +6272,7 @@
             pc._isNegotiating = false;
             pc._initialSetup = true;
 
-            getOrCreateRemoteCard(targetSocketId, targetUsername);
+            createParticipantCard(targetSocketId, targetUsername);
 
             localStream.getTracks().forEach((track) => {
                 pc.addTrack(track, localStream);
@@ -6478,11 +6569,18 @@
                 pc.oniceconnectionstatechange = null;
                 pc.onconnectionstatechange = null;
                 pc.onnegotiationneeded = null;
-                pc.close();
+                try {
+                    pc.close();
+                } catch(e) {
+                    console.warn(`Aviso ao fechar RTCPeerConnection para [${targetSocketId}]:`, e);
+                }
                 delete peerConnections[targetSocketId];
             }
             if (remoteStreams[targetSocketId]) {
-                remoteStreams[targetSocketId].getTracks().forEach(t => t.stop());
+                remoteStreams[targetSocketId].getTracks().forEach(t => {
+                    t.stop();
+                    remoteStreams[targetSocketId].removeTrack(t);
+                });
                 delete remoteStreams[targetSocketId];
             }
             if (peerAudioNodes[targetSocketId]) {
@@ -6495,8 +6593,11 @@
             delete iceCandidateQueues[targetSocketId];
             delete peerUsernames[targetSocketId];
 
-            const card = document.getElementById(`card-${targetSocketId}`);
-            if (card) card.remove();
+            // Remoção imediata e estrita do card correspondente da DOM com .remove()
+            const cardsToRemove = document.querySelectorAll(
+                `#participant-${targetSocketId}, #card-${targetSocketId}, [data-socket-id="${targetSocketId}"], [data-peer-id="${targetSocketId}"]`
+            );
+            cardsToRemove.forEach(c => c.remove());
 
             updateGridLayout();
         }
@@ -6675,7 +6776,7 @@
                 soundManager.play('join');
                 await getOrCreateMicrophone();
                 peerUsernames[data.id] = data.username;
-                getOrCreateRemoteCard(data.id, data.username);
+                createParticipantCard(data.id, data.username);
                 emitMediaStateChange();
                 updateGridLayout();
             }
@@ -6690,7 +6791,7 @@
                 const isRenegotiation = Boolean(data.isRenegotiation);
                 console.log(`📩 [WebRTC Oferta Recebida] Do peer [${senderId}] | isRenegotiation: ${isRenegotiation} | isIceRestart: ${Boolean(data.isIceRestart)}`);
                 await getOrCreateMicrophone();
-                const pc = createPeerConnection(senderId, false, data.username);
+                const pc = createPeerConnection(senderId, false, data.username, isRenegotiation);
 
                 // Tratamento seguro de colisão / sinalização durante renegociação ou ICE Restart
                 if (pc.signalingState !== 'stable') {
@@ -6828,9 +6929,17 @@
         });
 
         socket.off('user-left').on('user-left', (data) => {
-            console.log('🚪 Participante saiu:', data);
+            console.log('🚪 [WebRTC] Participante saiu:', data);
             soundManager.play('leave');
-            closePeerConnection(data.id);
+            const targetId = typeof data === 'object' && data !== null ? (data.id || data.socketId || data.userId) : data;
+            if (targetId) {
+                closePeerConnection(targetId);
+                const cards = document.querySelectorAll(
+                    `#participant-${targetId}, #card-${targetId}, [data-socket-id="${targetId}"], [data-peer-id="${targetId}"]`
+                );
+                cards.forEach(card => card.remove());
+                updateGridLayout();
+            }
         });
 
         // ==========================================
