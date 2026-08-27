@@ -1064,6 +1064,36 @@
                         <p style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px; margin-bottom: 0;">Ajuste o ganho do seu áudio antes de ser transmitido para os outros membros da chamada.</p>
                     </div>
 
+                    <!-- Teste de Microfone em Tempo Real (Sprint: Teste de Microfone - UX) -->
+                    <div style="background: rgba(30, 41, 59, 0.45); padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
+                                <div>
+                                    <strong style="font-size: 0.85rem; color: #fff;">Teste de Microfone</strong>
+                                    <p style="font-size: 0.74rem; color: var(--text-muted); margin: 0;">Fale no microfone para verificar se o hardware está captando o áudio</p>
+                                </div>
+                            </div>
+                            <button type="button" id="btnTestMicrophone" class="btn-room-action" style="padding: 6px 14px; font-size: 0.78rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                <span id="testMicIcon">🎙️</span>
+                                <span id="testMicBtnText">Testar Microfone</span>
+                            </button>
+                        </div>
+
+                        <!-- Barra de Medidor de Volume (Level Meter) -->
+                        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: #94a3b8;">Nível de Entrada de Áudio</span>
+                                <span id="labelMicVolumeLevel" style="font-size: 0.75rem; font-weight: 700; color: #10b981;">0%</span>
+                            </div>
+                            <div class="mic-meter-track">
+                                <div id="micMeterProgress" class="mic-meter-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Efeitos Sonoros & Feedback Auditivo (Sprint de UI/UX) -->
                     <div style="background: rgba(30, 41, 59, 0.45); padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; gap: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">

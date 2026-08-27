@@ -260,6 +260,20 @@
         const btnTestSoundMsg = document.getElementById('btnTestSoundMsg');
         const btnTestSoundMute = document.getElementById('btnTestSoundMute');
 
+        // Elementos do Teste de Microfone em Tempo Real (Sprint: Teste de Microfone - UX)
+        const btnTestMicrophone = document.getElementById('btnTestMicrophone');
+        const testMicIcon = document.getElementById('testMicIcon');
+        const testMicBtnText = document.getElementById('testMicBtnText');
+        const micMeterProgress = document.getElementById('micMeterProgress');
+        const labelMicVolumeLevel = document.getElementById('labelMicVolumeLevel');
+
+        let micTestAudioContext = null;
+        let micTestStream = null;
+        let micTestAnalyser = null;
+        let micTestGainNode = null;
+        let micTestAnimFrame = null;
+        let isTestingMic = false;
+
         let pendingUserAvatarBase64 = null;
 
         // Elementos do Hub Social (Home / Amigos / DMs - Sprint 3)
@@ -869,6 +883,7 @@
         }
 
         function closeUserSettings() {
+            stopMicrophoneTest();
             if (userSettingsOverlay) {
                 userSettingsOverlay.classList.remove('open');
                 document.body.style.overflow = 'auto';
@@ -896,6 +911,150 @@
         if (sliderMicSensitivity) {
             sliderMicSensitivity.addEventListener('input', (e) => {
                 setLocalMicSensitivity(e.target.value);
+                if (micTestGainNode) {
+                    micTestGainNode.gain.value = Number(e.target.value);
+                }
+            });
+        }
+
+        // ==========================================
+        // 🎙️ Sprint: Teste de Microfone em Tempo Real (Web Audio API)
+        // ==========================================
+        async function startMicrophoneTest() {
+            if (isTestingMic) return;
+
+            try {
+                if (testMicBtnText) testMicBtnText.textContent = 'Conectando...';
+                if (testMicIcon) testMicIcon.textContent = '⏳';
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: false
+                    }
+                });
+
+                micTestStream = stream;
+                micTestAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                if (micTestAudioContext.state === 'suspended') {
+                    await micTestAudioContext.resume();
+                }
+
+                micTestAnalyser = micTestAudioContext.createAnalyser();
+                micTestAnalyser.fftSize = 512;
+                micTestAnalyser.smoothingTimeConstant = 0.3;
+
+                const source = micTestAudioContext.createMediaStreamSource(stream);
+
+                // Aplica ganho conforme sensibilidade configurada pelo usuário
+                micTestGainNode = micTestAudioContext.createGain();
+                micTestGainNode.gain.value = userMicGainPreference || 1.0;
+
+                source.connect(micTestGainNode);
+                micTestGainNode.connect(micTestAnalyser);
+                // IMPORTANTE: NÃO conectar à destination para evitar eco/microfonia nos alto-falantes
+
+                isTestingMic = true;
+                if (btnTestMicrophone) {
+                    btnTestMicrophone.style.background = 'rgba(239, 68, 68, 0.2)';
+                    btnTestMicrophone.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                    btnTestMicrophone.style.color = '#fca5a5';
+                }
+                if (testMicBtnText) testMicBtnText.textContent = 'Parar Teste';
+                if (testMicIcon) testMicIcon.textContent = '⏹️';
+                if (micMeterProgress) micMeterProgress.classList.add('active');
+
+                const dataArray = new Uint8Array(micTestAnalyser.frequencyBinCount);
+
+                function updateMicMeter() {
+                    if (!isTestingMic || !micTestAnalyser) return;
+
+                    micTestAnalyser.getByteFrequencyData(dataArray);
+
+                    // Calcula o volume médio RMS capturado
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        sum += dataArray[i];
+                    }
+                    const avg = sum / dataArray.length;
+
+                    // Mapeia e normaliza para escala 0 - 100%
+                    const rawPct = Math.min(Math.round((avg / 120) * 100), 100);
+                    const percentage = Math.max(rawPct, 0);
+
+                    if (micMeterProgress) {
+                        micMeterProgress.style.width = `${percentage}%`;
+                    }
+                    if (labelMicVolumeLevel) {
+                        labelMicVolumeLevel.textContent = `${percentage}%`;
+                        if (percentage > 80) {
+                            labelMicVolumeLevel.style.color = '#ef4444';
+                        } else if (percentage > 60) {
+                            labelMicVolumeLevel.style.color = '#f59e0b';
+                        } else {
+                            labelMicVolumeLevel.style.color = '#10b981';
+                        }
+                    }
+
+                    micTestAnimFrame = requestAnimationFrame(updateMicMeter);
+                }
+
+                updateMicMeter();
+            } catch (err) {
+                console.error('Erro ao iniciar teste de microfone:', err);
+                stopMicrophoneTest();
+                showToast('Não foi possível acessar o microfone para teste.', 'error', 4000);
+            }
+        }
+
+        function stopMicrophoneTest() {
+            isTestingMic = false;
+
+            if (micTestAnimFrame) {
+                cancelAnimationFrame(micTestAnimFrame);
+                micTestAnimFrame = null;
+            }
+
+            if (micTestStream) {
+                micTestStream.getTracks().forEach(track => track.stop());
+                micTestStream = null;
+            }
+
+            if (micTestAudioContext) {
+                try {
+                    micTestAudioContext.close();
+                } catch (e) {}
+                micTestAudioContext = null;
+            }
+            micTestAnalyser = null;
+            micTestGainNode = null;
+
+            if (btnTestMicrophone) {
+                btnTestMicrophone.style.background = '';
+                btnTestMicrophone.style.borderColor = '';
+                btnTestMicrophone.style.color = '';
+            }
+            if (testMicBtnText) testMicBtnText.textContent = 'Testar Microfone';
+            if (testMicIcon) testMicIcon.textContent = '🎙️';
+            if (micMeterProgress) {
+                micMeterProgress.style.width = '0%';
+                micMeterProgress.classList.remove('active');
+            }
+            if (labelMicVolumeLevel) {
+                labelMicVolumeLevel.textContent = '0%';
+                labelMicVolumeLevel.style.color = '#10b981';
+            }
+        }
+
+        if (btnTestMicrophone) {
+            btnTestMicrophone.addEventListener('click', () => {
+                if (isTestingMic) {
+                    stopMicrophoneTest();
+                } else {
+                    startMicrophoneTest();
+                }
             });
         }
 
