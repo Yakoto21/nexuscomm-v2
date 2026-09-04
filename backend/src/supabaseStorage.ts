@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
@@ -135,7 +136,52 @@ export const MIME_TO_EXT: Record<string, string> = {
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
 /**
- * Valida estritamente os cabeçalhos Base64 e os tipos MIME permitidos
+ * Validação rigorosa de Magic Bytes para assegurar integridade binária do arquivo
+ * Impede que scripts maliciosos ou SVGs sejam mascarados com extensões de imagem.
+ */
+export function detectImageMagicBytes(buffer: Buffer): { mimeType: string; ext: string } | null {
+    if (!buffer || buffer.length < 12) return null;
+
+    // PNG: 89 50 4E 47
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+        return { mimeType: 'image/png', ext: 'png' };
+    }
+
+    // JPEG / JPG: FF D8 FF
+    if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+        return { mimeType: 'image/jpeg', ext: 'jpg' };
+    }
+
+    // GIF: GIF87a ou GIF89a (47 49 46 38)
+    if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) {
+        return { mimeType: 'image/gif', ext: 'gif' };
+    }
+
+    // WEBP: RIFF (bytes 0-3) e WEBP (bytes 8-11)
+    if (
+        buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+        buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+    ) {
+        return { mimeType: 'image/webp', ext: 'webp' };
+    }
+
+    return null;
+}
+
+/**
+ * Valida se uma string é uma URL HTTP/HTTPS segura, bloqueando esquemas maliciosos como javascript: ou data:
+ */
+export function isSafeHttpUrl(urlString: string): boolean {
+    try {
+        const parsed = new URL(urlString);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Valida estritamente os cabeçalhos Base64 e a assinatura binária de imagem
  */
 function parseAndValidateBase64Image(base64Data: string): { mimeType: string; ext: string; buffer: Buffer } {
     const matches = base64Data.match(/^data:([a-zA-Z0-9-+/]+);base64,(.+)$/);
@@ -143,8 +189,8 @@ function parseAndValidateBase64Image(base64Data: string): { mimeType: string; ex
         throw new Error('Formato Base64 inválido. O anexo deve seguir o padrão data:image/...;base64,...');
     }
 
-    const mimeType = matches[1].toLowerCase().trim();
-    if (!ALLOWED_IMAGE_MIME_TYPES.includes(mimeType)) {
+    const declaredMime = matches[1].toLowerCase().trim();
+    if (!ALLOWED_IMAGE_MIME_TYPES.includes(declaredMime)) {
         throw new Error('Tipo de arquivo não permitido. Apenas imagens seguras (JPG, PNG, WEBP e GIF) são aceitas.');
     }
 
@@ -153,8 +199,12 @@ function parseAndValidateBase64Image(base64Data: string): { mimeType: string; ex
         throw new Error('O arquivo excede o limite máximo permitido de 10MB.');
     }
 
-    const ext = MIME_TO_EXT[mimeType] || 'png';
-    return { mimeType, ext, buffer };
+    const magic = detectImageMagicBytes(buffer);
+    if (!magic) {
+        throw new Error('Assinatura de arquivo inválida. O conteúdo não corresponde a uma imagem autêntica suportada.');
+    }
+
+    return { mimeType: magic.mimeType, ext: magic.ext, buffer };
 }
 
 /**
@@ -217,7 +267,7 @@ async function uploadToBucket(
 }
 
 /**
- * Faz upload de imagem de servidor (Ícone ou Banner) para o bucket 'server_media' no Supabase Storage
+ * Faz upload de imagem de servidor (Ícone ou Banner) com nome de alta entropia (UUID)
  */
 export async function uploadServerMediaFile(
     serverId: number | string,
@@ -226,20 +276,20 @@ export async function uploadServerMediaFile(
 ): Promise<string> {
     if (!base64DataOrUrl) return '';
 
-    // Se já for uma URL HTTP válida (não base64), retorna direto
-    if (base64DataOrUrl.startsWith('http://') || base64DataOrUrl.startsWith('https://')) {
+    // Se já for uma URL HTTP válida, retorna direto evitando esquemas inseguros
+    if (isSafeHttpUrl(base64DataOrUrl)) {
         return base64DataOrUrl;
     }
 
-    // Processa e valida rigorosamente o Base64 contra XSS
     const { mimeType, ext, buffer } = parseAndValidateBase64Image(base64DataOrUrl);
-    const fileName = `${fileType}s/${serverId}_${Date.now()}.${ext}`;
+    const uniqueId = crypto.randomUUID();
+    const fileName = `${fileType}s/${serverId}_${uniqueId}.${ext}`;
 
     return await uploadToBucket(BUCKET_NAME, fileName, buffer, mimeType);
 }
 
 /**
- * Faz upload de avatar pessoal de usuário para o bucket 'user_avatars' no Supabase Storage
+ * Faz upload de avatar pessoal de usuário com nome aleatório não enumerável
  */
 export async function uploadUserAvatar(
     userId: number | string,
@@ -247,61 +297,61 @@ export async function uploadUserAvatar(
 ): Promise<string> {
     if (!base64DataOrUrl) return '';
 
-    // Se já for uma URL HTTP válida (não base64), retorna direto
-    if (base64DataOrUrl.startsWith('http://') || base64DataOrUrl.startsWith('https://')) {
+    if (isSafeHttpUrl(base64DataOrUrl)) {
         return base64DataOrUrl;
     }
 
-    // Processa e valida rigorosamente o Base64
     const { mimeType, ext, buffer } = parseAndValidateBase64Image(base64DataOrUrl);
-    const fileName = `avatar_${userId}_${Date.now()}.${ext}`;
+    const uniqueId = crypto.randomUUID();
+    const fileName = `avatar_${userId}_${uniqueId}.${ext}`;
 
     return await uploadToBucket(USER_AVATARS_BUCKET, fileName, buffer, mimeType);
 }
 
 /**
- * Faz upload de anexo de imagem de chat (Canais ou DMs) para o bucket 'chat_media' no Supabase Storage
+ * Faz upload de anexo de imagem de chat com UUID único contra enumeração
  */
 export async function uploadChatMediaFile(
-    originalFileName: string,
+    _originalFileName: string,
     base64DataOrUrl: string
 ): Promise<string> {
     if (!base64DataOrUrl) return '';
 
-    // Se já for uma URL HTTP válida, retorna direto
-    if (base64DataOrUrl.startsWith('http://') || base64DataOrUrl.startsWith('https://')) {
+    if (isSafeHttpUrl(base64DataOrUrl)) {
         return base64DataOrUrl;
     }
 
-    // Processa e valida rigorosamente o Base64
     const { mimeType, ext, buffer } = parseAndValidateBase64Image(base64DataOrUrl);
-
-    const cleanOriginalName = (originalFileName || 'image')
-        .replace(/[^a-zA-Z0-9._-]/g, '_')
-        .substring(0, 40);
-    const fileName = `${Date.now()}_${cleanOriginalName.endsWith(`.${ext}`) ? cleanOriginalName : `${cleanOriginalName}.${ext}`}`;
+    const uniqueId = crypto.randomUUID();
+    const fileName = `chat_${uniqueId}.${ext}`;
 
     return await uploadToBucket(CHAT_MEDIA_BUCKET, fileName, buffer, mimeType);
 }
 
 /**
- * Faz upload direto de Buffer de imagem (Multer) para o bucket 'chat_media' no Supabase Storage
+ * Faz upload direto de Buffer de imagem (Multer) com validação de Magic Bytes e UUID aleatório
  */
 export async function uploadChatMediaBuffer(
-    originalFileName: string,
+    _originalFileName: string,
     buffer: Buffer,
-    mimeType: string
+    _mimeType: string
 ): Promise<string> {
     if (!buffer || buffer.length === 0) {
         throw new Error('Buffer de imagem vazio ou inválido.');
     }
 
-    const ext = mimeType.split('/')[1] || 'png';
-    const cleanOriginalName = (originalFileName || 'image')
-        .replace(/[^a-zA-Z0-9._-]/g, '_')
-        .substring(0, 40);
-    const fileName = `${Date.now()}_${cleanOriginalName.endsWith(`.${ext}`) ? cleanOriginalName : `${cleanOriginalName}.${ext}`}`;
+    if (buffer.byteLength > MAX_FILE_SIZE_BYTES) {
+        throw new Error('O arquivo excede o limite máximo permitido de 10MB.');
+    }
 
-    return await uploadToBucket(CHAT_MEDIA_BUCKET, fileName, buffer, mimeType);
+    const magic = detectImageMagicBytes(buffer);
+    if (!magic) {
+        throw new Error('Assinatura binária de arquivo inválida. O arquivo enviado não é uma imagem segura suportada.');
+    }
+
+    const uniqueId = crypto.randomUUID();
+    const fileName = `chat_${uniqueId}.${magic.ext}`;
+
+    return await uploadToBucket(CHAT_MEDIA_BUCKET, fileName, buffer, magic.mimeType);
 }
 

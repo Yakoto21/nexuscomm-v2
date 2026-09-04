@@ -28,14 +28,21 @@ function createWindow() {
     // 🔒 Acesso ao módulo session da janela embutida e defaultSession para permissões de hardware WebRTC
     const windowSession = mainWindow.webContents.session;
 
+    const isAuthorizedOrigin = (urlString) => {
+        try {
+            const parsed = new URL(urlString);
+            return (parsed.protocol === 'https:' && parsed.hostname === 'nexuscomm-v2.onrender.com') ||
+                   (parsed.protocol === 'http:' && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'));
+        } catch {
+            return false;
+        }
+    };
+
     const handlePermissionRequest = (webContents, permission, callback, details) => {
         const requestingUrl = (details && details.requestingUrl) || webContents.getURL() || '';
-        const isProductionUrl = requestingUrl.startsWith('https://nexuscomm-v2.onrender.com');
-
-        // Regra explícita: autoriza media (câmera e microfone) e display-capture (compartilhamento de tela)
         const allowedHardwarePermissions = ['media', 'display-capture', 'notifications'];
 
-        if (isProductionUrl && allowedHardwarePermissions.includes(permission)) {
+        if (isAuthorizedOrigin(requestingUrl) && allowedHardwarePermissions.includes(permission)) {
             return callback(true);
         }
 
@@ -47,10 +54,9 @@ function createWindow() {
 
     // Validação contínua de permissões via setPermissionCheckHandler
     const handlePermissionCheck = (webContents, permission, requestingOrigin) => {
-        const isProductionUrl = requestingOrigin && requestingOrigin.startsWith('https://nexuscomm-v2.onrender.com');
         const allowedHardwarePermissions = ['media', 'display-capture', 'notifications'];
 
-        if (isProductionUrl && allowedHardwarePermissions.includes(permission)) {
+        if (isAuthorizedOrigin(requestingOrigin) && allowedHardwarePermissions.includes(permission)) {
             return true;
         }
 

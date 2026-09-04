@@ -8,7 +8,7 @@ import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { routes } from './routes';
-import { initDb, saveMessage, getMessagesByChannel, findUserById, saveDirectMessage, canUserAccessChannel, getMessageById, updateMessage, deleteMessage, canUserModerateMessage, sanitizePlainText, getUserHighestRole, canUserKickMember, removeMemberFromServer } from './db';
+import { initDb, saveMessage, getMessagesByChannel, findUserById, saveDirectMessage, canUserAccessChannel, getMessageById, updateMessage, deleteMessage, canUserModerateMessage, sanitizePlainText, getUserHighestRole, canUserKickMember, removeMemberFromServer, pool } from './db';
 
 // Carrega as variáveis de ambiente
 dotenv.config();
@@ -19,10 +19,36 @@ const PORT = process.env.PORT || 3333;
 // Compressão de Rede (Gzip/Brotli) para todas as respostas JSON e arquivos estáticos
 app.use(compression());
 
-// Configurações de Segurança e Tráfego
-app.use(cors()); // Permite que o nosso frontend converse com este backend
-app.use(express.json({ limit: '15mb' })); // Suporta upload de imagens em base64 até 15MB
-app.use(express.urlencoded({ limit: '15mb', extended: true }));
+// Configuração de Origens Permitidas (Whitelist de CORS)
+const defaultAllowedOrigins = [
+    'https://nexuscomm-v2.onrender.com',
+    'http://localhost:3333',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3333',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173'
+];
+const envAllowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()) : [];
+const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigins])];
+
+const corsOptions: cors.CorsOptions = {
+    origin: (origin, callback) => {
+        // Permite requisições sem origin (desktop apps Electron nativo, ferramentas locais e same-origin)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.warn(`⛔ [CORS Bloqueado] Origem não autorizada tentou conexão: ${origin}`);
+            callback(new Error('Bloqueado por política de segurança CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS']
+};
+
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '2mb' })); // 🔒 Mitigação de DoS: reduzido de 15MB para 2MB
+app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
 // Rotas da API da aplicação
 app.use(routes);
@@ -97,13 +123,34 @@ app.get('/api/status', (_req, res) => {
 // Cria o servidor HTTP integrando com o Express
 const httpServer = http.createServer(app);
 
-// Inicializa o Server do Socket.IO com CORS configurado
+// Inicializa o Server do Socket.IO com CORS restrito à whitelist
 const io = new Server(httpServer, {
     cors: {
-        origin: '*',
-        methods: ['GET', 'POST']
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Bloqueado por política CORS'));
+            }
+        },
+        methods: ['GET', 'POST'],
+        credentials: true
     }
 });
+
+// Helper de segurança: valida se dois sockets compartilham ao menos uma sala antes de trafegar sinalização WebRTC
+function canSocketsCommunicate(socketA: any, socketIdB: string): boolean {
+    if (!socketA || !socketIdB) return false;
+    const targetSocket = io.sockets.sockets.get(socketIdB);
+    if (!targetSocket) return false;
+
+    for (const room of socketA.rooms) {
+        if (room !== socketA.id && !room.startsWith('user_') && targetSocket.rooms.has(room)) {
+            return true;
+        }
+    }
+    return false;
+}
 
 // Mapa de rastreamento de presença online (socket.id -> userId)
 const onlineUsersMap = new Map<string, number>();
@@ -453,6 +500,10 @@ io.on('connection', (socket) => {
         };
 
         if (data.target) {
+            if (!canSocketsCommunicate(socket, data.target)) {
+                console.warn(`⛔ [WebRTC Spoofing Bloqueado] Socket ${socket.id} tentou emitir offer para ${data.target} fora de sala compartilhada.`);
+                return;
+            }
             console.log(`📡 Repassando offer (${payload.isRenegotiation ? 'Renegociação' : 'Inicial'}) de ${socket.id} -> ${data.target}`);
             io.to(data.target).emit('offer', payload);
         } else if (data.room) {
@@ -470,6 +521,10 @@ io.on('connection', (socket) => {
         };
 
         if (data.target) {
+            if (!canSocketsCommunicate(socket, data.target)) {
+                console.warn(`⛔ [WebRTC Spoofing Bloqueado] Socket ${socket.id} tentou emitir answer para ${data.target} fora de sala compartilhada.`);
+                return;
+            }
             console.log(`📡 Repassando answer de ${socket.id} -> ${data.target}`);
             io.to(data.target).emit('answer', payload);
         } else if (data.room) {
@@ -487,6 +542,9 @@ io.on('connection', (socket) => {
         };
 
         if (data.target) {
+            if (!canSocketsCommunicate(socket, data.target)) {
+                return;
+            }
             io.to(data.target).emit('ice-candidate', payload);
         } else if (data.room) {
             socket.to(data.room).emit('ice-candidate', payload);
@@ -582,20 +640,8 @@ io.on('connection', (socket) => {
             socket.to(roomName).emit('chat-message', payload);
         } catch (err) {
             console.error('Erro ao persistir mensagem no banco de dados:', err);
-            const fallbackRole = await getUserHighestRole(userId, (data as any)?.serverId || null);
-            // Em caso de falha transitória no banco, realiza o broadcast
-            socket.to(roomName).emit('chat-message', {
-                id: `fallback-${Date.now()}`,
-                channel_id: roomName,
-                text: messageText,
-                media_url: mediaUrl,
-                sender: senderUsername,
-                senderId: socket.id,
-                role_name: fallbackRole.name,
-                role_color: fallbackRole.color_hex,
-                is_edited: false,
-                timestamp: data.timestamp || Date.now()
-            });
+            // 🔒 Em caso de erro na persistência, não transmite mensagens não auditadas
+            socket.emit('chat-error', { error: 'Falha ao salvar e entregar mensagem no banco de dados.' });
         }
     });
 
@@ -735,7 +781,26 @@ io.on('connection', (socket) => {
         const mediaUrl = data.media_url || data.mediaUrl || null;
         if (!userId || !receiverId || (!content && !mediaUrl)) return;
 
+        if (userId === receiverId) {
+            socket.emit('error-notice', { message: 'Você não pode enviar mensagens para si mesmo.' });
+            return;
+        }
+
         try {
+            // 🔒 Validação de bloqueio mútuo antes de processar DM
+            const blockCheck = await pool.query(
+                `SELECT status FROM friendships 
+                 WHERE ((user_id_1 = $1 AND user_id_2 = $2) OR (user_id_1 = $2 AND user_id_2 = $1)) 
+                   AND status = 'blocked'
+                 LIMIT 1`,
+                [userId, receiverId]
+            );
+
+            if (blockCheck.rows.length > 0) {
+                socket.emit('error-notice', { message: 'Comunicação bloqueada: não é possível enviar mensagem para este usuário.' });
+                return;
+            }
+
             const savedMsg = await saveDirectMessage(userId, receiverId, content, mediaUrl);
             // Envia confirmação de volta para o remetente
             socket.emit('dm-message', savedMsg);
@@ -746,8 +811,9 @@ io.on('connection', (socket) => {
             io.to(`user_${receiverId}`).emit('receive-dm', savedMsg);
             io.to(`user_${receiverId}`).emit('direct-message-received', savedMsg);
             console.log(`✉️ [DM] ${username} -> User ${receiverId}: ${content.substring(0, 30)} ${mediaUrl ? '[Mídia anexada]' : ''}`);
-        } catch (dmErr) {
-            console.error('Erro ao processar DM via socket:', dmErr);
+        } catch (dmErr: any) {
+            console.error('Erro ao processar DM via socket:', dmErr?.message);
+            socket.emit('error-notice', { message: dmErr?.message || 'Falha ao processar mensagem direta.' });
         }
     };
 

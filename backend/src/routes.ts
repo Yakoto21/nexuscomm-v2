@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import { ensureAuthenticated } from './middlewares/ensureAuthenticated';
 import { ensureSuperAdmin } from './middlewares/ensureSuperAdmin';
 import { ensureServerMember, ensureServerPermission } from './middlewares/serverPermissions';
@@ -59,17 +60,57 @@ const uploadChatMediaMulter = multer({
     }
 });
 
+// 🛡️ Rate Limiters para proteção contra Brute-force, DoS e enumeração
+const authRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    limit: 20, // máximo 20 tentativas por IP
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'Muitas tentativas a partir deste endereço IP. Tente novamente em 15 minutos.' }
+});
+
+const inviteRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 40,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'Limite de consultas de convite atingido. Aguarde alguns minutos.' }
+});
+
+const uploadRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 30,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'Limite de envio de arquivos atingido para este período.' }
+});
+
+const adminResetLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'Limite de redefinições administrativas atingido.' }
+});
+
 // Função utilitária para sanitização e garantia de texto puro (Anti-XSS Defense-in-Depth)
 function sanitizePlainText(input: unknown): string {
-    if (typeof input !== 'string') return '';
-    return input.replace(/<[^>]*>?/gm, '').trim();
+    if (input === null || input === undefined) return '';
+    return String(input)
+        .replace(/<[^>]*>?/gm, '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .trim();
 }
 
 // Configuração de segurança: garantindo pelo menos 10 salt rounds no bcrypt
 const BCRYPT_SALT_ROUNDS = 10;
 
-// Rota de Cadastro de Usuário (POST /register)
-routes.post('/register', async (req: Request, res: Response) => {
+// Rota de Cadastro de Usuário (POST /register) com Rate Limiting
+routes.post('/register', authRateLimiter, async (req: Request, res: Response) => {
     try {
         const { username, password } = req.body;
 
@@ -114,8 +155,8 @@ routes.post('/register', async (req: Request, res: Response) => {
     }
 });
 
-// Rota de Login (POST /login)
-routes.post('/login', async (req: Request, res: Response) => {
+// Rota de Login (POST /login) com Rate Limiting
+routes.post('/login', authRateLimiter, async (req: Request, res: Response) => {
     try {
         const { username, password } = req.body;
 
@@ -750,27 +791,11 @@ routes.get(['/servers/:serverId/members', '/api/servers/:serverId/members'], ens
 });
 
 // Entrar como membro em um servidor (POST /servers/:serverId/join)
-routes.post('/servers/:serverId/join', ensureAuthenticated, async (req: Request, res: Response) => {
-    try {
-        const serverIdParam = req.params.serverId;
-        const serverId = Number(Array.isArray(serverIdParam) ? serverIdParam[0] : serverIdParam);
-        const userId = Number(req.userId);
-
-        if (isNaN(serverId) || !userId) {
-            return res.status(400).json({ error: 'ID de servidor ou usuário inválido.' });
-        }
-
-        await addMemberToServer(userId, serverId);
-        const userRoles = await getMemberRoles(userId, serverId);
-
-        return res.status(200).json({
-            message: 'Você entrou no servidor com sucesso!',
-            roles: userRoles
-        });
-    } catch (error) {
-        console.error('Erro ao entrar no servidor:', error);
-        return res.status(500).json({ error: 'Erro ao entrar no servidor.' });
-    }
+// 🔒 Proteção contra IDOR: entrada direta desativada, exige uso de convite oficial
+routes.post('/servers/:serverId/join', ensureAuthenticated, async (_req: Request, res: Response) => {
+    return res.status(403).json({
+        error: 'Entrada direta por ID desabilitada por segurança. Utilize um convite válido emitido por um membro do servidor.'
+    });
 });
 
 // Atribuir cargo a um membro (POST /servers/:serverId/members/:targetUserId/roles/:roleId)
@@ -924,6 +949,7 @@ routes.get('/dms/:otherUserId', ensureAuthenticated, async (req: Request, res: R
 routes.post(
     ['/api/messages/media', '/messages/media', '/upload/media'],
     ensureAuthenticated,
+    uploadRateLimiter,
     (req: Request, res: Response, next) => {
         uploadChatMediaMulter.single('file')(req, res, (err: any) => {
             if (err) {
@@ -979,6 +1005,23 @@ routes.post('/dms/:otherUserId', ensureAuthenticated, async (req: Request, res: 
 
         if (!senderId || isNaN(receiverId)) {
             return res.status(400).json({ error: 'IDs de usuário inválidos.' });
+        }
+
+        if (senderId === receiverId) {
+            return res.status(400).json({ error: 'Você não pode enviar mensagem direta para si mesmo.' });
+        }
+
+        // Validação de segurança: verifica se há bloqueio mútuo ativo
+        const blockCheck = await pool.query(
+            `SELECT status FROM friendships 
+             WHERE ((user_id_1 = $1 AND user_id_2 = $2) OR (user_id_1 = $2 AND user_id_2 = $1)) 
+               AND status = 'blocked'
+             LIMIT 1`,
+            [senderId, receiverId]
+        );
+
+        if (blockCheck.rows.length > 0) {
+            return res.status(403).json({ error: 'Comunicação bloqueada: você não pode enviar mensagens para este usuário.' });
         }
 
         const sanitizedContent = sanitizePlainText(content);
@@ -1041,7 +1084,7 @@ routes.post('/servers/:serverId/invites', ensureAuthenticated, ensureServerMembe
 });
 
 // Visualizar detalhes de um convite / Preview (GET /invites/:code)
-routes.get('/invites/:code', async (req: Request, res: Response) => {
+routes.get('/invites/:code', inviteRateLimiter, async (req: Request, res: Response) => {
     try {
         const codeParam = req.params.code;
         const code = Array.isArray(codeParam) ? codeParam[0] : codeParam;
@@ -1286,7 +1329,7 @@ routes.post('/admin/users/:targetUserId/ban', ensureAuthenticated, ensureSuperAd
 // Forçar Redefinição de Senha (POST /admin/users/:targetUserId/force-password-reset)
 // Arquitetura Zero-Trust: gera token/senha temporária criptográfica, hashea com bcrypt antes de salvar no banco
 // e retorna a senha temporária em texto puro apenas UMA ÚNICA VEZ nesta resposta.
-routes.post('/admin/users/:targetUserId/force-password-reset', ensureAuthenticated, ensureSuperAdmin, async (req: Request, res: Response) => {
+routes.post('/admin/users/:targetUserId/force-password-reset', ensureAuthenticated, ensureSuperAdmin, adminResetLimiter, async (req: Request, res: Response) => {
     try {
         const superAdminId = Number(req.userId);
         const targetUserId = Number(req.params.targetUserId);
@@ -1298,6 +1341,11 @@ routes.post('/admin/users/:targetUserId/force-password-reset', ensureAuthenticat
         const targetUser = await findUserById(targetUserId);
         if (!targetUser) {
             return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+
+        // 🔒 Proteção contra escalada/abuso entre contas de super administradores
+        if (targetUser.is_super_admin) {
+            return res.status(403).json({ error: 'Não é permitido forçar redefinição de senha de outro Super Admin.' });
         }
 
         // 1. Gera token/senha temporária criptográfica única de alta entropia (Zero-Trust)
@@ -1315,6 +1363,18 @@ routes.post('/admin/users/:targetUserId/force-password-reset', ensureAuthenticat
         }
 
         console.log(`🔐 [Zero-Trust Password Reset] Senha temporária gerada e hasheada com bcrypt para o usuário [${targetUserId} - ${targetUser.username}] pelo Super Admin [${superAdminId}]`);
+
+        // Notifica sockets ativos do usuário que a senha foi alterada para forçar logout
+        try {
+            const { io } = require('./server');
+            if (io) {
+                io.to(`user_${targetUserId}`).emit('session-expired', {
+                    message: 'Sua senha foi redefinida por um administrador. Faça login novamente.'
+                });
+            }
+        } catch (sockErr) {
+            // Silencioso
+        }
 
         // 4. Retorna a senha temporária apenas UMA VEZ na resposta para repasse seguro
         return res.status(200).json({

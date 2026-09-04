@@ -7,9 +7,17 @@ dotenv.config();
 
 const connectionString = process.env.DATABASE_URL;
 
-// 🔒 SEC-05: Sanitizador Anti-XSS para mensagens e dados de texto puro
-export function sanitizePlainText(str: string): string {
-    return String(str || '').replace(/<[^>]*>?/gm, '').trim();
+// 🔒 SEC-05: Sanitizador Anti-XSS para mensagens e dados de texto puro com encoding seguro
+export function sanitizePlainText(str: unknown): string {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/<[^>]*>?/gm, '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .trim();
 }
 
 // Configuração do pool de conexões do PostgreSQL (Supabase / Render)
@@ -106,10 +114,7 @@ export async function initDb() {
             END $$;
         `);
 
-        // Garante que o usuário inicial (id: 1) tenha cargo Admin e privilégios de Super Admin
-        await pool.query(`
-            UPDATE users SET role_id = 1, is_super_admin = TRUE WHERE id = 1;
-        `);
+        // Removida concessão automática de Super Admin para usuário inicial id: 1 por segurança (Princípio de Menor Privilégio)
 
         // 2. Tabela de Servidores/Comunidades (Servers)
         await pool.query(`
@@ -1340,6 +1345,19 @@ export async function saveDirectMessage(
     if (isNaN(numSender) || isNaN(numReceiver)) throw new Error('IDs de remetente ou destinatário inválidos');
     if (!safeContent && !safeMediaUrl) throw new Error('A mensagem deve conter texto ou uma mídia em anexo');
 
+    // Validação de segurança: verifica se há bloqueio mútuo ativo entre os usuários
+    const blockCheck = await pool.query(
+        `SELECT status FROM friendships 
+         WHERE ((user_id_1 = $1 AND user_id_2 = $2) OR (user_id_1 = $2 AND user_id_2 = $1)) 
+           AND status = 'blocked'
+         LIMIT 1`,
+        [numSender, numReceiver]
+    );
+
+    if (blockCheck.rows.length > 0) {
+        throw new Error('Comunicação bloqueada: não é possível enviar mensagens para este usuário.');
+    }
+
     const res = await pool.query(
         `INSERT INTO direct_messages (sender_id, receiver_id, content, media_url, created_at)
          VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
@@ -1424,7 +1442,8 @@ export async function canUserAccessChannel(userId: number | null | undefined, ch
         }
     }
 
-    return true;
+    // Princípio do Menor Privilégio e Default Deny: canais desconhecidos são negados por padrão
+    return false;
 }
 
 // ==========================================
