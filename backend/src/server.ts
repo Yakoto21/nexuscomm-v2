@@ -32,10 +32,25 @@ const defaultAllowedOrigins = [
 const envAllowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()) : [];
 const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigins])];
 
+export const isOriginAllowed = (origin: string | undefined): boolean => {
+    // Permite requisições sem origin (desktop apps Electron nativo, ferramentas locais e same-origin)
+    if (!origin) return true;
+    if (allowedOrigins.includes(origin)) return true;
+    try {
+        const url = new URL(origin);
+        // Permite localhost e 127.0.0.1 em qualquer porta para desenvolvimento e testes
+        if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return true;
+        // Permite redes locais privadas (LAN)
+        if (url.hostname.startsWith('192.168.') || url.hostname.startsWith('10.') || url.hostname.endsWith('.local')) return true;
+    } catch {
+        return false;
+    }
+    return false;
+};
+
 const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
-        // Permite requisições sem origin (desktop apps Electron nativo, ferramentas locais e same-origin)
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (isOriginAllowed(origin)) {
             callback(null, true);
         } else {
             console.warn(`⛔ [CORS Bloqueado] Origem não autorizada tentou conexão: ${origin}`);
@@ -123,11 +138,11 @@ app.get('/api/status', (_req, res) => {
 // Cria o servidor HTTP integrando com o Express
 const httpServer = http.createServer(app);
 
-// Inicializa o Server do Socket.IO com CORS restrito à whitelist
+// Inicializa o Server do Socket.IO com CORS restrito e suporte a dev
 const io = new Server(httpServer, {
     cors: {
         origin: (origin, callback) => {
-            if (!origin || allowedOrigins.includes(origin)) {
+            if (isOriginAllowed(origin)) {
                 callback(null, true);
             } else {
                 callback(new Error('Bloqueado por política CORS'));
@@ -139,14 +154,32 @@ const io = new Server(httpServer, {
 });
 
 // Helper de segurança: valida se dois sockets compartilham ao menos uma sala antes de trafegar sinalização WebRTC
-function canSocketsCommunicate(socketA: any, socketIdB: string): boolean {
+function canSocketsCommunicate(socketA: any, socketIdB: string, expectedRoom?: string): boolean {
     if (!socketA || !socketIdB) return false;
     const targetSocket = io.sockets.sockets.get(socketIdB);
     if (!targetSocket) return false;
 
-    for (const room of socketA.rooms) {
-        if (room !== socketA.id && !room.startsWith('user_') && targetSocket.rooms.has(room)) {
+    // 1. Se uma sala foi informada explicitamente, valida se ambos estão nela
+    if (expectedRoom && !expectedRoom.startsWith('user_')) {
+        if (socketA.rooms.has(expectedRoom) && targetSocket.rooms.has(expectedRoom)) {
             return true;
+        }
+        const roomSet = io.sockets.adapter.rooms.get(expectedRoom);
+        if (roomSet && roomSet.has(socketA.id) && roomSet.has(socketIdB)) {
+            return true;
+        }
+    }
+
+    // 2. Valida salas compartilhadas entre os dois sockets
+    for (const room of socketA.rooms) {
+        if (room !== socketA.id && !room.startsWith('user_')) {
+            if (targetSocket.rooms.has(room)) {
+                return true;
+            }
+            const roomSet = io.sockets.adapter.rooms.get(room);
+            if (roomSet && roomSet.has(socketIdB)) {
+                return true;
+            }
         }
     }
     return false;
@@ -500,7 +533,7 @@ io.on('connection', (socket) => {
         };
 
         if (data.target) {
-            if (!canSocketsCommunicate(socket, data.target)) {
+            if (!canSocketsCommunicate(socket, data.target, data.room)) {
                 console.warn(`⛔ [WebRTC Spoofing Bloqueado] Socket ${socket.id} tentou emitir offer para ${data.target} fora de sala compartilhada.`);
                 return;
             }
@@ -517,11 +550,12 @@ io.on('connection', (socket) => {
         const payload = {
             answer: data.answer || data,
             sender: socket.id,
+            username: username,
             room: data.room
         };
 
         if (data.target) {
-            if (!canSocketsCommunicate(socket, data.target)) {
+            if (!canSocketsCommunicate(socket, data.target, data.room)) {
                 console.warn(`⛔ [WebRTC Spoofing Bloqueado] Socket ${socket.id} tentou emitir answer para ${data.target} fora de sala compartilhada.`);
                 return;
             }
@@ -542,7 +576,7 @@ io.on('connection', (socket) => {
         };
 
         if (data.target) {
-            if (!canSocketsCommunicate(socket, data.target)) {
+            if (!canSocketsCommunicate(socket, data.target, data.room)) {
                 return;
             }
             io.to(data.target).emit('ice-candidate', payload);
@@ -757,7 +791,38 @@ io.on('connection', (socket) => {
         socket.join(`user_${userId}`);
         onlineUsersMap.set(socket.id, userId);
         
-        // Notifica presença online para todos
+        // 1. Envia imediatamente a lista de usuários online para o próprio socket recém-conectado
+        const uniqueOnlineUserIds = Array.from(new Set(Array.from(onlineUsersMap.values())));
+        socket.emit('online-users-list', uniqueOnlineUserIds);
+
+        // 2. Envia a presença atual consolidada de todos os canais de voz ativos
+        const allPresence: any[] = [];
+        for (const [vRoom, pMap] of voiceRoomsPresenceMap.entries()) {
+            if (pMap.size > 0) {
+                const participantsList = Array.from(pMap.values());
+                const firstP = participantsList[0];
+                allPresence.push({
+                    room: vRoom,
+                    channelId: firstP?.channelId || vRoom,
+                    channelName: firstP?.channelName || '',
+                    serverId: firstP?.serverId || null,
+                    participants: participantsList.map(p => ({
+                        id: p.id,
+                        socketId: p.socketId,
+                        username: p.username,
+                        displayName: p.displayName,
+                        avatarUrl: p.avatarUrl,
+                        isMuted: Boolean(p.isMuted),
+                        isDeafened: Boolean(p.isDeafened)
+                    }))
+                });
+            }
+        }
+        if (allPresence.length > 0) {
+            socket.emit('voice-channel-presence-sync', allPresence);
+        }
+
+        // 3. Notifica presença online para todos
         io.emit('user-presence', {
             userId: userId,
             status: 'online'

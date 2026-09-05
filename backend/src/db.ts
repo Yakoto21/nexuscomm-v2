@@ -1385,35 +1385,75 @@ export async function canUserAccessChannel(userId: number | null | undefined, ch
     const channelStr = String(channelIdentifier || '').trim();
     if (!channelStr) return false;
 
-    // Se for sala sandbox pública padrão sem servidor
+    // 1. Se for sala sandbox pública padrão sem servidor
     if (channelStr === 'sala-publica' || channelStr === 'geral-publico') {
         return true;
     }
 
-    // Tenta identificar se o channelIdentifier é o ID numérico do canal
-    const numericChannelId = parseInt(channelStr.replace(/^channel_/, ''), 10);
-    
-    if (!isNaN(numericChannelId)) {
-        const res = await pool.query(
-            `SELECT c.server_id, s.dono_id, sm.user_id AS member_id
-             FROM channels c
-             LEFT JOIN servers s ON c.server_id = s.id
-             LEFT JOIN server_members sm ON (c.server_id = sm.server_id AND sm.user_id = $1)
-             WHERE c.id = $2`,
-            [userId, numericChannelId]
-        );
-
-        if (res.rows.length > 0) {
-            const row = res.rows[0];
-            // Se o canal pertence a um servidor, o usuário DEVE ser o dono ou membro
-            if (row.server_id !== null && row.server_id !== undefined) {
-                return row.dono_id === userId || row.member_id === userId;
+    // 2. Para salas dinâmicas criadas em tempo de execução para chamadas privadas (ex: dm_call_X_Y)
+    if (channelStr.startsWith('dm_call_')) {
+        const parts = channelStr.replace('dm_call_', '').split('_');
+        if (parts.length === 2) {
+            const u1 = parseInt(parts[0], 10);
+            const u2 = parseInt(parts[1], 10);
+            if (!isNaN(u1) && !isNaN(u2)) {
+                return userId === u1 || userId === u2;
             }
-            return true;
         }
     }
 
-    // Se a sala for referenciada pelo nome e pertencer a servidores
+    // 3. Sala pessoal do usuário (ex: user_1)
+    if (channelStr.startsWith('user_')) {
+        const targetUserId = parseInt(channelStr.replace('user_', ''), 10);
+        return userId === targetUserId;
+    }
+
+    // 4. Canais e salas de comunidades/servidores (ex: comunidade-1-voz-Geral, comunidade-1-txt-Geral, comunidade-1)
+    const comunidadeMatch = channelStr.match(/^comunidade-(\d+)/);
+    if (comunidadeMatch) {
+        const serverId = parseInt(comunidadeMatch[1], 10);
+        if (!isNaN(serverId)) {
+            const res = await pool.query(
+                `SELECT s.dono_id, sm.user_id AS member_id
+                 FROM servers s
+                 LEFT JOIN server_members sm ON (s.id = sm.server_id AND sm.user_id = $1)
+                 WHERE s.id = $2`,
+                [userId, serverId]
+            );
+
+            if (res.rows.length > 0) {
+                const row = res.rows[0];
+                return row.dono_id === userId || row.member_id === userId;
+            }
+        }
+        return false;
+    }
+
+    // 5. Tenta identificar se o channelIdentifier é o ID numérico do canal (ex: 5 ou "channel_5")
+    if (/^(?:channel_)?\d+$/.test(channelStr)) {
+        const numericChannelId = parseInt(channelStr.replace(/^channel_/, ''), 10);
+        if (!isNaN(numericChannelId)) {
+            const res = await pool.query(
+                `SELECT c.server_id, s.dono_id, sm.user_id AS member_id
+                 FROM channels c
+                 LEFT JOIN servers s ON c.server_id = s.id
+                 LEFT JOIN server_members sm ON (c.server_id = sm.server_id AND sm.user_id = $1)
+                 WHERE c.id = $2`,
+                [userId, numericChannelId]
+            );
+
+            if (res.rows.length > 0) {
+                const row = res.rows[0];
+                // Se o canal pertence a um servidor, o usuário DEVE ser o dono ou membro
+                if (row.server_id !== null && row.server_id !== undefined) {
+                    return row.dono_id === userId || row.member_id === userId;
+                }
+                return true;
+            }
+        }
+    }
+
+    // 6. Se a sala for referenciada pelo nome exato cadastrado no banco de dados
     const nameRes = await pool.query(
         `SELECT c.server_id, s.dono_id, sm.user_id AS member_id
          FROM channels c
@@ -1430,16 +1470,6 @@ export async function canUserAccessChannel(userId: number | null | undefined, ch
             return row.dono_id === userId || row.member_id === userId;
         });
         return allowedInAny;
-    }
-
-    // Para salas dinâmicas criadas em tempo de execução que não estão no banco (ex: dm_call_X_Y)
-    if (channelStr.startsWith('dm_call_')) {
-        const parts = channelStr.replace('dm_call_', '').split('_');
-        if (parts.length === 2) {
-            const u1 = parseInt(parts[0], 10);
-            const u2 = parseInt(parts[1], 10);
-            return userId === u1 || userId === u2;
-        }
     }
 
     // Princípio do Menor Privilégio e Default Deny: canais desconhecidos são negados por padrão

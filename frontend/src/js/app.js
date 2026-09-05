@@ -514,11 +514,14 @@
 
         socket.off('authenticated').on('authenticated', (data) => {
             console.log('✅ Identidade confirmada pelo servidor:', data);
-            if (data.username && !currentUser) {
-                currentUser = { username: data.username, id: data.userId };
+            if (data) {
+                if (!currentUser) currentUser = {};
+                if (data.userId) currentUser.id = Number(data.userId);
+                if (data.username) currentUser.username = data.username;
                 updateCurrentUserUI(currentUser);
             }
             if (socket.connected) {
+                socket.emit('get-online-users');
                 socket.emit('get-voice-channel-presence', { serverId: activeServerId });
             }
         });
@@ -1619,6 +1622,7 @@
             // 2. Atualiza estado e interface do usuário
             try {
                 currentUser = user || currentUser || { username: localStorage.getItem('nexuscomm_username') || 'Usuário' };
+                if (user?.id) currentUser.id = Number(user.id);
                 updateCurrentUserUI(currentUser);
             } catch (uiErr) {
                 console.warn('Aviso ao atualizar UI do usuário:', uiErr);
@@ -1636,11 +1640,12 @@
                 console.warn('Aviso ao conectar Socket.IO:', sockErr);
             }
 
-            // 4. Busca lista isolada de servidores
+            // 4. Busca lista isolada de servidores e amigos
             try {
                 fetchServersList();
+                fetchFriendsList();
             } catch (srvErr) {
-                console.warn('Aviso ao buscar lista de servidores:', srvErr);
+                console.warn('Aviso ao buscar lista de servidores ou amigos:', srvErr);
             }
 
             // 5. 🔔 Solicita permissão de Notificações do Navegador (Sprint 7)
@@ -4732,10 +4737,34 @@
             if (socketDot) socketDot.classList.add('connected');
             if (socketStatusText) socketStatusText.innerText = `Socket: Conectado (${socket.id.substring(0, 6)}...)`;
 
-            // Reassocia à sala ativa se houver
-            if (currentRoom) {
+            // Sincroniza presença de usuários online e de canais de voz
+            socket.emit('get-online-users');
+            socket.emit('get-voice-channel-presence', { serverId: activeServerId });
+
+            // Reassocia à sala de texto ativa se houver
+            if (currentTextRoom) {
+                console.log(`💬 [Socket.IO Reconexão] Reingressando no canal de texto: "${currentTextRoom}"`);
+                socket.emit('join-room', currentTextRoom);
+            } else if (currentRoom) {
                 console.log(`🚪 [Socket.IO Reconexão] Reingressando na sala: "${currentRoom}"`);
                 socket.emit('join-room', currentRoom);
+            }
+
+            // Reassocia ao canal de voz ativo se houver
+            if (currentVoiceRoom && activeVoiceChannelObj) {
+                console.log(`🎙️ [Socket.IO Reconexão] Reingressando no canal de voz: "${currentVoiceRoom}"`);
+                socket.emit('join-room', {
+                    room: currentVoiceRoom,
+                    channelId: activeVoiceChannelObj.id,
+                    channelName: activeVoiceChannelObj.nome,
+                    serverId: activeServerId,
+                    isVoice: true,
+                    avatarUrl: currentUser?.avatar_url,
+                    displayName: currentUser?.display_name || currentUser?.username
+                });
+            } else if (isPrivateCallActive && privateCallRoom) {
+                console.log(`📞 [Socket.IO Reconexão] Reingressando na chamada privada: "${privateCallRoom}"`);
+                socket.emit('join-room', privateCallRoom);
             }
 
             // Despacha mensagens pendentes acumuladas na Message Queue
